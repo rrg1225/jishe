@@ -1,12 +1,18 @@
 package com.example.student.university_career_platform.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
 
+@Setter
+@Getter
 @Entity
 @Table(name = "users")
 public class User {
 
+    // ====== 下面是 Getter 和 Setter 方法 (千万别漏了) ======
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -29,7 +35,6 @@ public class User {
 
     private String gender;
 
-    @Column(length = 255) // 签名长一点
     private String bio; // 个性签名
 
     @Column(nullable = false)
@@ -63,59 +68,4 @@ public class User {
         this.gmtModified = LocalDateTime.now();
     }
 
-    // ====== 下面是 Getter 和 Setter 方法 (千万别漏了) ======
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    public String getPhone() { return phone; }
-    public void setPhone(String phone) { this.phone = phone; }
-
-    public String getPassword() { return password; }
-    public void setPassword(String password) { this.password = password; }
-
-    public String getRole() { return role; }
-    public void setRole(String role) { this.role = role; }
-
-    public String getNickName() { return nickName; }
-    public void setNickName(String nickname) { this.nickName = nickName; }
-
-    public String getAvatar() { return avatar; }
-    public void setAvatar(String avatar) { this.avatar = avatar; }
-
-    public String getOrg() { return org; }
-    public void setOrg(String org) { this.org = org; }
-
-    public Integer getAge() {
-        return age;
-    }
-
-    public void setAge(Integer age) {
-        this.age = age;
-    }
-
-    public String getGender() {
-        return gender;
-    }
-
-    public void setGender(String gender) {
-        this.gender = gender;
-    }
-
-    public String getBio() { return bio; }
-    public void setBio(String bio) { this.bio = bio; }
-
-    public Integer getFollowers() { return followers; }
-    public void setFollowers(Integer followers) { this.followers = followers; }
-
-    public Integer getFollowing() { return following; }
-    public void setFollowing(Integer following) { this.following = following; }
-
-    public Integer getLikes() { return likes; }
-    public void setLikes(Integer likes) { this.likes = likes; }
-
-    public LocalDateTime getGmtCreated() { return gmtCreated; }
-    public void setGmtCreated(LocalDateTime gmtCreated) { this.gmtCreated = gmtCreated; }
-
-    public LocalDateTime getGmtModified() { return gmtModified; }
-    public void setGmtModified(LocalDateTime gmtModified) { this.gmtModified = gmtModified; }
 }

@@ -2,59 +2,49 @@ package com.example.student.university_career_platform.utils;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.security.Key;
+import javax.crypto.SecretKey;
 import java.util.Date;
 
-@Component // 让 Spring 帮我们管理这个工具类
+@Component
 public class JwtUtil {
+    // 32字节密钥，适配 HMAC-SHA256
+    private static final String SECRET = "12345678901234567890123456789012";
+    private static final long EXPIRATION_MS = 86400000; // 24小时
 
-    // 从 application.properties 中读取密钥和过期时间
-    @Value("${jwt.secret}")
-    private String secret;
+    // 0.12.x 标准密钥生成方式
+    private static final SecretKey SECRET_KEY = Keys.hmacShaKeyFor(SECRET.getBytes());
 
-    @Value("${jwt.expiration}")
-    private Long expiration;
-
-    // 生成加密的 Key
-    private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(secret.getBytes());
-    }
-
-    /**
-     * 根据用户的手机号生成 Token
-     */
+    // 生成 Token（0.12.x 仅支持 subject()）
     public String generateToken(String phone) {
         return Jwts.builder()
-                .setSubject(phone) // 把手机号存进 Token
-                .setIssuedAt(new Date()) // 签发时间
-                .setExpiration(new Date(System.currentTimeMillis() + expiration)) // 过期时间
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256) // 使用 HS256 算法加密
+                .subject(phone)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + EXPIRATION_MS))
+                .signWith(SECRET_KEY)
                 .compact();
     }
 
-    /**
-     * 从 Token 中解析出手机号
-     */
+    // 提取手机号（0.12.x 必须用 parser() -> verifyWith() -> build()）
     public String extractPhone(String token) {
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
+        // 注意：Jwts.parser() 返回的是 JwtParserBuilder，所以需要先调用 verifyWith() 和 build()
+        Claims claims = Jwts.parser()
+                .verifyWith(SECRET_KEY)
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseSignedClaims(token)
+                .getPayload();
         return claims.getSubject();
     }
 
-    /**
-     * 验证 Token 是否合法且未过期
-     */
+    // 校验 Token
     public boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token);
+            Jwts.parser()
+                    .verifyWith(SECRET_KEY)
+                    .build()
+                    .parseSignedClaims(token);
             return true;
         } catch (Exception e) {
             return false;

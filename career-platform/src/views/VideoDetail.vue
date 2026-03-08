@@ -29,11 +29,13 @@
           </video>
         </div>
 
-        <div class="video-toolbar">
-          <div class="action-btn"><span class="emoji">👍</span> 点赞 5.2万</div>
-          <div class="action-btn"><span class="emoji">🪙</span> 投币 4.1万</div>
-          <div class="action-btn"><span class="emoji">⭐</span> 收藏 8.8万</div>
-          <div class="action-btn"><span class="emoji">↪️</span> 分享</div>
+<div class="video-toolbar">
+          <div class="action-btn" :class="{ 'liked-text': isLiked }" @click="toggleLike">
+            <span class="emoji">{{ isLiked ? '💖' : '🤍' }}</span> 
+            点赞 {{ likeCount }}
+          </div>
+          <div class="action-btn"><span class="emoji">🪙</span> 投币</div>
+          <div class="action-btn"><span class="emoji">⭐</span> 收藏</div>
         </div>
 
         <div class="video-desc">
@@ -41,25 +43,29 @@
           <br> 如果觉得有用，请务必给个一键三连支持一下！
         </div>
 
-        <div class="comment-section">
-          <h3>评论 <span class="comment-count">1024</span></h3>
+   <div class="comment-section">
+          <h3>评论 <span class="comment-count">{{ commentList.length }}</span></h3>
           <div class="comment-input-box">
             <img class="my-avatar" src="https://api.dicebear.com/7.x/adventurer/svg?seed=me" alt="">
-            <textarea placeholder="发一条友善的评论吧..."></textarea>
-            <button class="send-btn">发表评论</button>
+            <textarea placeholder="发一条友善的评论吧..." v-model="newCommentContent"></textarea>
+            <button class="send-btn" @click="submitComment">发表评论</button>
           </div>
+          
           <div class="comment-list">
-            <div class="comment-item" v-for="i in 5" :key="i">
-              <div class="c-avatar">👦</div>
+            <div class="comment-item" v-for="item in commentList" :key="item.id">
+              <img class="c-avatar" :src="item.authorAvatar || 'https://api.dicebear.com/7.x/adventurer/svg?seed=default'" alt="">
               <div class="c-content">
-                <div class="c-name">热心网友_{{ i }}</div>
-                <div class="c-text">太硬核了！正好毕设要做这个，简直是救命稻草！</div>
-                <div class="c-meta">昨天 18:00 | 回复</div>
+                <div class="c-name">{{ item.authorName }}</div>
+                <div class="c-text">{{ item.content }}</div>
+                <div class="c-meta">{{ formatDate(item.createTime) }} | 回复</div>
               </div>
+            </div>
+            
+            <div v-if="commentList.length === 0" style="color: #999; text-align: center; padding: 20px;">
+              还没有人评论，快来抢沙发吧！
             </div>
           </div>
         </div>
-
       </div>
 
       <div class="right-col">
@@ -102,20 +108,88 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
+import request from '../utils/request'
 
 const route = useRoute()
-const router = useRouter()
 
-// 定义响应式变量，用来存放接收到的标题和作者
+// 视频基础信息
 const videoTitle = ref('')
 const videoAuthor = ref('')
 
+// === 点赞系统状态 ===
+const likeCount = ref(0)
+const isLiked = ref(false)
+
+// === 评论系统状态 ===
+const commentList = ref([])
+const newCommentContent = ref('')
+
 onMounted(() => {
-  // 从路由的 query 参数中提取数据，如果没有就用默认值兜底
-  videoTitle.value = route.query.title || '【默认】如何用 Vue3 + SpringBoot 搭建全栈项目？'
-  videoAuthor.value = route.query.author || '全栈小导师 ⚡'
+  // 我们暂时用传过来的视频标题作为该视频在数据库里的唯一ID（targetId）
+  videoTitle.value = route.query.title || '【默认测试视频】'
+  videoAuthor.value = route.query.author || '全栈小导师'
+  
+  // 页面加载时，拉取点赞状态和评论列表
+  fetchLikeStatus()
+  fetchComments()
 })
+
+// 1. 获取点赞状态
+const fetchLikeStatus = async () => {
+  try {
+    const res = await request.get(`/api/interaction/like/status?targetId=${videoTitle.value}`)
+    likeCount.value = res.totalLikes
+    isLiked.value = res.isLiked
+  } catch (error) {
+    console.error('获取点赞状态失败', error)
+  }
+}
+
+// 2. 点击点赞按钮
+const toggleLike = async () => {
+  try {
+    await request.post(`/api/interaction/like/toggle?targetId=${videoTitle.value}`)
+    // 操作成功后，重新查一次最新点赞数
+    fetchLikeStatus()
+  } catch (error) {
+    alert('请先登录后再点赞！')
+  }
+}
+
+// 3. 拉取评论列表
+const fetchComments = async () => {
+  try {
+    const res = await request.get(`/api/interaction/comments?targetId=${videoTitle.value}`)
+    commentList.value = res
+  } catch (error) {
+    console.error('获取评论失败', error)
+  }
+}
+
+// 4. 发表新评论
+const submitComment = async () => {
+  if (!newCommentContent.value.trim()) return alert('评论内容不能为空！')
+  
+  try {
+    await request.post('/api/interaction/comment', {
+      targetId: videoTitle.value,
+      content: newCommentContent.value
+    })
+    alert('评论成功！')
+    newCommentContent.value = '' // 清空输入框
+    fetchComments() // 重新拉取评论列表，让新评论立刻显示出来！
+  } catch (error) {
+    alert('评论失败，请确认是否已登录。')
+  }
+}
+
+// 辅助函数：格式化时间
+const formatDate = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return `${date.getMonth() + 1}-${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`
+}
 </script>
 
 <style scoped>
@@ -192,4 +266,6 @@ onMounted(() => {
 .c-name { font-size: 13px; color: #fb7299; font-weight: 500; margin-bottom: 8px; }
 .c-text { font-size: 15px; color: #18191c; line-height: 1.5; margin-bottom: 10px; }
 .c-meta { font-size: 12px; color: #9499a0; }
+.liked-text { color: #fb7299 !important; font-weight: bold; }
+.c-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
 </style>

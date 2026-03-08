@@ -124,10 +124,41 @@
           <p class="subtitle">基于你的经历，AI 动态生成的个人雷达图</p>
           <div class="profile-demo">
             <div class="radar-placeholder">🎯 雷达图表区域 (开发中)</div>
-            <button class="export-btn">一键生成专属简历模板</button>
+            <button class="export-btn" @click="openResumeDialog">一键生成专属简历模板</button>
           </div>
         </section>
-      </main>
+
+        <div v-if="isResumeDialogOpen" class="modal-overlay">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3>✨ 智谱 AI 专属简历定制</h3>
+              <span class="close-modal" @click="closeResumeDialog">✖</span>
+            </div>
+            
+            <div class="modal-body">
+              <p class="desc">请详细描述您的基本信息、技能栈、做过的项目以及对排版的要求，AI 将为您量身定制：</p>
+              <textarea
+                v-model="resumePrompt"
+                rows="6"
+                placeholder="例如：我叫张三，熟悉 Java 和 Vue，做过一个电商管理系统。请帮我生成一份适合投递大厂全栈工程师的简历，语气要专业..."
+                :disabled="isGenerating"
+              ></textarea>
+              
+              <div v-if="generatedResume" class="result-area">
+                <p class="success-tip">✅ 生成成功！</p>
+                <div class="resume-output">{{ generatedResume }}</div>
+              </div>
+            </div>
+
+            <div class="modal-footer">
+              <button class="cancel-btn" @click="closeResumeDialog" :disabled="isGenerating">取消</button>
+              <button class="submit-btn" @click="generateResume" :disabled="isGenerating || !resumePrompt.trim()">
+                {{ isGenerating ? '大模型正在奋笔疾书中...' : '🚀 开始生成' }}
+              </button>
+            </div>
+          </div>
+        </div>
+        </main>
     </div>
   </div>
 </template>
@@ -135,15 +166,13 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-// 引入 axios 请求工具
-import request from '../utils/request'
+import request from '../utils/request' // 确保你的路径正确
 
 const router = useRouter()
 const userRole = ref('student')
 const userName = ref('加载中...')
 const userAccount = ref('加载中...') 
 const userOrg = ref('加载中...') 
-// 新增一个动态头像变量，给个默认占位图
 const userAvatar = ref('https://api.dicebear.com/7.x/avataaars/svg?seed=Felix')
 
 const activeMenu = ref('home')
@@ -152,29 +181,24 @@ const isDropdownOpen = ref(false)
 const toggleDropdown = () => isDropdownOpen.value = !isDropdownOpen.value
 const closeDropdown = () => isDropdownOpen.value = false
 
-// 编写去后端拉取最新数据的函数
 const fetchHeaderUserInfo = async () => {
   try {
     const res = await request.get('/api/user/info')
     if (res) {
-      // 从后端拿到真实数据后，立刻替换掉页面上的文字和图片
       userName.value = res.nickname || res.nickName || '未命名用户'
       userAccount.value = res.phone || '未绑定手机号'
       userOrg.value = res.org || (userRole.value === 'student' ? '未填写学校' : '未填写企业')
       userAvatar.value = res.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix'
       
-      // 同步更新一下本地缓存，防止刷新时闪烁
       localStorage.setItem('userName', userName.value)
       localStorage.setItem('userOrg', userOrg.value)
     }
   } catch (error) {
     console.error('获取顶部导航栏信息失败:', error)
-    // 如果获取失败（比如 token 过期），保留本地缓存的兜底数据
     fallbackToLocalData()
   }
 }
 
-// 兜底方案：如果网络断了，还能显示本地的旧数据
 const fallbackToLocalData = () => {
   const savedOrg = localStorage.getItem('userOrg')
   userOrg.value = savedOrg || (userRole.value === 'student' ? '未知学校' : '未知企业')
@@ -185,10 +209,7 @@ const fallbackToLocalData = () => {
 }
 
 onMounted(() => {
-  // 1. 先从本地拿角色（控制显示是学生还是HR）
   userRole.value = localStorage.getItem('userRole') || 'student'
-  
-  // 2. 页面一加载，立刻去后台查当前登录人的真实资料！
   fetchHeaderUserInfo()
 })
 
@@ -199,7 +220,7 @@ const goToProfile = () => {
 
 const logout = () => {
   closeDropdown()
-  localStorage.removeItem('token') // 退出时务必清空 token
+  localStorage.removeItem('token')
   localStorage.removeItem('userRole')
   localStorage.removeItem('userName')
   localStorage.removeItem('userOrg')
@@ -208,7 +229,6 @@ const logout = () => {
 
 const publishJob = () => alert('弹出发布招聘信息的表单（待开发）')
 
-// 首页的硬编码数据保持不变
 const homeData = ref([
   {
     title: '🎓 学业深造推荐',
@@ -251,33 +271,64 @@ const homeData = ref([
     ]
   }
 ])
-// 处理卡片点击事件
+
 const handleCardClick = (item) => {
   if (item.type === 'video') {
     router.push({
       path: '/video',
-      query: {
-        title: item.title,
-        author: item.author || '平台官方'
-      }
+      query: { title: item.title, author: item.author || '平台官方' }
     })
   } else if (item.type === 'article') {
-    // 🌟 核心修改：如果是文章，则跳转到文章页，并携带参数
     router.push({
       path: '/article',
-      query: {
-        title: item.title,
-        author: item.author || '专栏作家'
-      }
+      query: { title: item.title, author: item.author || '专栏作家' }
     })
   } else if (item.type === 'template') {
     alert(`即将下载简历模板：${item.title} (待开发)`)
   }
 }
+
+// ================= 新增：AI 简历生成相关逻辑 =================
+const isResumeDialogOpen = ref(false)
+const resumePrompt = ref('')
+const isGenerating = ref(false)
+const generatedResume = ref('')
+
+const openResumeDialog = () => {
+  isResumeDialogOpen.value = true
+}
+
+const closeResumeDialog = () => {
+  if (isGenerating.value) return 
+  isResumeDialogOpen.value = false
+}
+
+const generateResume = async () => {
+  if (!resumePrompt.value.trim()) return
+  
+  isGenerating.value = true
+  generatedResume.value = '' 
+  
+  try {
+    const res = await request.post('/api/resume/zhipu/generate', {
+      requirements: resumePrompt.value
+    })
+    
+    // 如果返回的是 axios 的完整 response，应取 res.data；如果你封装了拦截器直接返回 data，就直接用 res
+    generatedResume.value = res.data || res || res.data?.data 
+    
+  } catch (error) {
+    console.error('简历生成失败:', error)
+    alert('AI 生成开小差了，请稍后重试！')
+  } finally {
+    isGenerating.value = false
+  }
+}
+// =====================================================
 </script>
 
 <style scoped>
-/* =========== 你的原版样式一字未动 =========== */
+/* 原版样式保持不动 */
 .layout { display: flex; flex-direction: column; height: 100vh; width: 100vw; background: #f5f7fa; }
 .header { height: 60px; background: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); z-index: 10; }
 .logo { font-size: 20px; font-weight: bold; color: #4a90e2; }
@@ -350,4 +401,56 @@ const handleCardClick = (item) => {
 .export-btn { background: #4a90e2; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; }
 .fade-in { animation: fadeIn 0.4s ease-in-out; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ================= 新增：弹窗样式 ================= */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(2px);
+  display: flex; justify-content: center; align-items: center; z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+.modal-content {
+  background: #fff; width: 650px; max-width: 90%; border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.15); display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.modal-header {
+  padding: 18px 24px; background: #f8fafc; border-bottom: 1px solid #e2e8f0;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.modal-header h3 { margin: 0; font-size: 18px; color: #1e293b; }
+.close-modal { cursor: pointer; color: #94a3b8; font-size: 16px; transition: 0.2s; }
+.close-modal:hover { color: #ef4444; transform: scale(1.1); }
+.modal-body { padding: 24px; max-height: 60vh; overflow-y: auto; }
+.desc { margin: 0 0 12px 0; color: #64748b; font-size: 14px; }
+.modal-body textarea {
+  width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px;
+  font-family: inherit; font-size: 14px; resize: vertical; outline: none; transition: 0.2s;
+  box-sizing: border-box;
+}
+.modal-body textarea:focus { border-color: #4a90e2; box-shadow: 0 0 0 3px rgba(74,144,226,0.1); }
+.modal-body textarea:disabled { background: #f1f5f9; cursor: not-allowed; }
+.result-area { margin-top: 20px; border-top: 1px dashed #cbd5e1; padding-top: 15px; }
+.success-tip { color: #10b981; font-weight: bold; margin: 0 0 10px 0; font-size: 14px; }
+.resume-output {
+  background: #1e293b; color: #f8fafc; padding: 16px; border-radius: 8px;
+  white-space: pre-wrap; font-family: 'Courier New', Courier, monospace;
+  font-size: 14px; line-height: 1.6; max-height: 300px; overflow-y: auto;
+}
+.modal-footer {
+  padding: 16px 24px; border-top: 1px solid #e2e8f0; background: #f8fafc;
+  display: flex; justify-content: flex-end; gap: 12px;
+}
+.cancel-btn {
+  padding: 8px 16px; background: white; border: 1px solid #cbd5e1;
+  border-radius: 6px; cursor: pointer; color: #475569; transition: 0.2s;
+}
+.cancel-btn:hover:not(:disabled) { background: #f1f5f9; }
+.submit-btn {
+  padding: 8px 20px; background: #4a90e2; border: none; color: white;
+  border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s;
+}
+.submit-btn:hover:not(:disabled) { background: #357ebd; box-shadow: 0 4px 6px rgba(74,144,226,0.2); }
+.submit-btn:disabled { background: #94a3b8; cursor: not-allowed; }
+/* ===================================================== */
 </style>

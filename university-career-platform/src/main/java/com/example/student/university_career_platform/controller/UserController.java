@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Objects;
+
 @RestController
 @RequestMapping("/api/user")
 @CrossOrigin
@@ -36,7 +38,7 @@ public class UserController {
 
     @PostMapping("/profile")
     public ResponseEntity<?> updateProfile(@RequestBody ProfileUpdateRequest request) {
-        String currentPhone = SecurityContextHolder.getContext().getAuthentication().getName();
+        String currentPhone = Objects.requireNonNull(SecurityContextHolder.getContext().getAuthentication()).getName();
         User user = userRepository.findByPhone(currentPhone).orElse(null);
 
         if (user == null) {
@@ -64,7 +66,7 @@ public class UserController {
 
     @GetMapping("/info")
     public ResponseEntity<?> getUserInfo() {
-        String currentPhone = SecurityContextHolder.getContext().getAuthentication().getName();
+        String currentPhone = Objects.requireNonNull(SecurityContextHolder.getContext().getAuthentication()).getName();
         User user = userRepository.findByPhone(currentPhone).orElse(null);
         if (user == null) {
             return ResponseEntity.status(404).body("用户不存在");
