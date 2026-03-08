@@ -20,6 +20,7 @@ import java.util.concurrent.Executors;
 
 @RestController
 @RequestMapping("/api/chat")
+@CrossOrigin(origins = "*") // 👈 新增：允许任何前端地址来调用这个接口
 public class QwenChatController {
 
     @Value("${ai.qwen.api-key}")

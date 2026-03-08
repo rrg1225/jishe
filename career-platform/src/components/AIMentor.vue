@@ -93,7 +93,7 @@ const sendMessage = async () => {
   try {
     // 【API 接入点：前端请求地址】
     // 这里调用你刚才后端的 /api/chat/qwen/stream 接口，注意配置跨域或代理
-    const response = await fetch('/api/chat/qwen/stream', {
+    const response = await fetch('http://localhost:8080/api/chat/qwen/stream', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

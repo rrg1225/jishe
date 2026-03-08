@@ -30,7 +30,7 @@ public class ZhipuResumeController {
         }
 
         try {
-            // 1. 初始化智谱客户端
+           // 1. 初始化智谱客户端
             ClientV4 client = new ClientV4.Builder(zhipuApiKey).build();
 
             // 2. 构建对话列表

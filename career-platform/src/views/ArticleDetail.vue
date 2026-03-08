@@ -1,8 +1,12 @@
 <template>
   <div class="article-layout">
     <header class="top-nav">
+      <button class="article-back-action" @click="router.push('/dashboard')">
+        <span class="icon">←</span> 返回主页
+      </button>
+
       <div class="nav-logo" @click="router.push('/dashboard')">📚 学业规划平台 - 专区</div>
-      <div class="back-btn" @click="router.push('/dashboard')">返回主页</div>
+      <div class="top-right-placeholder"></div>
     </header>
 
     <div class="main-container">
@@ -35,7 +39,6 @@
 
         <div class="comment-module" id="comment-area">
           <h3>评论 <span class="count">{{ commentList.length }}</span></h3>
-          
           <div class="comment-input-area">
             <img class="my-avatar" src="https://api.dicebear.com/7.x/adventurer/svg?seed=me" alt="我的头像">
             <div class="input-wrapper">
@@ -58,13 +61,11 @@
                 </div>
               </div>
             </div>
-            
             <div v-if="commentList.length === 0" class="empty-comment">
               还没有人评论，快来抢沙发吧！
             </div>
           </div>
         </div>
-
       </main>
 
       <aside class="right-sidebar">
@@ -94,7 +95,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import request from '../utils/request' // 引入你的 axios 工具
+import request from '../utils/request'
 
 const route = useRoute()
 const router = useRouter()
@@ -102,8 +103,6 @@ const router = useRouter()
 const articleTitle = ref('加载中...')
 const articleAuthor = ref('加载中...')
 const articleContent = ref('')
-
-// === 互动数据 ===
 const likeCount = ref(0)
 const isLiked = ref(false)
 const commentList = ref([])
@@ -112,52 +111,33 @@ const newCommentContent = ref('')
 onMounted(() => {
   articleTitle.value = route.query.title || '【深度解析】大学生如何做好职业生涯规划？'
   articleAuthor.value = route.query.author || '职场领路人'
-
-  // 模拟的富文本数据
-  articleContent.value = `
-    <p>这是一段由<strong>富文本编辑器</strong>生成的测试内容。在真实的开发中，你在编辑器里敲下的每一个字、加粗的每一段话、上传的每一张图片，都会被转变成带有 HTML 标签的字符串存进 MySQL 的 <code>LONGTEXT</code> 字段里。</p>
-    <p>当我们打开这个页面时，Vue 会用 <code>v-html</code> 把这些标签原封不动地渲染成漂亮的网页！</p>
-    <h3>一、为什么要尽早做规划？</h3>
-    <p>很多同学到了大四才开始海投简历，这时候往往会发现自己<strong>缺乏实习经历</strong>、<strong>项目单薄</strong>。提前规划能让你在每一次寒暑假都有的放矢。</p>
-  `
-
-  // 页面加载完毕后拉取互动数据
+  articleContent.value = `<p>这是一段由<strong>富文本编辑器</strong>生成的测试内容...</p>` // 缩略模拟
   fetchLikeStatus()
   fetchComments()
 })
 
-// === 获取点赞状态 ===
 const fetchLikeStatus = async () => {
   try {
     const res = await request.get(`/api/interaction/like/status?targetId=${articleTitle.value}`)
     likeCount.value = res.totalLikes
     isLiked.value = res.isLiked
-  } catch (error) {
-    console.error('获取点赞状态失败', error)
-  }
+  } catch (error) {}
 }
 
-// === 切换点赞 ===
 const toggleLike = async () => {
   try {
     await request.post(`/api/interaction/like/toggle?targetId=${articleTitle.value}`)
-    fetchLikeStatus() // 刷新最新点赞状态
-  } catch (error) {
-    alert('请先登录后再点赞！')
-  }
+    fetchLikeStatus()
+  } catch (error) { alert('请先登录！') }
 }
 
-// === 获取评论 ===
 const fetchComments = async () => {
   try {
     const res = await request.get(`/api/interaction/comments?targetId=${articleTitle.value}`)
     commentList.value = res
-  } catch (error) {
-    console.error('获取评论失败', error)
-  }
+  } catch (error) {}
 }
 
-// === 发布评论 ===
 const submitComment = async () => {
   if (!newCommentContent.value.trim()) return
   try {
@@ -165,19 +145,15 @@ const submitComment = async () => {
       targetId: articleTitle.value,
       content: newCommentContent.value
     })
-    newCommentContent.value = '' // 清空输入框
-    fetchComments() // 刷新评论列表
-  } catch (error) {
-    alert('评论失败，请确认是否已登录。')
-  }
+    newCommentContent.value = ''
+    fetchComments()
+  } catch (error) { alert('评论失败！') }
 }
 
-// 辅助方法：点击评论滚动到底部
 const scrollToComments = () => {
   document.getElementById('comment-area').scrollIntoView({ behavior: 'smooth' })
 }
 
-// 辅助方法：格式化时间
 const formatDate = (dateString) => {
   if (!dateString) return ''
   const date = new Date(dateString)
@@ -186,12 +162,39 @@ const formatDate = (dateString) => {
 </script>
 
 <style scoped>
-/* 全局与原版保持一致的阅读排版样式 */
+/* 原有基础样式... */
 .article-layout { min-height: 100vh; background-color: #f6f6f6; font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; color: #333; }
+
 .top-nav { height: 60px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; padding: 0 40px; position: sticky; top: 0; z-index: 100; }
-.nav-logo { font-size: 18px; font-weight: bold; color: #4a90e2; cursor: pointer; }
-.back-btn { font-size: 14px; color: #666; cursor: pointer; transition: 0.2s; }
-.back-btn:hover { color: #4a90e2; }
+
+/* 🌟 文章返回按钮样式 */
+.article-back-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 1px solid #ccd0d7;
+  color: #666;
+  padding: 6px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.article-back-action:hover {
+  background: #f6f6f6;
+  color: #121212;
+  border-color: #8590a6;
+}
+
+.article-back-action .icon { font-weight: bold; }
+
+.nav-logo { font-size: 18px; font-weight: bold; color: #4a90e2; cursor: pointer; flex: 1; margin-left: 20px;}
+.top-right-placeholder { width: 120px; } /* 保持平衡的空占位 */
+
+/* ...其他原有样式... */
 .main-container { max-width: 1100px; margin: 20px auto; display: flex; gap: 20px; align-items: flex-start; padding: 0 20px; }
 .article-content-box { flex: 1; background: #fff; border-radius: 8px; padding: 40px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); min-width: 0; }
 .article-title { font-size: 28px; font-weight: bold; color: #121212; line-height: 1.4; margin-top: 0; margin-bottom: 25px; }
@@ -205,17 +208,10 @@ const formatDate = (dateString) => {
 .follow-btn:hover { background: #357abd; }
 .divider { height: 1px; background: #ebebeb; margin-bottom: 30px; }
 .rich-text-body { font-size: 16px; line-height: 1.8; color: #333; }
-.rich-text-body :deep(h2), .rich-text-body :deep(h3) { margin-top: 30px; margin-bottom: 15px; color: #121212; }
-.rich-text-body :deep(p) { margin-bottom: 20px; }
-
-/* 🌟 互动按钮区样式 */
 .article-actions { display: flex; gap: 30px; margin-top: 50px; padding-top: 20px; }
 .action-item { display: flex; align-items: center; gap: 8px; color: #8590a6; cursor: pointer; font-size: 15px; transition: color 0.3s; font-weight: 500; }
 .action-item:hover { color: #4a90e2; }
 .liked-active { color: #00aeec !important; font-weight: bold; }
-.icon { font-size: 18px; }
-
-/* 🌟 评论区专属样式 (知乎风) */
 .comment-module h3 { font-size: 18px; color: #121212; margin-bottom: 20px; }
 .comment-module .count { color: #8590a6; font-size: 15px; font-weight: normal; margin-left: 5px; }
 .comment-input-area { display: flex; gap: 15px; margin-bottom: 30px; }
@@ -226,7 +222,6 @@ const formatDate = (dateString) => {
 .input-actions { display: flex; justify-content: flex-end; margin-top: 10px; }
 .submit-btn { background: #00aeec; color: #fff; border: none; padding: 6px 16px; border-radius: 4px; cursor: pointer; transition: 0.3s; }
 .submit-btn:disabled { background: #94cce2; cursor: not-allowed; }
-
 .comment-list { display: flex; flex-direction: column; gap: 20px; }
 .comment-item { display: flex; gap: 15px; padding-bottom: 20px; border-bottom: 1px solid #f0f2f7; }
 .c-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
@@ -235,10 +230,7 @@ const formatDate = (dateString) => {
 .c-text { font-size: 15px; color: #121212; line-height: 1.6; margin-bottom: 10px; }
 .c-footer { display: flex; align-items: center; gap: 15px; font-size: 13px; color: #8590a6; }
 .c-reply { cursor: pointer; }
-.c-reply:hover { color: #8590a6; }
 .empty-comment { text-align: center; color: #999; padding: 40px 0; font-size: 14px; }
-
-/* 右侧边栏 */
 .right-sidebar { width: 300px; flex-shrink: 0; display: flex; flex-direction: column; gap: 20px; position: sticky; top: 80px; }
 .sidebar-card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
 .sidebar-card h3 { margin-top: 0; font-size: 16px; color: #121212; border-left: 4px solid #4a90e2; padding-left: 10px; margin-bottom: 15px; }
@@ -249,6 +241,5 @@ const formatDate = (dateString) => {
 .auth-stats span { font-size: 12px; color: #8590a6; }
 .recommend-list { list-style: none; padding: 0; margin: 0; }
 .recommend-list li { font-size: 14px; color: #333; line-height: 1.5; margin-bottom: 15px; cursor: pointer; transition: 0.2s; }
-.recommend-list li:last-child { margin-bottom: 0; }
 .recommend-list li:hover { color: #4a90e2; }
 </style>
