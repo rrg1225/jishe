@@ -4,28 +4,34 @@
       <div class="logo">学业职业规划平台</div>
       <div class="search-bar"><input type="text" placeholder="搜索院校、企业或竞赛..." /></div>
       
-      <div class="user-profile" @click="toggleDropdown" @mouseleave="closeDropdown">
-        <span class="role-badge">{{ userRole === 'enterprise' ? '企业 HR' : '学生' }}</span>
-        
-        <div class="avatar">
-          <img :src="userAvatar" alt="个人头像" />
-        </div>
+      <div class="header-right">
+        <button class="go-publish-btn" @click="router.push('/publish')">
+          <span class="icon">✍️</span> 发布内容
+        </button>
 
-        <div class="dropdown-menu" v-show="isDropdownOpen">
-          <div class="dropdown-header">
-            <div class="username">{{ userName }}</div>
-            <div class="user-account">{{ userAccount }}</div>
-            <div class="user-org" v-if="userOrg">{{ userOrg }}</div>
+        <div class="user-profile" @click="toggleDropdown" @mouseleave="closeDropdown">
+          <span class="role-badge">{{ userRole === 'enterprise' ? '企业 HR' : '学生' }}</span>
+          
+          <div class="avatar">
+            <img :src="userAvatar" alt="个人头像" />
           </div>
-          <div class="divider"></div>
-          <ul class="dropdown-list">
-            <li class="dropdown-item" @click.stop="goToProfile">
-              <i>👤</i> 个人信息
-            </li>
-            <li class="dropdown-item" @click.stop="logout">
-              <i>🚪</i> 退出登录
-            </li>
-          </ul>
+
+          <div class="dropdown-menu" v-show="isDropdownOpen">
+            <div class="dropdown-header">
+              <div class="username">{{ userName }}</div>
+              <div class="user-account">{{ userAccount }}</div>
+              <div class="user-org" v-if="userOrg">{{ userOrg }}</div>
+            </div>
+            <div class="divider"></div>
+            <ul class="dropdown-list">
+              <li class="dropdown-item" @click.stop="goToProfile">
+                <i>👤</i> 个人信息
+              </li>
+              <li class="dropdown-item" @click.stop="logout">
+                <i>🚪</i> 退出登录
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     </header>
@@ -284,7 +290,11 @@ const handleCardClick = (item) => {
       query: { title: item.title, author: item.author || '专栏作家' }
     })
   } else if (item.type === 'template') {
-    alert(`即将下载简历模板：${item.title} (待开发)`)
+    // 不再是 alert，而是跳转到简历预览页
+    router.push({
+      path: '/resume-template',
+      query: { title: item.title }
+    })
   }
 }
 
@@ -333,6 +343,14 @@ const generateResume = async () => {
 .header { height: 60px; background: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); z-index: 10; }
 .logo { font-size: 20px; font-weight: bold; color: #4a90e2; }
 .search-bar input { width: 300px; padding: 8px 15px; border-radius: 20px; border: 1px solid #ddd; outline: none; background: #f8fafc; }
+
+/* 🌟 新增：头部右侧容器，包裹发布按钮和头像 */
+.header-right { display: flex; align-items: center; gap: 20px; }
+
+/* 🌟 新增：去发布按钮的样式（B站/知乎经典的创作者中心风格） */
+.go-publish-btn { background: #00aeec; color: white; border: none; padding: 8px 18px; border-radius: 20px; font-size: 14px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.3s; box-shadow: 0 4px 10px rgba(0, 174, 236, 0.3); }
+.go-publish-btn:hover { background: #00a1d6; transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0, 174, 236, 0.4); }
+
 .user-profile { position: relative; display: flex; align-items: center; gap: 15px; cursor: pointer; height: 100%; padding: 0 10px; }
 .user-profile::after { content: ''; position: absolute; bottom: -20px; left: -20px; right: -20px; height: 30px; background: transparent; z-index: 99; }
 .role-badge { background: #e6f0fa; color: #4a90e2; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; z-index: 101; }

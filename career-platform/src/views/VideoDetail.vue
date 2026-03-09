@@ -38,7 +38,9 @@
             <span class="emoji">{{ isLiked ? '💖' : '🤍' }}</span> 
             点赞 {{ likeCount }}
           </div>
-          <div class="action-btn"><span class="emoji">🪙</span> 投币</div>
+          <div class="action-btn" @click="scrollToComments">
+            <span class="emoji">💬</span> 评论 {{ commentList.length }}
+          </div>
           <div class="action-btn"><span class="emoji">⭐</span> 收藏</div>
         </div>
 
@@ -47,7 +49,7 @@
           <br> 如果觉得有用，请务必给个一键三连支持一下！
         </div>
 
-        <div class="comment-section">
+        <div class="comment-section" id="comment-area">
           <h3>评论 <span class="comment-count">{{ commentList.length }}</span></h3>
           <div class="comment-input-box">
             <img class="my-avatar" src="https://api.dicebear.com/7.x/adventurer/svg?seed=me" alt="">
@@ -112,11 +114,11 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router' // 🌟 引入 useRouter
+import { useRoute, useRouter } from 'vue-router' 
 import request from '../utils/request'
 
 const route = useRoute()
-const router = useRouter() // 🌟 初始化 router
+const router = useRouter() 
 
 const videoTitle = ref('')
 const videoAuthor = ref('')
@@ -174,6 +176,13 @@ const submitComment = async () => {
   }
 }
 
+const scrollToComments = () => {
+  const commentArea = document.getElementById('comment-area')
+  if (commentArea) {
+    commentArea.scrollIntoView({ behavior: 'smooth' })
+  }
+}
+
 const formatDate = (dateString) => {
   if (!dateString) return ''
   const date = new Date(dateString)
@@ -182,12 +191,16 @@ const formatDate = (dateString) => {
 </script>
 
 <style scoped>
-/* 原有基础样式保持... */
-.bilibili-layout { background-color: #f4f5f7; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+/* 🌟 这里是修复滚动条的关键代码 🌟 */
+.bilibili-layout { 
+  background-color: #f4f5f7; 
+  height: 100vh; 
+  overflow-y: auto; 
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+}
 
 .top-nav { height: 64px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; padding: 0 40px; position: sticky; top: 0; z-index: 100; }
 
-/* 🌟 胶囊返回按钮样式 */
 .back-home-pill {
   display: flex;
   align-items: center;
@@ -203,7 +216,7 @@ const formatDate = (dateString) => {
 
 .back-home-pill:hover {
   background-color: #e3e5e7;
-  color: #00aeec; /* 悬浮时显示B站蓝 */
+  color: #00aeec;
 }
 
 .back-arrow { font-size: 18px; font-weight: bold; }
@@ -214,7 +227,6 @@ const formatDate = (dateString) => {
 .search-box input:focus { border-color: #00aeec; }
 .user-avatar img { width: 40px; height: 40px; border-radius: 50%; }
 
-/* ...其他原有样式保持不变... */
 .main-container { max-width: 1400px; margin: 0 auto; padding: 20px; display: flex; gap: 30px; }
 .left-col { flex: 1; min-width: 0; }
 .right-col { width: 350px; flex-shrink: 0; }

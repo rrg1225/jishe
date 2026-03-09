@@ -19,7 +19,17 @@ const routes = [
   path: '/article',
   name: 'ArticleDetail',
   component: () => import('../views/ArticleDetail.vue') 
-}
+},
+ {
+  path: '/publish',
+  name: 'Publish',
+  component: () => import('../views/Publish.vue') 
+},
+{
+    path: '/resume-template',
+    name: 'ResumeTemplate',
+    component: () => import('../views/ResumeTemplate.vue')
+  }
 ]
 
 const router = createRouter({
