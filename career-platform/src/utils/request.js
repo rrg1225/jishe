@@ -3,7 +3,7 @@ import axios from 'axios'
 // 1. 创建 axios 实例
 const request = axios.create({
   baseURL: 'http://localhost:8080', // 确保指向你的 Java 后端地址
-  timeout: 10000 // 请求超时时间
+  timeout: 60000 // 请求超时时间
 })
 
 // 2. 🌟 核心魔法：请求拦截器 (Request Interceptor)

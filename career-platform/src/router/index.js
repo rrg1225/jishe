@@ -29,7 +29,12 @@ const routes = [
     path: '/resume-template',
     name: 'ResumeTemplate',
     component: () => import('../views/ResumeTemplate.vue')
-  }
+  },
+  {
+  path: '/resume-preview',
+  name: 'ResumePreview',
+  component: () => import('../views/ResumePreview.vue')
+}
 ]
 
 const router = createRouter({

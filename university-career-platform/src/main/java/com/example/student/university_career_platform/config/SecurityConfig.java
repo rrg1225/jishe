@@ -3,6 +3,7 @@ package com.example.student.university_career_platform.config;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -16,7 +17,6 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
-import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -30,17 +30,17 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    // ⭐ 全局跨域配置保持不变
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of("*")); // 允许所有前端地址跨域
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS")); // 允许的方法
-        configuration.setAllowedHeaders(List.of("*")); // 允许所有请求头
-        configuration.setAllowCredentials(true); // 允许携带凭证(Token)
+        // 🚀 终极跨域解法：精准放行 Vue 端口，绝不和 Token 冲突
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173", "http://127.0.0.1:5173"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration); // 对所有接口生效
+        source.registerCorsConfiguration("/**", configuration);
         return source;
     }
 
@@ -51,8 +51,9 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // 👇 核心修改在这里：把 /api/chat/** 也加到放行名单里！
-                        .requestMatchers("/api/auth/**", "/api/chat/**").permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // 🚀 终极白名单：加入 "/error"，防止后端的正常报错被包装成 403 欺骗我们！
+                        .requestMatchers("/api/auth/**", "/api/chat/**", "/api/resume/**", "/error").permitAll()
                         .anyRequest().authenticated()
                 );
 

@@ -1,3 +1,10 @@
+没问题！我完全懂那种“只想一键复制粘贴，赶紧看到效果”的心情。
+
+我已经把“一滑就消失”的 Bug 完美修复，把透明遮罩层无缝融入了你的代码中，并且清理了之前导致问题的多余代码。
+
+请直接全选你当前页面的所有代码，用下面这份完整的代码覆盖掉：
+
+代码段
 <template>
   <div class="layout">
     <header class="header">
@@ -9,14 +16,16 @@
           <span class="icon">✍️</span> 发布内容
         </button>
 
-        <div class="user-profile" @click="toggleDropdown" @mouseleave="closeDropdown">
+        <div class="user-profile" @click="toggleDropdown">
           <span class="role-badge">{{ userRole === 'enterprise' ? '企业 HR' : '学生' }}</span>
           
           <div class="avatar">
             <img :src="userAvatar" alt="个人头像" />
           </div>
 
-          <div class="dropdown-menu" v-show="isDropdownOpen">
+          <div class="dropdown-overlay" v-show="isDropdownOpen" @click.stop="closeDropdown"></div>
+
+          <div class="dropdown-menu" v-show="isDropdownOpen" @click.stop>
             <div class="dropdown-header">
               <div class="username">{{ userName }}</div>
               <div class="user-account">{{ userAccount }}</div>
@@ -172,7 +181,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import request from '../utils/request' // 确保你的路径正确
+import request from '../utils/request'
 
 const router = useRouter()
 const userRole = ref('student')
@@ -290,7 +299,6 @@ const handleCardClick = (item) => {
       query: { title: item.title, author: item.author || '专栏作家' }
     })
   } else if (item.type === 'template') {
-    // 不再是 alert，而是跳转到简历预览页
     router.push({
       path: '/resume-template',
       query: { title: item.title }
@@ -298,7 +306,6 @@ const handleCardClick = (item) => {
   }
 }
 
-// ================= 新增：AI 简历生成相关逻辑 =================
 const isResumeDialogOpen = ref(false)
 const resumePrompt = ref('')
 const isGenerating = ref(false)
@@ -317,15 +324,21 @@ const generateResume = async () => {
   if (!resumePrompt.value.trim()) return
   
   isGenerating.value = true
-  generatedResume.value = '' 
   
   try {
     const res = await request.post('/api/resume/zhipu/generate', {
       requirements: resumePrompt.value
     })
     
-    // 如果返回的是 axios 的完整 response，应取 res.data；如果你封装了拦截器直接返回 data，就直接用 res
-    generatedResume.value = res.data || res || res.data?.data 
+    // 1. 获取 AI 文本
+    const content = res.data || res || res.data?.data 
+    
+    // 2. 存入本地存储，供预览页读取
+    localStorage.setItem('generatedResume', content) 
+    
+    // 3. 关闭弹窗并跳转到预览页
+    closeResumeDialog()
+    router.push('/resume-preview') // 🌟 核心：跳转到我们刚写的页面
     
   } catch (error) {
     console.error('简历生成失败:', error)
@@ -334,29 +347,26 @@ const generateResume = async () => {
     isGenerating.value = false
   }
 }
-// =====================================================
 </script>
 
 <style scoped>
-/* 原版样式保持不动 */
 .layout { display: flex; flex-direction: column; height: 100vh; width: 100vw; background: #f5f7fa; }
 .header { height: 60px; background: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); z-index: 10; }
 .logo { font-size: 20px; font-weight: bold; color: #4a90e2; }
 .search-bar input { width: 300px; padding: 8px 15px; border-radius: 20px; border: 1px solid #ddd; outline: none; background: #f8fafc; }
-
-/* 🌟 新增：头部右侧容器，包裹发布按钮和头像 */
 .header-right { display: flex; align-items: center; gap: 20px; }
-
-/* 🌟 新增：去发布按钮的样式（B站/知乎经典的创作者中心风格） */
 .go-publish-btn { background: #00aeec; color: white; border: none; padding: 8px 18px; border-radius: 20px; font-size: 14px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.3s; box-shadow: 0 4px 10px rgba(0, 174, 236, 0.3); }
 .go-publish-btn:hover { background: #00a1d6; transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0, 174, 236, 0.4); }
 
 .user-profile { position: relative; display: flex; align-items: center; gap: 15px; cursor: pointer; height: 100%; padding: 0 10px; }
-.user-profile::after { content: ''; position: absolute; bottom: -20px; left: -20px; right: -20px; height: 30px; background: transparent; z-index: 99; }
 .role-badge { background: #e6f0fa; color: #4a90e2; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; z-index: 101; }
 .avatar { width: 36px; height: 36px; border-radius: 50%; border: 2px solid #e2e8f0; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #f8fafc; transition: 0.3s; position: relative; z-index: 101; }
 .user-profile:hover .avatar { border-color: #4a90e2; box-shadow: 0 0 8px rgba(74, 144, 226, 0.3); }
 .avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* 🌟 新增：透明的全屏遮罩层 */
+.dropdown-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 98; cursor: default; }
+
 .dropdown-menu { position: absolute; top: 60px; right: 10px; width: 160px; background: #fff; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 100; overflow: hidden; animation: slideDown 0.2s ease-out; border: 1px solid #f1f5f9; }
 @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 .dropdown-header { padding: 15px; text-align: center; background: #f8fafc; display: flex; flex-direction: column; gap: 4px; align-items: center; }
@@ -420,7 +430,6 @@ const generateResume = async () => {
 .fade-in { animation: fadeIn 0.4s ease-in-out; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-/* ================= 新增：弹窗样式 ================= */
 .modal-overlay {
   position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
   background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(2px);
@@ -470,5 +479,4 @@ const generateResume = async () => {
 }
 .submit-btn:hover:not(:disabled) { background: #357ebd; box-shadow: 0 4px 6px rgba(74,144,226,0.2); }
 .submit-btn:disabled { background: #94a3b8; cursor: not-allowed; }
-/* ===================================================== */
 </style>
