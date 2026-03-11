@@ -1,15 +1,8 @@
-没问题！我完全懂那种“只想一键复制粘贴，赶紧看到效果”的心情。
-
-我已经把“一滑就消失”的 Bug 完美修复，把透明遮罩层无缝融入了你的代码中，并且清理了之前导致问题的多余代码。
-
-请直接全选你当前页面的所有代码，用下面这份完整的代码覆盖掉：
-
-代码段
 <template>
   <div class="layout">
     <header class="header">
       <div class="logo">学业职业规划平台</div>
-      <div class="search-bar"><input type="text" placeholder="搜索院校、企业或竞赛..." /></div>
+      <div class="search-bar"><input type="text" placeholder="搜索院校、企业或竞赛..." /></div> 
       
       <div class="header-right">
         <button class="go-publish-btn" @click="router.push('/publish')">
@@ -173,17 +166,19 @@
             </div>
           </div>
         </div>
-        </main>
+      </main>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import request from '../utils/request'
 
 const router = useRouter()
+const route = useRoute()
+
 const userRole = ref('student')
 const userName = ref('加载中...')
 const userAccount = ref('加载中...') 
@@ -191,8 +186,13 @@ const userOrg = ref('加载中...')
 const userAvatar = ref('https://api.dicebear.com/7.x/avataaars/svg?seed=Felix')
 
 const activeMenu = ref('home')
-
 const isDropdownOpen = ref(false)
+
+const isResumeDialogOpen = ref(false)
+const resumePrompt = ref('') 
+const isGenerating = ref(false)
+const generatedResume = ref('')
+
 const toggleDropdown = () => isDropdownOpen.value = !isDropdownOpen.value
 const closeDropdown = () => isDropdownOpen.value = false
 
@@ -217,7 +217,6 @@ const fetchHeaderUserInfo = async () => {
 const fallbackToLocalData = () => {
   const savedOrg = localStorage.getItem('userOrg')
   userOrg.value = savedOrg || (userRole.value === 'student' ? '未知学校' : '未知企业')
-  
   const savedName = localStorage.getItem('userName')
   userName.value = savedName || (userRole.value === 'enterprise' ? 'HR' : '学生用户')
   userAccount.value = '暂无网络'
@@ -227,6 +226,34 @@ onMounted(() => {
   userRole.value = localStorage.getItem('userRole') || 'student'
   fetchHeaderUserInfo()
 })
+
+// 🌟 终极修复：只在有 edit=true 的时候执行恢复，去掉了害人的 else 分支
+watch(() => route.query.edit, (newVal) => {
+  if (newVal === 'true') {
+    activeMenu.value = 'profile' 
+    // 1. 先把文字填进去
+    resumePrompt.value = sessionStorage.getItem('tempResumePrompt') || '' 
+    // 2. 然后再打开弹窗
+    isResumeDialogOpen.value = true 
+    // 3. 最后清理 URL（因为我们去掉了 else，现在清理 URL 绝对安全了！）
+    router.replace({ path: '/dashboard' }) 
+  }
+}, { immediate: true })
+
+// 点击一键生成按钮手动打开弹窗时，确保清空数据
+const openResumeDialog = () => {
+  resumePrompt.value = '' 
+  sessionStorage.removeItem('tempResumePrompt')
+  isResumeDialogOpen.value = true
+}
+
+// 手动点击关闭或取消时，彻底销毁数据
+const closeResumeDialog = () => {
+  if (isGenerating.value) return 
+  isResumeDialogOpen.value = false
+  resumePrompt.value = '' 
+  sessionStorage.removeItem('tempResumePrompt') 
+}
 
 const goToProfile = () => {
   closeDropdown()
@@ -289,35 +316,12 @@ const homeData = ref([
 
 const handleCardClick = (item) => {
   if (item.type === 'video') {
-    router.push({
-      path: '/video',
-      query: { title: item.title, author: item.author || '平台官方' }
-    })
+    router.push({ path: '/video', query: { title: item.title, author: item.author || '平台官方' } })
   } else if (item.type === 'article') {
-    router.push({
-      path: '/article',
-      query: { title: item.title, author: item.author || '专栏作家' }
-    })
+    router.push({ path: '/article', query: { title: item.title, author: item.author || '专栏作家' } })
   } else if (item.type === 'template') {
-    router.push({
-      path: '/resume-template',
-      query: { title: item.title }
-    })
+    router.push({ path: '/resume-template', query: { title: item.title } })
   }
-}
-
-const isResumeDialogOpen = ref(false)
-const resumePrompt = ref('')
-const isGenerating = ref(false)
-const generatedResume = ref('')
-
-const openResumeDialog = () => {
-  isResumeDialogOpen.value = true
-}
-
-const closeResumeDialog = () => {
-  if (isGenerating.value) return 
-  isResumeDialogOpen.value = false
 }
 
 const generateResume = async () => {
@@ -325,20 +329,20 @@ const generateResume = async () => {
   
   isGenerating.value = true
   
+  // 生成时记录留作“返回修改”的退路
+  sessionStorage.setItem('tempResumePrompt', resumePrompt.value)
+  
   try {
     const res = await request.post('/api/resume/zhipu/generate', {
       requirements: resumePrompt.value
     })
     
-    // 1. 获取 AI 文本
     const content = res.data || res || res.data?.data 
-    
-    // 2. 存入本地存储，供预览页读取
     localStorage.setItem('generatedResume', content) 
     
-    // 3. 关闭弹窗并跳转到预览页
-    closeResumeDialog()
-    router.push('/resume-preview') // 🌟 核心：跳转到我们刚写的页面
+    // 只单纯隐藏弹窗并跳转，决不能清空数据
+    isResumeDialogOpen.value = false 
+    router.push('/resume-preview') 
     
   } catch (error) {
     console.error('简历生成失败:', error)
@@ -364,7 +368,6 @@ const generateResume = async () => {
 .user-profile:hover .avatar { border-color: #4a90e2; box-shadow: 0 0 8px rgba(74, 144, 226, 0.3); }
 .avatar img { width: 100%; height: 100%; object-fit: cover; }
 
-/* 🌟 新增：透明的全屏遮罩层 */
 .dropdown-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 98; cursor: default; }
 
 .dropdown-menu { position: absolute; top: 60px; right: 10px; width: 160px; background: #fff; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 100; overflow: hidden; animation: slideDown 0.2s ease-out; border: 1px solid #f1f5f9; }

@@ -1,17 +1,3 @@
-我非常理解你现在的顾虑。从截图来看，打印预览页面的底部确实没有铺满 A4 纸，而是被拦腰截断，并透出了背后的紫色装饰线条（如 image_1.png）。
-
-这是因为我们在之前的代码中，雖然調整了 .preview-container 的高度，但如果你的这个组件仍然嵌套在一个限制了高度（如 height: 100vh; overflow: hidden;）的外部父级容器中（比如包含侧边栏或顶部导航的父 Layout），它在打印时依然会受到限制，导致无法自然分页。
-
-为了终极解决这两个问题（打印截断和 Canve 配色参考），我为你重新设计了 CSS 方案：
-
-打印排版终极释放：在媒体查询 @media print 中，暴力清除所有 DOM 节点（不仅是预览容器，还追溯到 html, body, #app）的 height 和 overflow 限制，确保内容能自然分页，并彻底隐藏不需要打印的按钮和装饰物，彻底清除底部的透底内容。
-
-简历配色方案重构 (参考 Canva image_8.png)：将原先通透浅色（珍珠白/米灰色）的玻璃拟态 A4 纸样式，改为深灰+纯白的双色布局，侧边栏采用 Canva 风格的深灰色（#4F525A），主内容区域采用纯白（#FFFFFF），并配合柔和的米灰色（#F4F4F0）背景拉开层次，整体更显质感。
-
-以下是具体的优化代码。你可以直接复制替换你的 ResumePreview.vue。
-
-ResumePreview.vue 完整优化代码
-代码段
 <template>
   <div class="preview-container dark-gray-theme">
     
@@ -24,77 +10,337 @@ ResumePreview.vue 完整优化代码
     </div>
 
     <div class="toolbar glass-panel">
-      <div class="actions">
-        <el-button size="medium" plain @click="$router.back()" class="glass-btn btn-morandi-blue">
-          <i class="el-icon-back"></i> 返回修改条件
-        </el-button>
-        <el-button size="medium" @click="exportPDF" class="glass-btn btn-morandi-green">
-          <i class="el-icon-printer"></i> 导出 PDF / 打印
-        </el-button>
+      <div class="toolbar-left">
+        <button class="icon-btn back-btn" @click="goBackToEdit" title="返回首页">
+          <i>←</i> 首页
+        </button>
+        <div class="divider-v"></div>
+        <div class="theme-switcher">
+          <span class="label">主题:</span>
+          <div class="color-dots">
+            <div class="dot dark" :class="{active: currentTheme === 'theme-dark'}" @click="currentTheme = 'theme-dark'" title="极客暗灰"></div>
+            <div class="dot blue" :class="{active: currentTheme === 'theme-blue'}" @click="currentTheme = 'theme-blue'" title="商务深蓝"></div>
+            <div class="dot light" :class="{active: currentTheme === 'theme-light'}" @click="currentTheme = 'theme-light'" title="清新浅灰"></div>
+          </div>
+        </div>
       </div>
-      <p class="hint">💡 提示：点击下方简历内容的任意文字，可直接在线修改！</p>
+
+      <div class="toolbar-right">
+        <button class="action-btn ai-btn" @click="openRegenerateModal">
+          ✨ AI 重新生成
+        </button>
+        <button class="action-btn export-btn" @click="exportPDF">
+          🖨️ 导出 PDF
+        </button>
+      </div>
     </div>
+
+    <p class="hint">💡 提示：点击文字可直接修改。<b>选中文本</b>可唤醒 AI 进行润色或扩写！</p>
 
     <div class="resume-scroll-wrapper">
       <div class="a4-glass-frame glass-panel">
-        <div class="a4-page" id="resume-content">
-          <div class="resume-dual-column" contenteditable="true" @blur="handleBlur">
-            
+        <div class="a4-page" :class="currentTheme" id="resume-content" @mouseup="handleMouseUp" @mousedown="hideFloatBtn">
+          
+          <div class="resume-dual-column">
             <div class="left-sidebar">
-             <img src="./public/9(1)(1).jpg" alt="头像" class="avatar" v-if="hasAvatar">
-              <div class="loading-avatar" v-else>头像</div>
-              <div class="name">张晨果</div>
-              <div class="position">前端开发实习生</div>
+              <div class="avatar-uploader" @click="triggerUpload" title="点击上传本地头像">
+                <img :src="avatarUrl" alt="头像" class="avatar" v-if="avatarUrl">
+                <div class="loading-avatar" v-else>
+                  <span>+ 上传照片</span>
+                </div>
+                <input type="file" ref="fileInput" @change="onFileChange" accept="image/*" style="display: none;">
+              </div>
+
+              <div class="name" contenteditable="true" @blur="saveSidebarInfo('name', $event)">{{ userName }}</div>
+              <div class="position" contenteditable="true" @blur="saveSidebarInfo('job', $event)">{{ targetJob }}</div>
+              
               <div class="info-section">
                 <h3>基本信息</h3>
                 <ul>
-                  <li><i class="el-icon-school"></i> 毕业院校：2028级毕业生</li>
-                  <li><i class="el-icon-user"></i> 年龄：21岁</li>
-                  <li><i class="el-icon-setting"></i> 专业方向：前端开发</li>
+                  <li contenteditable="true">🎓 2028级毕业生</li>
+                  <li contenteditable="true">🎂 21岁</li>
+                  <li contenteditable="true">💻 前端开发方向</li>
+                  <li contenteditable="true">📞 138-xxxx-xxxx</li>
+                  <li contenteditable="true">✉️ your@email.com</li>
                 </ul>
               </div>
             </div>
 
-            <div class="main-content markdown-theme-blue" v-html="renderedResume"></div>
-            
+            <div 
+              class="main-content markdown-theme-blue" 
+              contenteditable="true" 
+              v-html="renderedResume"
+              @blur="handleBlur"
+            ></div>
           </div>
+          
         </div>
       </div>
     </div>
+
+    <div 
+      v-show="showAiFloat" 
+      class="ai-float-menu" 
+      :style="{ top: floatY + 'px', left: floatX + 'px' }"
+      @mousedown.prevent
+    >
+      <button @click="openPolishModal('polish')">✨ 润色</button>
+      <button @click="openPolishModal('expand')">📝 扩写</button>
+      <button @click="openPolishModal('action')">🎯 优化为STAR法则</button>
+    </div>
+
+    <div v-if="isRegenerateModalOpen" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>✨ AI 全文重新生成</h3>
+          <span class="close-modal" @click="isRegenerateModalOpen = false">✖</span>
+        </div>
+        <div class="modal-body">
+          <p class="desc">调整您的要求，AI 将为您重新生成整份简历：</p>
+          <textarea v-model="editPrompt" rows="6" :disabled="isGenerating"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button class="cancel-btn" @click="isRegenerateModalOpen = false" :disabled="isGenerating">取消</button>
+          <button class="submit-btn" @click="doRegenerate" :disabled="isGenerating || !editPrompt.trim()">
+            {{ isGenerating ? '大模型重写中...' : '🚀 开始重写' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="isPolishModalOpen" class="modal-overlay">
+      <div class="modal-content large">
+        <div class="modal-header">
+          <h3>✨ AI 局部优化 ({{ polishActionName }})</h3>
+          <span class="close-modal" @click="isPolishModalOpen = false">✖</span>
+        </div>
+        <div class="modal-body polish-body">
+          <div class="io-box">
+            <h4>原文内容</h4>
+            <textarea v-model="selectedText" rows="4" readonly class="readonly-text"></textarea>
+          </div>
+          <div class="ai-action-middle">
+            <button class="re-polish-btn" @click="callAiPolish" :disabled="isGenerating">
+              {{ isGenerating ? 'AI 思考中...' : '🔄 让 AI 生成优化结果' }}
+            </button>
+          </div>
+          <div class="io-box">
+            <h4>AI 优化建议</h4>
+            <textarea v-model="aiSuggestedText" rows="5" placeholder="AI 生成的结果将显示在这里，您可以手动微调..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="cancel-btn" @click="isPolishModalOpen = false" :disabled="isGenerating">取消</button>
+          <button class="submit-btn apply-btn" @click="applyPolishedText" :disabled="!aiSuggestedText.trim() || isGenerating">
+            ✅ 一键强制替换到简历
+          </button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { marked } from 'marked'
+import request from '../utils/request' 
 
 const router = useRouter()
 const rawMarkdown = ref('')
-const hasAvatar = ref(false) // 这里需要根据实际情况获取头像，这里假设没有头像，显示加载头像占位
 
-// 计算属性：实时将 Markdown 转换为 HTML
+const currentTheme = ref('theme-dark') 
+const userName = ref('张三')
+const targetJob = ref('全栈开发工程师')
+const fileInput = ref(null)
+const avatarUrl = ref('')
+
 const renderedResume = computed(() => {
-  if (!rawMarkdown.value) return '<div class="loading">⏳ 大模型正在奋笔疾书中，请稍候...</div>'
+  if (!rawMarkdown.value) return '<div class="loading">⏳ 加载中...</div>'
   return marked(rawMarkdown.value)
 })
 
-// 页面加载时，从本地存储获取 AI 生成的数据
-onMounted(() => {
-  const savedData = localStorage.getItem('generatedResume')
-  if (savedData) {
-    rawMarkdown.value = savedData
-  } else {
-    rawMarkdown.value = '# 暂无简历数据\n请返回首页重新生成。'
+watch(rawMarkdown, (newVal) => {
+  const titleMatch = newVal.match(/^#\s+(.+?)(?:\s*[-–—]\s*(.+))?$/m)
+  if (titleMatch) {
+    userName.value = titleMatch[1].trim()
+    if (titleMatch[2]) targetJob.value = titleMatch[2].trim()
   }
+}, { immediate: true })
+
+onMounted(() => {
+  rawMarkdown.value = localStorage.getItem('generatedResume') || '# 暂无数据\n请返回重新生成'
+  avatarUrl.value = localStorage.getItem('resumeAvatar') || ''
 })
 
-// 失去焦点时保存修改的内容（可选功能）
-const handleBlur = (event) => {
-  // console.log('修改后的内容:', event.target.innerHTML);
+const goBackToEdit = () => {
+  router.push({ path: '/dashboard', query: { edit: 'true' } })
 }
 
-// 简单的导出 PDF 方法（调用浏览器打印）
+const triggerUpload = () => fileInput.value.click()
+const onFileChange = (e) => {
+  const file = e.target.files[0]
+  if (file) {
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      avatarUrl.value = event.target.result
+      localStorage.setItem('resumeAvatar', avatarUrl.value) 
+    }
+    reader.readAsDataURL(file)
+  }
+}
+const saveSidebarInfo = (field, event) => {
+  if (field === 'name') userName.value = event.target.innerText
+  if (field === 'job') targetJob.value = event.target.innerText
+}
+const handleBlur = (event) => {} 
+
+// ================= 🌟 AI 重新生成 =================
+const isRegenerateModalOpen = ref(false)
+const editPrompt = ref('')
+const isGenerating = ref(false)
+
+const openRegenerateModal = () => {
+  editPrompt.value = sessionStorage.getItem('tempResumePrompt') || ''
+  isRegenerateModalOpen.value = true
+}
+
+const doRegenerate = async () => {
+  isGenerating.value = true
+  sessionStorage.setItem('tempResumePrompt', editPrompt.value)
+  try {
+    const res = await request.post('/api/resume/zhipu/generate', {
+      requirements: editPrompt.value
+    })
+    const content = res.data || res || res.data?.data 
+    rawMarkdown.value = content
+    localStorage.setItem('generatedResume', content) 
+    isRegenerateModalOpen.value = false
+  } catch (error) {
+    console.error(error)
+    alert('重新生成失败，请检查网络')
+  } finally {
+    isGenerating.value = false
+  }
+}
+
+// ================= 🌟 划词唤醒 AI =================
+const showAiFloat = ref(false)
+const floatX = ref(0)
+const floatY = ref(0)
+const selectedText = ref('')
+
+const hideFloatBtn = () => {
+  showAiFloat.value = false
+}
+
+const handleMouseUp = async () => {
+  await nextTick()
+  const selection = window.getSelection()
+  const text = selection.toString().trim()
+  
+  if (text.length > 5) { 
+    selectedText.value = text
+    const range = selection.getRangeAt(0)
+    const rect = range.getBoundingClientRect()
+    floatX.value = rect.left + window.scrollX + (rect.width / 2) - 100
+    floatY.value = rect.top + window.scrollY - 50
+    showAiFloat.value = true
+  } else {
+    showAiFloat.value = false
+  }
+}
+
+// ================= 🌟 AI 局部润色与替换 =================
+const isPolishModalOpen = ref(false)
+const polishActionType = ref('polish')
+const aiSuggestedText = ref('')
+
+const polishActionName = computed(() => {
+  const map = { 'polish': '语言润色', 'expand': '细节扩写', 'action': '转为STAR法则' }
+  return map[polishActionType.value]
+})
+
+const openPolishModal = (type) => {
+  polishActionType.value = type
+  showAiFloat.value = false
+  aiSuggestedText.value = '' 
+  isPolishModalOpen.value = true
+  callAiPolish()
+}
+
+const callAiPolish = async () => {
+  if (!selectedText.value) return
+  isGenerating.value = true
+  aiSuggestedText.value = 'AI 正在思考中，请稍候...'
+  
+  try {
+    const prompt = `请作为资深HR，根据以下要求优化这段简历经历：\n要求：${polishActionName.value}\n原段落：${selectedText.value}\n请直接返回优化后的文本，不要加多余的寒暄。`
+    const res = await request.post('/api/resume/zhipu/generate', { 
+      requirements: prompt 
+    })
+    aiSuggestedText.value = res.data || res || res.data?.data || '优化结果返回异常'
+  } catch (error) {
+    console.error(error)
+    aiSuggestedText.value = '网络请求失败，请重试。'
+  } finally {
+    isGenerating.value = false
+  }
+}
+
+// 🌟🌟 核心魔法：终极暴力强制替换策略 🌟🌟
+const applyPolishedText = () => {
+  if (!aiSuggestedText.value) return;
+
+  let md = rawMarkdown.value;
+  let textToFind = selectedText.value.trim();
+
+  // 1. 尝试精确匹配（如果刚好没选中加粗符号，就会走这里）
+  if (md.includes(textToFind)) {
+    rawMarkdown.value = md.replace(textToFind, aiSuggestedText.value);
+    localStorage.setItem('generatedResume', rawMarkdown.value);
+    isPolishModalOpen.value = false;
+    return;
+  }
+
+  // 2. 🌟 “透视眼”暴力匹配：无视一切 Markdown 符号、空格、标点，直接锁定并覆写整行
+  // 专门过滤掉 Markdown 控制符以及常见中英文标点，只留纯文字内核进行比对
+  const getCoreText = (str) => str.replace(/[\s\n\r*+\-#>:,.!?()[\]{}`~_：，。！？（）【】；;、“”''""]/g, '');
+  
+  const textCore = getCoreText(textToFind); 
+  const lines = md.split('\n');
+  let replaced = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const lineCore = getCoreText(lines[i]);
+    
+    // 如果底层的某一行和用户选中的文字高度重合 (互相包含)，就认定是这一行！
+    if (lineCore.length > 2 && textCore.length > 2) {
+      if (lineCore.includes(textCore) || textCore.includes(lineCore)) {
+        
+        // 智能提取原来的行首符号（比如 "- " 或 "### "），保证替换后不破坏原有列表排版
+        const prefixMatch = lines[i].match(/^(\s*[-*+>#]+\s*)/);
+        const prefix = prefixMatch ? prefixMatch[1] : '';
+        
+        // 强制把这一整行覆盖为 AI 生成的新内容！
+        lines[i] = prefix + aiSuggestedText.value;
+        replaced = true;
+        break;
+      }
+    }
+  }
+
+  // 3. 执行覆盖并关闭弹窗
+  if (replaced) {
+    rawMarkdown.value = lines.join('\n');
+    localStorage.setItem('generatedResume', rawMarkdown.value);
+    isPolishModalOpen.value = false;
+  } else {
+    alert("替换失败：选中的跨度过大。请尝试仅选中具体的某一句话进行优化替换。");
+  }
+}
+
 const exportPDF = () => {
   window.print()
 }
@@ -102,391 +348,185 @@ const exportPDF = () => {
 
 <style scoped>
 /* =========================================
-   🌐 网页端 UI 样式 (浅色系背景 + 玻璃拟态)
+   全局架构与 Toolbar
 ========================================= */
-
-/* 1. 最外层容器：负责背景、居中和页面滚动 */
 .preview-container {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background-color: #F4F4F0; 
-  background-image: linear-gradient(120deg, #fdfbfb 0%, #ebedee 100%);
-  
-  /* 🌟 核心修改：将 min-height 改为 height，强制锁定视口高度，内部才会出现滚动条 */
-  height: 100vh; 
-  width: 100%;
-  overflow-y: auto; 
-  overflow-x: hidden;
-  
-  padding: 30px 0;
-  box-sizing: border-box;
-  font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
-  z-index: 1;
+  position: relative; display: flex; flex-direction: column; align-items: center;
+  background-color: #F4F4F0; background-image: linear-gradient(120deg, #fdfbfb 0%, #ebedee 100%);
+  height: 100vh; width: 100%; overflow-y: auto; overflow-x: hidden;
+  padding: 20px 0; box-sizing: border-box; font-family: "PingFang SC", sans-serif;
 }
 
-/* 2. 背景装饰线条 (适配浅色) */
-.bg-decorations {
-  position: fixed;
-  top: 0; left: 0; width: 100%; height: 100%;
-  z-index: -1; 
-  overflow: hidden;
-}
+.bg-decorations { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; }
 .circle { position: absolute; border-radius: 50%; filter: blur(40px); opacity: 0.6; }
-/* 莫兰蒂浅蓝紫点缀 */
 .circle-1 { width: 400px; height: 400px; top: -100px; left: -100px; background: rgba(163, 177, 182, 0.2); }
-/* 莫兰蒂浅灰绿点缀 */
 .circle-2 { width: 500px; height: 500px; bottom: -150px; right: -150px; background: rgba(181, 196, 177, 0.2); }
-.lines { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
 
-/* 3. 通用玻璃拟态面板公用类 (浅色系高斯模糊) */
 .glass-panel {
-  /* 半透明纯白，透出底层背景色 */
-  background: rgba(255, 255, 255, 0.45);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px); 
-  
-  /* 细微的白色高光边框 */
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  border-radius: 16px;
-  /* 柔和的浅色阴影 */
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+  background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(20px); 
+  border: 1px solid rgba(255, 255, 255, 0.8); border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
 }
 
-/* 4. 顶部工具栏样式 */
 .toolbar {
-  width: 210mm; 
-  padding: 15px 25px;
-  margin-bottom: 25px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-sizing: border-box;
-  flex-shrink: 0; 
+  width: 210mm; padding: 12px 20px; margin-bottom: 15px;
+  display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
 }
-.actions { display: flex; gap: 15px; }
-.hint { color: #A88F78; font-size: 14px; margin: 0; font-weight: 500; }
+.toolbar-left, .toolbar-right { display: flex; align-items: center; gap: 15px; }
+
+.divider-v { width: 1px; height: 24px; background: #ddd; }
+
+.icon-btn { background: none; border: none; color: #64748b; font-weight: bold; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 4px; }
+.icon-btn:hover { color: #3b82f6; }
+
+/* 主题切换器 */
+.theme-switcher { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #64748b; font-weight: bold;}
+.color-dots { display: flex; gap: 8px; }
+.dot { width: 18px; height: 18px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: 0.2s; }
+.dot:hover { transform: scale(1.1); }
+.dot.active { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
+.dot.dark { background: #4F525A; }
+.dot.blue { background: #1e3a8a; }
+.dot.light { background: #e2e8f0; border-color: #cbd5e1; }
+
+.action-btn {
+  padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s; border: none;
+}
+.ai-btn { background: linear-gradient(135deg, #a855f7, #6366f1); color: white; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3); }
+.ai-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(99, 102, 241, 0.4); }
+.export-btn { background: #10b981; color: white; }
+.export-btn:hover { background: #059669; }
+
+.hint { color: #8c9bb0; font-size: 13px; margin: 0 0 15px 0; }
+.hint b { color: #a855f7; }
 
 /* =========================================
-   🎨 莫兰蒂 + 玻璃拟态 按钮专属样式
+   📄 动态 CSS 变量架构
 ========================================= */
-.glass-btn {
-  border-radius: 10px !important;
-  font-weight: 600 !important;
-  color: #5C6B73 !important; /* 深蓝灰字体，保证对比度 */
-  border: 1px solid rgba(255, 255, 255, 0.6) !important;
-  backdrop-filter: blur(10px) !important;
-  -webkit-backdrop-filter: blur(10px) !important;
-  transition: all 0.3s ease !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
-}
+.theme-dark { --sidebar-bg: #4F525A; --sidebar-text: #FFFFFF; --main-title: #284c71; }
+.theme-blue { --sidebar-bg: #1e3a8a; --sidebar-text: #FFFFFF; --main-title: #1e3a8a; }
+.theme-light { --sidebar-bg: #f1f5f9; --sidebar-text: #1e293b; --main-title: #0f172a; }
 
-/* 莫兰蒂蓝灰 (返回按钮) */
-.btn-morandi-blue {
-  background: rgba(163, 177, 182, 0.35) !important;
-}
-.btn-morandi-blue:hover {
-  background: rgba(163, 177, 182, 0.5) !important;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(163, 177, 182, 0.3) !important;
-}
+.resume-scroll-wrapper { display: flex; justify-content: center; width: 100%; padding-bottom: 50px; flex: 1; }
+.a4-glass-frame { width: 210mm; padding: 0; box-sizing: border-box; display: flex; justify-content: center; height: max-content; overflow: hidden; }
 
-/* 莫兰蒂豆绿 (打印按钮) */
-.btn-morandi-green {
-  background: rgba(181, 196, 177, 0.4) !important;
-  color: #4A5D4E !important; /* 加深一点绿色字体 */
-}
-.btn-morandi-green:hover {
-  background: rgba(181, 196, 177, 0.6) !important;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(181, 196, 177, 0.3) !important;
-}
-
-/* 5. 简历滚动区域包装 */
-.resume-scroll-wrapper {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-  padding-bottom: 50px; 
-  flex: 1; 
-}
-
-/* 6. A4 纸张的外围玻璃框 (模仿立体框架感) */
-.a4-glass-frame {
-  width: 210mm; 
-  padding: 15px; 
-  box-sizing: border-box;
-  border-radius: 12px;
-  display: flex;
-  justify-content: center;
-  height: max-content; 
-}
-
-/* =========================================
-   📄 🌟 核心：参考 Canva (image_8.png) 的简历双色布局 🌟
-========================================= */
-/* 7. 真正的 A4 纸张 (白纸部分) */
 .a4-page {
-  width: 100%; 
-  background: #FFFFFF; /* 简历主体使用纯白 */
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  border-radius: 4px; 
-  overflow: hidden; /* 防止内容超出白纸范围 */
-  box-shadow: 0 2px 10px rgba(0,0,0,0.02); /* 给白纸加一点微弱的浮现感 */
+  width: 100%; background: #FFFFFF; margin: 0; padding: 0; box-sizing: border-box;
+  background-image: linear-gradient(to right, var(--sidebar-bg) 0%, var(--sidebar-bg) 250px, #FFFFFF 250px, #FFFFFF 100%);
 }
 
-/* A4 纸张内部布局 */
-.resume-dual-column {
-  display: flex;
-  min-height: 297mm; /* 保证 A4 高度 */
-  outline: none; /* 去除点击时的蓝色外框 */
-}
+.resume-dual-column { display: flex; min-height: 297mm; }
 
-/* 左侧侧边栏 (深灰色) */
 .left-sidebar {
-  width: 250px; /* 固定宽度 */
-  background-color: #4F525A; /* 🌟 核心：Canva image_8.png 的深灰色 */
-  color: #FFFFFF; /* 🌟 核心：白色字体，保证可读性 */
-  padding: 30mm 15mm 15mm 15mm; /* A4 的内边距标准调整 */
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  font-family: 'Helvetica Neue', Arial, sans-serif;
+  width: 250px; color: var(--sidebar-text); padding: 30mm 15mm; 
+  box-sizing: border-box; display: flex; flex-direction: column; align-items: center; text-align: center;
 }
 
-.avatar {
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  border: 3px solid rgba(255,255,255,0.8);
-  margin-bottom: 15px;
-}
-.loading-avatar {
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.1);
-  color: rgba(255,255,255,0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 13px;
-  margin-bottom: 15px;
-}
+.avatar-uploader { cursor: pointer; margin-bottom: 15px; }
+.avatar { width: 100px; height: 100px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.5); object-fit: cover; }
+.loading-avatar { width: 100px; height: 100px; border-radius: 50%; background: rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center; font-size: 13px; }
+.name { font-size: 24px; font-weight: bold; margin-bottom: 5px; outline: none; }
+.position { font-size: 14px; opacity: 0.8; margin-bottom: 30px; outline: none; }
+.info-section { width: 100%; text-align: left; }
+.info-section h3 { font-size: 16px; font-weight: bold; border-bottom: 2px solid rgba(128,128,128,0.3); padding-bottom: 5px; margin-bottom: 15px; }
+.info-section ul { list-style: none; padding: 0; margin: 0; }
+.info-section li { font-size: 13px; margin-bottom: 10px; outline: none; opacity: 0.9; }
 
-.name {
-  font-size: 24px;
-  font-weight: bold;
-  margin-bottom: 5px;
-}
-.position {
-  font-size: 14px;
-  color: rgba(255,255,255,0.7);
-  margin-bottom: 30px;
-}
+.main-content { flex: 1; padding: 30mm 20mm; box-sizing: border-box; outline: none; }
 
-.info-section {
-  width: 100%;
-  text-align: left;
-}
-.info-section h3 {
-  font-size: 16px;
-  font-weight: bold;
-  border-bottom: 2px solid rgba(255,255,255,0.2);
-  padding-bottom: 5px;
-  margin-top: 0;
-  margin-bottom: 15px;
-}
-.info-section ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.info-section li {
-  font-size: 13px;
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-}
-.info-section li i {
-  margin-right: 8px;
-  color: rgba(255,255,255,0.6);
-}
-
-/* 右侧主内容 (纯白色) */
-.main-content {
-  flex: 1; /* 填充剩余空间 */
-  background-color: #FFFFFF; /* 🌟 核心：Canva image_8.png 的白色 */
-  color: #333; /* 🌟 核心：深蓝灰/黑色字体 */
-  padding: 30mm 20mm; /* A4 的标准内边距 */
-  box-sizing: border-box;
-}
-
-.loading { text-align: center; color: #888; padding: 100px 0; font-size: 16px; }
-
-/* =========================================
-   📄 深度定制的 Markdown 内容 CSS (保留幻主简历蓝调风格)
-========================================= */
+.markdown-theme-blue :deep(h1) { display: none; }
 .markdown-theme-blue { color: #333; line-height: 1.8; font-size: 14px; }
-.markdown-theme-blue :deep(h1) { font-size: 30px; color: #2c3e50; font-weight: bold; margin-top: 0; margin-bottom: 10px; padding-bottom: 8px; }
-.markdown-theme-blue :deep(h2) { font-size: 18px; color: #284c71; font-weight: bold; border-bottom: 2px solid #284c71; padding-bottom: 6px; margin-top: 28px; margin-bottom: 16px; display: flex; align-items: center; }
-.markdown-theme-blue :deep(h2)::before { content: ''; display: inline-block; width: 6px; height: 18px; background: #284c71; margin-right: 10px; border-radius: 2px; }
-.markdown-theme-blue :deep(h3) { font-size: 15px; color: #333; font-weight: bold; margin-top: 10px; margin-bottom: 6px; display: flex; justify-content: space-between; }
+.markdown-theme-blue :deep(h2) { font-size: 18px; color: var(--main-title); font-weight: bold; border-bottom: 2px solid var(--main-title); padding-bottom: 6px; margin-top: 25px; margin-bottom: 12px; display: flex; align-items: center; }
+.markdown-theme-blue :deep(h2)::before { content: ''; display: inline-block; width: 6px; height: 18px; background: var(--main-title); margin-right: 10px; border-radius: 2px; }
+.markdown-theme-blue :deep(h3) { font-size: 15px; color: #222; font-weight: bold; margin-top: 15px; margin-bottom: 6px; display: flex; justify-content: space-between; }
 .markdown-theme-blue :deep(h3 span) { color: #7f8c8d; font-weight: normal; font-size: 13px; }
-.markdown-theme-blue :deep(ul) { padding-left: 20px; margin-top: 6px; margin-bottom: 10px; list-style-type: disc; }
-.markdown-theme-blue :deep(li) { margin-bottom: 6px; color: #555; font-size: 13.5px; }
-.markdown-theme-blue :deep(p) { margin: 0 0 10px 0; color: #555; font-size: 13.5px; }
+.markdown-theme-blue :deep(ul) { padding-left: 20px; margin-top: 5px; margin-bottom: 10px; list-style-type: disc; }
+.markdown-theme-blue :deep(li) { margin-bottom: 6px; color: #444; font-size: 13.5px; }
+.markdown-theme-blue :deep(p) { margin: 0 0 10px 0; color: #444; }
 
 /* =========================================
-   🖨 "🌟 终极解决方案：解决打印截断/透底问题 🌟
+   ✨ 划词唤醒 AI 悬浮菜单
 ========================================= */
-@media print {
-  /* 🌟 核心修复 2：彻底禁用 Flex 布局 (Flex 会导致浏览器打印截断) */
-  html, body, #app, 
-  .preview-container, 
-  .resume-scroll-wrapper, 
-  .a4-glass-frame, 
-  .a4-page {
-    display: block !important; /* 🌟 强制块级元素，允许分页截断 */
-    position: static !important;
-    height: auto !important;
-    min-height: auto !important;
-    overflow: visible !important;
-    background: transparent !important;
-    padding: 0 !important;
-    margin: 0 !important;
-  }
-  
-  /* 隐藏装饰和工具栏 */
-  .bg-decorations, .toolbar { display: none !important; }
-  
-  /* 抹除外边框玻璃的占位 */
-  .a4-glass-frame {
-    width: 100% !important;
-    border: none !important;
-    box-shadow: none !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
-  
-  /* 抹除简历纸张的玻璃透明效果，恢复纯白打印 */
-  .a4-page {
-    width: 100% !important;
-    max-width: none !important;
-    background: #FFFFFF !important; 
-    border: none !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-  }
-  
-  /* 🌟 核心修复 3：去掉浏览器默认打印边距，让内容彻底铺满 */
-  @page {
-    size: A4 portrait;
-    margin: 0; 
-  }
-  
-  /* 调整简历内部的打印边距 */
-  .resume-body {
-    padding: 0 !important; /* 边距交给下方的 .left-sidebar 和 .main-content 控制 */
-    width: 100% !important;
-  }
-  
-  /* 调整双色布局的打印边距 */
-  .resume-dual-column {
-    display: block !important; /* 打印时不能用 Flex */
-  }
-  
-  .left-sidebar {
-    width: 100% !important; /* 打印时侧边栏占满宽度 */
-    padding: 10mm 20mm !important; /* 打印内边距 */
-    page-break-after: avoid; /* 侧边栏后不断页 */
-  }
-  
-  .main-content {
-    width: 100% !important;
-    padding: 0 20mm 15mm 20mm !important; /* 打印内边距，去除顶部边距，因为侧边栏占了 */
-  }
-  
-  .markdown-theme-blue h2, .markdown-theme-blue h3 { page-break-after: avoid; }
-  .markdown-theme-blue li { page-break-inside: avoid; }
+.ai-float-menu {
+  position: absolute; z-index: 1000; background: #fff; padding: 6px;
+  border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+  display: flex; gap: 5px; border: 1px solid #e2e8f0;
+  animation: popUp 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
+@keyframes popUp { from { transform: scale(0.8) translateY(10px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+.ai-float-menu button {
+  background: #f8fafc; border: none; padding: 6px 12px; border-radius: 6px; font-size: 13px;
+  color: #475569; cursor: pointer; transition: 0.2s; font-weight: 500;
+}
+.ai-float-menu button:hover { background: #e0e7ff; color: #3b82f6; }
 
 /* =========================================
-   🖨️ 打印完美铺满终极方案 (修复双栏排版与背景色丢失)
+   弹窗通用样式
+========================================= */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 2000; }
+.modal-content { background: #fff; width: 500px; border-radius: 12px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); overflow: hidden; }
+.modal-content.large { width: 700px; }
+.modal-header { padding: 18px 24px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; }
+.modal-header h3 { margin: 0; font-size: 18px; color: #1e293b; }
+.close-modal { cursor: pointer; color: #94a3b8; font-size: 18px; }
+.close-modal:hover { color: #ef4444; }
+.modal-body { padding: 24px; }
+.desc { margin: 0 0 12px 0; color: #64748b; font-size: 14px; }
+textarea { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit; resize: vertical; box-sizing: border-box; }
+textarea:focus { border-color: #3b82f6; outline: none; }
+.readonly-text { background: #f1f5f9; color: #475569; border-style: dashed; }
+
+.polish-body { display: flex; flex-direction: column; gap: 15px; }
+.io-box h4 { margin: 0 0 8px 0; font-size: 14px; color: #334155; }
+.ai-action-middle { text-align: center; }
+.re-polish-btn { background: #e0e7ff; color: #4f46e5; border: none; padding: 6px 16px; border-radius: 20px; font-size: 13px; cursor: pointer; font-weight: bold; }
+
+.modal-footer { padding: 16px 24px; border-top: 1px solid #e2e8f0; background: #f8fafc; display: flex; justify-content: flex-end; gap: 12px; }
+.cancel-btn, .submit-btn { padding: 8px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; border: none; }
+.cancel-btn { background: white; border: 1px solid #cbd5e1; color: #475569; }
+.submit-btn { background: #3b82f6; color: white; }
+.apply-btn { background: #10b981; }
+
+/* =========================================
+   🖨️ 打印魔法：永不断层、主题变量继承
 ========================================= */
 @media print {
-  /* 1. 释放外层高度束缚 */
-  html, body, #app, 
-  .preview-container, 
-  .resume-scroll-wrapper, 
-  .a4-glass-frame, 
-  .a4-page {
-    height: auto !important;
-    min-height: auto !important;
-    overflow: visible !important;
-    background: transparent !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    display: block !important;
+  html, body, #app, .preview-container, .resume-scroll-wrapper, .a4-glass-frame {
+    display: block !important; position: static !important; width: auto !important; height: auto !important; 
+    min-height: auto !important; max-height: none !important; overflow: visible !important; 
+    background: transparent !important; margin: 0 !important; padding: 0 !important; border: none !important;
   }
   
-  /* 2. 隐藏无关元素 */
-  .bg-decorations, .toolbar { display: none !important; }
-  
-  /* 3. 去除纸张的玻璃阴影 */
-  .a4-glass-frame {
-    width: 100% !important;
-    border: none !important;
-    box-shadow: none !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
+  .bg-decorations, .toolbar, .ai-float-menu, .hint { display: none !important; }
+
   .a4-page {
-    width: 100% !important;
-    box-shadow: none !important;
-    border: none !important;
-    border-radius: 0 !important;
+    display: block !important; width: 100% !important; border-radius: 0 !important; box-shadow: none !important;
+    border-left: 250px solid var(--sidebar-bg) !important; 
+    box-sizing: border-box !important; background: #FFFFFF !important;
+    -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;
   }
 
-  /* 🌟 核心修复 4：恢复双列布局，不再上下堆叠 */
-  .resume-dual-column {
-    display: flex !important; /* 恢复左右并排 */
-    width: 100% !important;
-    height: auto !important;
-  }
+  .resume-dual-column { display: block !important; position: relative !important; }
 
-  /* 🌟 核心修复 5：强制打印深灰色背景！ */
   .left-sidebar {
-    width: 250px !important; /* 保持侧边栏宽度 */
-    background-color: #4F525A !important;
-    color: #FFFFFF !important;
-    padding: 20mm 15mm !important;
-    /* 下面两行是让浏览器强制打印背景色和图片的“魔法指令” */
-    -webkit-print-color-adjust: exact !important; 
-    print-color-adjust: exact !important;
+    float: left !important; width: 250px !important; margin-left: -250px !important; 
+    background: transparent !important; color: var(--sidebar-text) !important; 
+    padding: 15mm 15mm !important; box-sizing: border-box !important;
   }
 
-  /* 主内容区域边距调整 */
   .main-content {
-    flex: 1 !important;
-    background-color: #FFFFFF !important;
-    padding: 20mm 20mm !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
+    display: block !important; margin-left: 0 !important; width: 100% !important;
+    background: transparent !important; padding: 15mm 20mm !important; box-sizing: border-box !important;
   }
+
+  .resume-dual-column::after { content: ""; display: table; clear: both; }
   
-  /* 🌟 核心修复 6：清空物理页边距，让我们的 padding 接管排版 */
-  @page {
-    size: A4 portrait;
-    margin: 0; 
-  }
+  @page { size: A4 portrait; margin: 0 !important; }
   
-  .markdown-theme-blue h2, .markdown-theme-blue h3 { page-break-after: avoid; }
-  .markdown-theme-blue li { page-break-inside: avoid; }
+  .markdown-theme-blue h2, .markdown-theme-blue h3 { page-break-after: avoid !important; break-after: avoid !important; }
+  .markdown-theme-blue li, .markdown-theme-blue p, .info-section { page-break-inside: avoid !important; break-inside: avoid !important; }
 }
+</style>
+
+<style>
+@media print { html, body, #app { display: block !important; height: auto !important; overflow: visible !important; } }
 </style>
