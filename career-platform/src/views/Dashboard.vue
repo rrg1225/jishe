@@ -317,70 +317,78 @@
 
 
 
+    
 
 
 
-
-
-
-
-
-
-       <!-- 竞赛信息大厅 -->
+<!-- 竞赛信息大厅 -->
 <section v-if="activeMenu === 'contest'" class="fade-in">
   <div class="contest-section">
-    <!-- 头部 -->
+    <!-- 头部 + 搜索框 -->
     <div class="contest-header">
-      <div>
-        <h3>🏆 竞赛信息大厅</h3>
-        <p class="section-subtitle">打标签分类，快速匹配适合你的比赛</p>
-      </div>
+      <h3>🏆 竞赛信息大厅</h3>
+      <p class="section-subtitle">打标签分类，快速匹配适合你的比赛</p>
     </div>
     
-    <!-- 搜索栏 -->
     <div class="contest-search">
       <div class="search-box">
         <span class="search-icon">🔍</span>
-        <input 
-          type="text" 
-          placeholder="搜索竞赛名称、关键词..." 
-          v-model="contestKeyword"
-          @keyup.enter="handleSearch"
-        />
+        <input type="text" placeholder="搜索竞赛名称、关键词..." v-model="contestKeyword" @keyup.enter="handleSearch" />
         <button class="search-btn" @click="handleSearch">搜索</button>
       </div>
     </div>
     
-    <!-- 标签栏 - 可横向滚动 -->
-    <div class="tags-wrapper">
-      <div class="tags-scroll">
-        <span 
-          class="tag-chip" 
-          :class="{ active: selectedTag === '全部' }"
-          @click="selectTag('全部')"
-        >
-          🏷️ 全部
-        </span>
-        <span 
-          v-for="tag in contestTags" 
-          :key="tag.name"
-          class="tag-chip"
-          :class="{ active: selectedTag === tag.name }"
-          :style="{ borderColor: selectedTag === tag.name ? tag.color : '#e2e8f0' }"
-          @click="selectTag(tag.name)"
-        >
-          <span class="tag-icon">{{ tag.icon }}</span>
-          <span class="tag-name">{{ tag.name }}</span>
-          <span class="tag-count" :style="{ backgroundColor: tag.color + '20', color: tag.color }">{{ tag.count }}</span>
-        </span>
+    <!-- 一级标签：专业 -->
+    <div class="major-tabs">
+      <div 
+        v-for="major in majorCategories" 
+        :key="major.name"
+        class="major-tab"
+        :class="{ active: selectedMajor === major.name }"
+        @click="selectedMajor = major.name; selectedDirection = major.directions[0]?.name; selectedSkill = '全部'"
+      >
+        <span class="major-icon">{{ major.icon }}</span>
+        <span class="major-name">{{ major.name }}</span>
       </div>
     </div>
     
-    <!-- 当前选中标签提示 -->
-    <div class="selected-tag-info" v-if="selectedTag !== '全部'">
-      <span class="selected-tag-badge" :style="{ backgroundColor: contestTags.find(t => t.name === selectedTag)?.color + '20', color: contestTags.find(t => t.name === selectedTag)?.color }">
-        {{ selectedTag }}
+    <!-- 二级标签：方向 -->
+    <div class="direction-tabs" v-if="selectedMajor">
+      <div 
+        v-for="direction in currentDirections" 
+        :key="direction.name"
+        class="direction-tab"
+        :class="{ active: selectedDirection === direction.name }"
+        @click="selectedDirection = direction.name; selectedSkill = '全部'"
+      >
+        {{ direction.name }}
+      </div>
+    </div>
+    
+    <!-- 三级标签：具体技能（带数量） -->
+    <div class="skill-tags" v-if="selectedDirection">
+      <span 
+        class="skill-tag"
+        :class="{ active: selectedSkill === '全部' }"
+        @click="selectedSkill = '全部'"
+      >
+        全部
       </span>
+      <span 
+        v-for="skill in currentSkills" 
+        :key="skill.name"
+        class="skill-tag"
+        :class="{ active: selectedSkill === skill.name }"
+        @click="selectedSkill = skill.name"
+      >
+        {{ skill.name }}
+        <span class="skill-count">{{ skill.count }}</span>
+      </span>
+    </div>
+    
+    <!-- 结果数量 -->
+    <div class="result-info" v-if="selectedSkill">
+      <span class="result-badge">{{ selectedSkill === '全部' ? selectedDirection : selectedSkill }}</span>
       <span class="result-count">共 {{ filteredContests.length }} 个赛事</span>
     </div>
     
@@ -392,62 +400,47 @@
         class="contest-card"
         @click="goToContestDetail(contest)"
       >
-        <!-- 卡片头部 - 状态标识 -->
+        <!-- 卡片头部 - 级别和状态 -->
         <div class="card-header">
-          <span class="contest-level" :style="{ backgroundColor: contest.level === '国际级' ? '#fef3c7' : contest.level === '国家级' ? '#e0f2fe' : '#f1f5f9' }">
-            {{ contest.level }}
-          </span>
+          <span class="contest-level">{{ contest.level }}</span>
           <span class="contest-status" :style="{ backgroundColor: contest.statusColor + '20', color: contest.statusColor }">
             {{ contest.status }}
           </span>
         </div>
         
         <!-- 标题 -->
-        <h4 class="contest-title">{{ contest.title }}</h4>
+        <h4 class="contest-title">{{ contest.name }}</h4>
         
         <!-- 主办方 -->
-        <div class="contest-organizer">
-          <span class="organizer-label">主办：</span>
-          {{ contest.organize }}
-        </div>
+        <div class="contest-organizer">{{ contest.organize }}</div>
         
-        <!-- 时间信息 -->
+        <!-- 时间 -->
         <div class="contest-time">
-          <div class="time-item">
-            <span class="time-icon">📅</span>
-            <span>{{ formatDate(contest.startDate) }} - {{ formatDate(contest.endDate) }}</span>
-          </div>
-          <div class="time-remain" v-if="contest.status === '报名中'">
-            距报名截止 {{ getRemainingDays(contest.endDate) }}天
-          </div>
+          <span class="time-icon">📅</span>
+          {{ formatDate(contest.startDate) }} - {{ formatDate(contest.endDate) }}
+          <span v-if="contest.status === '报名中'" class="time-remain">
+            距截止 {{ getRemainingDays(contest.endDate) }}天
+          </span>
         </div>
         
         <!-- 标签 -->
         <div class="contest-tags">
-          <span v-for="tag in contest.tags" :key="tag" class="contest-tag">
-            {{ tag }}
-          </span>
+          <span v-for="tag in contest.tags" :key="tag" class="tag">{{ tag }}</span>
         </div>
         
-        <!-- 能力要求 -->
-        <div class="ability-section">
-          <div class="section-label">✨ 能力要求：</div>
-          <div class="ability-tags">
-            <span v-for="ability in contest.abilities" :key="ability" class="ability-tag">
-              {{ ability }}
+        <!-- 能力要求（细化的小框框） -->
+        <div class="skills-required">
+          <div class="skills-title">✨ 需要掌握的技能：</div>
+          <div class="skill-items">
+            <span v-for="skill in contest.skills" :key="skill" class="skill-item">
+              {{ skill }}
             </span>
           </div>
         </div>
         
-        <!-- 参赛人数 -->
-        <div class="contest-participants">
-          <span class="participants-icon">👥</span>
-          {{ contest.participants }}
-        </div>
-        
-        <!-- 查看详情 -->
+        <!-- 卡片底部 - 去掉"查看详情"文字，只留一个箭头图标 -->
         <div class="card-footer">
-          <span class="view-detail">查看详情 →</span>
+          <span class="card-arrow">→</span>
         </div>
       </div>
     </div>
@@ -456,13 +449,18 @@
     <div v-else class="empty-state">
       <div class="empty-icon">🏆</div>
       <p>暂无相关赛事</p>
-      <span class="empty-sub">试试其他标签或关键词</span>
     </div>
   </div>
 </section>
 
 
 
+
+
+
+
+
+ 
 
 
 
@@ -2566,159 +2564,801 @@ const selectedJob = ref('全部')
 
 
 
-
-
-
-// ===== 竞赛信息大厅数据 =====
-const contestTags = ref([
-  { name: '互联网+', icon: '💡', count: 24, color: '#f97316' },
-  { name: '挑战杯', icon: '🏆', count: 18, color: '#3b82f6' },
-  { name: '数学建模', icon: '📊', count: 32, color: '#10b981' },
-  { name: 'ACM程序设计', icon: '💻', count: 15, color: '#8b5cf6' },
-  { name: '英语竞赛', icon: '📝', count: 12, color: '#ec4899' },
-  { name: '蓝桥杯', icon: '🖥️', count: 21, color: '#6366f1' },
-  { name: '计算机设计大赛', icon: '🎨', count: 9, color: '#14b8a6' },
-  { name: '创新创业', icon: '🚀', count: 16, color: '#f43f5e' }
-])
-
-const selectedTag = ref('互联网+')
-const contestKeyword = ref('')
-
-// 赛事卡片数据
-const contestList = ref([
+// ===== 竞赛信息大厅 - 全学科专业数据 =====
+const majorCategories = ref([
+  // 哲学
   {
-    id: 1,
-    title: '第九届中国国际“互联网+”大学生创新创业大赛',
-    tags: ['互联网+', '创新创业'],
-    level: '国家级',
-    organize: '教育部',
-    startDate: '2026-03-15',
-    endDate: '2026-07-20',
-    status: '报名中',
-    statusColor: '#10b981',
-    requirements: ['商业计划书', '项目演示视频', '团队介绍'],
-    abilities: ['创新思维', '团队协作', '商业分析'],
-    participants: '3-5人/队',
-    link: '/contest/1'
+    name: '哲学',
+    icon: '📚',
+    directions: [
+      {
+        name: '哲学类',
+        skills: [
+          { name: '逻辑学', count: 8 },
+          { name: '伦理学', count: 6 },
+          { name: '美学', count: 5 },
+          { name: '宗教学', count: 4 }
+        ]
+      }
+    ]
   },
+  // 经济学
   {
-    id: 2,
-    title: '第十八届“挑战杯”全国大学生课外学术科技作品竞赛',
-    tags: ['挑战杯'],
-    level: '国家级',
-    organize: '共青团中央',
-    startDate: '2026-04-01',
-    endDate: '2026-10-15',
-    status: '即将开始',
-    statusColor: '#f97316',
-    requirements: ['学术论文', '调研报告', '答辩PPT'],
-    abilities: ['学术研究', '数据分析', '论文写作'],
-    participants: '1-3人/队',
-    link: '/contest/2'
+    name: '经济学',
+    icon: '📈',
+    directions: [
+      {
+        name: '经济学类',
+        skills: [
+          { name: '微观经济学', count: 18 },
+          { name: '宏观经济学', count: 15 },
+          { name: '计量经济学', count: 12 },
+          { name: '产业经济学', count: 10 }
+        ]
+      },
+      {
+        name: '金融学类',
+        skills: [
+          { name: '金融工程', count: 22 },
+          { name: '投资学', count: 19 },
+          { name: '保险学', count: 14 },
+          { name: '信用管理', count: 9 }
+        ]
+      },
+      {
+        name: '经济与贸易',
+        skills: [
+          { name: '国际贸易', count: 16 },
+          { name: '国际商务', count: 13 },
+          { name: '跨境电商', count: 11 }
+        ]
+      }
+    ]
   },
+  // 法学
   {
-    id: 3,
-    title: '2026年高教社杯全国大学生数学建模竞赛',
-    tags: ['数学建模'],
-    level: '国家级',
-    organize: '中国工业与应用数学学会',
-    startDate: '2026-09-10',
-    endDate: '2026-09-13',
-    status: '备赛中',
-    statusColor: '#8b5cf6',
-    requirements: ['数学模型', '论文', '程序代码'],
-    abilities: ['数学建模', '编程', '论文写作'],
-    participants: '3人/队',
-    link: '/contest/3'
+    name: '法学',
+    icon: '⚖️',
+    directions: [
+      {
+        name: '法学类',
+        skills: [
+          { name: '民商法', count: 16 },
+          { name: '刑法', count: 14 },
+          { name: '经济法', count: 12 },
+          { name: '国际法', count: 9 },
+          { name: '知识产权', count: 8 }
+        ]
+      },
+      {
+        name: '政治学类',
+        skills: [
+          { name: '政治学理论', count: 10 },
+          { name: '国际政治', count: 8 },
+          { name: '行政管理', count: 15 }
+        ]
+      },
+      {
+        name: '社会学类',
+        skills: [
+          { name: '社会学', count: 12 },
+          { name: '社会工作', count: 10 },
+          { name: '人类学', count: 6 }
+        ]
+      },
+      {
+        name: '马克思主义理论',
+        skills: [
+          { name: '马克思主义原理', count: 9 },
+          { name: '思想政治教育', count: 14 },
+          { name: '中共党史', count: 7 }
+        ]
+      }
+    ]
   },
+  // 教育学
   {
-    id: 4,
-    title: '第47届ACM国际大学生程序设计竞赛亚洲区域赛',
-    tags: ['ACM程序设计'],
-    level: '国际级',
-    organize: 'ACM',
-    startDate: '2026-10-20',
-    endDate: '2026-10-21',
-    status: '预报名',
-    statusColor: '#3b82f6',
-    requirements: ['算法设计', '编程实现'],
-    abilities: ['算法思维', 'C++/Java', '团队配合'],
-    participants: '3人/队',
-    link: '/contest/4'
+    name: '教育学',
+    icon: '📖',
+    directions: [
+      {
+        name: '教育学类',
+        skills: [
+          { name: '教育学原理', count: 14 },
+          { name: '课程与教学论', count: 16 },
+          { name: '教育技术学', count: 12 },
+          { name: '学前教育', count: 11 },
+          { name: '特殊教育', count: 7 }
+        ]
+      },
+      {
+        name: '体育学类',
+        skills: [
+          { name: '体育教育', count: 15 },
+          { name: '运动训练', count: 13 },
+          { name: '社会体育', count: 10 },
+          { name: '体育产业', count: 9 }
+        ]
+      }
+    ]
   },
+  // 文学
   {
-    id: 5,
-    title: '2026年全国大学生英语竞赛（NECCS）',
-    tags: ['英语竞赛'],
-    level: '国家级',
-    organize: '国际英语外语教师协会',
-    startDate: '2026-04-15',
-    endDate: '2026-05-20',
-    status: '报名中',
-    statusColor: '#10b981',
-    requirements: ['听力', '阅读', '写作', '翻译'],
-    abilities: ['英语综合能力'],
-    participants: '个人',
-    link: '/contest/5'
+    name: '文学',
+    icon: '✍️',
+    directions: [
+      {
+        name: '中国语言文学',
+        skills: [
+          { name: '古代文学', count: 13 },
+          { name: '现当代文学', count: 15 },
+          { name: '语言学', count: 12 },
+          { name: '创意写作', count: 11 },
+          { name: '比较文学', count: 8 }
+        ]
+      },
+      {
+        name: '外国语言文学',
+        skills: [
+          { name: '英语', count: 22 },
+          { name: '日语', count: 16 },
+          { name: '俄语', count: 9 },
+          { name: '法语', count: 8 },
+          { name: '翻译', count: 14 }
+        ]
+      },
+      {
+        name: '新闻传播学',
+        skills: [
+          { name: '新闻学', count: 18 },
+          { name: '广播电视学', count: 15 },
+          { name: '广告学', count: 14 },
+          { name: '网络与新媒体', count: 21 },
+          { name: '传播学', count: 12 }
+        ]
+      }
+    ]
   },
+  // 历史学
   {
-    id: 6,
-    title: '第十六届蓝桥杯全国软件和信息技术专业人才大赛',
-    tags: ['蓝桥杯'],
-    level: '国家级',
-    organize: '工业和信息化部',
-    startDate: '2026-03-25',
-    endDate: '2026-06-10',
-    status: '报名中',
-    statusColor: '#10b981',
-    requirements: ['编程能力', '算法设计'],
-    abilities: ['Java/C++/Python', '算法'],
-    participants: '个人',
-    link: '/contest/6'
+    name: '历史学',
+    icon: '🏛️',
+    directions: [
+      {
+        name: '历史学类',
+        skills: [
+          { name: '中国史', count: 12 },
+          { name: '世界史', count: 10 },
+          { name: '考古学', count: 7 },
+          { name: '文物与博物馆学', count: 8 },
+          { name: '文化遗产', count: 6 }
+        ]
+      }
+    ]
+  },
+  // 理学（基础学科）
+  {
+    name: '理学',
+    icon: '🔬',
+    directions: [
+      {
+        name: '数学',
+        skills: [
+          { name: '基础数学', count: 24 },
+          { name: '应用数学', count: 28 },
+          { name: '计算数学', count: 19 },
+          { name: '概率论与数理统计', count: 16 },
+          { name: '运筹学', count: 13 }
+        ]
+      },
+      {
+        name: '物理学',
+        skills: [
+          { name: '理论物理', count: 16 },
+          { name: '凝聚态物理', count: 18 },
+          { name: '光学', count: 14 },
+          { name: '声学', count: 9 },
+          { name: '无线电物理', count: 11 }
+        ]
+      },
+      {
+        name: '化学',
+        skills: [
+          { name: '无机化学', count: 17 },
+          { name: '有机化学', count: 19 },
+          { name: '分析化学', count: 16 },
+          { name: '物理化学', count: 14 },
+          { name: '高分子化学', count: 12 }
+        ]
+      },
+      {
+        name: '生物学',
+        skills: [
+          { name: '植物学', count: 14 },
+          { name: '动物学', count: 13 },
+          { name: '微生物学', count: 15 },
+          { name: '生物化学', count: 16 },
+          { name: '分子生物学', count: 17 },
+          { name: '生态学', count: 12 }
+        ]
+      },
+      {
+        name: '地理学',
+        skills: [
+          { name: '自然地理', count: 13 },
+          { name: '人文地理', count: 11 },
+          { name: '地理信息科学', count: 18 },
+          { name: '遥感科学与技术', count: 14 }
+        ]
+      },
+      {
+        name: '地质学',
+        skills: [
+          { name: '古生物学', count: 7 },
+          { name: '构造地质学', count: 9 },
+          { name: '地球化学', count: 8 }
+        ]
+      }
+    ]
+  },
+  // 工学
+  {
+    name: '工学',
+    icon: '⚙️',
+    directions: [
+      {
+        name: '电子信息类',
+        skills: [
+          { name: '通信工程', count: 28 },
+          { name: '电子信息工程', count: 26 },
+          { name: '电子科学与技术', count: 23 },
+          { name: '微电子', count: 19 },
+          { name: '光电信息', count: 17 },
+          { name: '集成电路', count: 21 }
+        ]
+      },
+      {
+        name: '自动化类',
+        skills: [
+          { name: '自动化', count: 25 },
+          { name: '机器人工程', count: 22 },
+          { name: '轨道交通信号', count: 13 },
+          { name: '智能科学与技术', count: 24 }
+        ]
+      },
+      {
+        name: '计算机类',
+        skills: [
+          { name: '计算机科学与技术', count: 38 },
+          { name: '软件工程', count: 35 },
+          { name: '网络工程', count: 24 },
+          { name: '信息安全', count: 22 },
+          { name: '物联网工程', count: 26 },
+          { name: '数字媒体技术', count: 19 },
+          { name: '数据科学与大数据', count: 31 },
+          { name: '人工智能', count: 29 }
+        ]
+      },
+      {
+        name: '土木类',
+        skills: [
+          { name: '土木工程', count: 27 },
+          { name: '建筑环境与能源', count: 16 },
+          { name: '给排水科学与工程', count: 14 },
+          { name: '道路桥梁', count: 18 },
+          { name: '智能建造', count: 15 }
+        ]
+      },
+      {
+        name: '机械类',
+        skills: [
+          { name: '机械设计制造', count: 26 },
+          { name: '车辆工程', count: 22 },
+          { name: '工业设计', count: 17 },
+          { name: '过程装备', count: 13 },
+          { name: '智能制造工程', count: 21 }
+        ]
+      },
+      {
+        name: '化工与制药',
+        skills: [
+          { name: '化学工程与工艺', count: 19 },
+          { name: '制药工程', count: 18 },
+          { name: '能源化学工程', count: 14 },
+          { name: '精细化工', count: 12 }
+        ]
+      },
+      {
+        name: '材料类',
+        skills: [
+          { name: '材料科学与工程', count: 21 },
+          { name: '金属材料工程', count: 14 },
+          { name: '高分子材料', count: 17 },
+          { name: '复合材料', count: 11 },
+          { name: '新能源材料', count: 16 }
+        ]
+      },
+      {
+        name: '环境科学与工程',
+        skills: [
+          { name: '环境工程', count: 20 },
+          { name: '环境科学', count: 16 },
+          { name: '环境生态工程', count: 13 },
+          { name: '资源循环科学', count: 10 }
+        ]
+      },
+      {
+        name: '生物医学工程',
+        skills: [
+          { name: '生物医学工程', count: 15 },
+          { name: '医学影像技术', count: 13 },
+          { name: '康复工程', count: 9 }
+        ]
+      },
+      {
+        name: '食品科学与工程',
+        skills: [
+          { name: '食品科学', count: 16 },
+          { name: '食品质量与安全', count: 14 },
+          { name: '粮食工程', count: 8 }
+        ]
+      },
+      {
+        name: '航空航天类',
+        skills: [
+          { name: '飞行器设计', count: 12 },
+          { name: '航空航天工程', count: 14 },
+          { name: '飞行器动力', count: 11 },
+          { name: '无人机技术', count: 16 }
+        ]
+      }
+    ]
+  },
+  // 农学
+  {
+    name: '农学',
+    icon: '🌾',
+    directions: [
+      {
+        name: '植物生产类',
+        skills: [
+          { name: '农学', count: 15 },
+          { name: '园艺', count: 13 },
+          { name: '植物保护', count: 12 },
+          { name: '种子科学', count: 8 }
+        ]
+      },
+      {
+        name: '林学类',
+        skills: [
+          { name: '林学', count: 12 },
+          { name: '森林保护', count: 9 },
+          { name: '园林', count: 16 },
+          { name: '水土保持', count: 7 }
+        ]
+      },
+      {
+        name: '动物生产类',
+        skills: [
+          { name: '动物科学', count: 13 },
+          { name: '蚕学', count: 4 },
+          { name: '蜂学', count: 3 }
+        ]
+      },
+      {
+        name: '动物医学类',
+        skills: [
+          { name: '动物医学', count: 14 },
+          { name: '动物药学', count: 7 },
+          { name: '动植物检疫', count: 8 }
+        ]
+      },
+      {
+        name: '水产类',
+        skills: [
+          { name: '水产养殖学', count: 9 },
+          { name: '海洋渔业科学', count: 7 },
+          { name: '水族科学与技术', count: 5 }
+        ]
+      },
+      {
+        name: '草学类',
+        skills: [
+          { name: '草业科学', count: 6 },
+          { name: '草坪管理', count: 4 }
+        ]
+      }
+    ]
+  },
+  // 医学
+  {
+    name: '医学',
+    icon: '⚕️',
+    directions: [
+      {
+        name: '临床医学类',
+        skills: [
+          { name: '临床医学', count: 22 },
+          { name: '麻醉学', count: 12 },
+          { name: '医学影像学', count: 15 },
+          { name: '眼视光医学', count: 8 },
+          { name: '精神医学', count: 7 },
+          { name: '放射医学', count: 6 }
+        ]
+      },
+      {
+        name: '口腔医学',
+        skills: [
+          { name: '口腔医学', count: 14 },
+          { name: '口腔正畸', count: 8 }
+        ]
+      },
+      {
+        name: '公共卫生与预防医学',
+        skills: [
+          { name: '预防医学', count: 16 },
+          { name: '流行病学', count: 12 },
+          { name: '卫生检验', count: 9 },
+          { name: '全球健康学', count: 5 }
+        ]
+      },
+      {
+        name: '中医学类',
+        skills: [
+          { name: '中医学', count: 15 },
+          { name: '针灸推拿学', count: 13 },
+          { name: '中西医临床', count: 11 },
+          { name: '中药学', count: 14 }
+        ]
+      },
+      {
+        name: '药学类',
+        skills: [
+          { name: '药学', count: 18 },
+          { name: '药物制剂', count: 12 },
+          { name: '临床药学', count: 14 },
+          { name: '药理学', count: 11 },
+          { name: '药物分析', count: 10 }
+        ]
+      },
+      {
+        name: '医学技术类',
+        skills: [
+          { name: '医学检验技术', count: 14 },
+          { name: '康复治疗学', count: 13 },
+          { name: '听力与言语康复', count: 6 }
+        ]
+      },
+      {
+        name: '护理学类',
+        skills: [
+          { name: '护理学', count: 19 },
+          { name: '助产学', count: 8 }
+        ]
+      }
+    ]
+  },
+  // 管理学
+  {
+    name: '管理学',
+    icon: '📊',
+    directions: [
+      {
+        name: '管理科学与工程',
+        skills: [
+          { name: '信息管理与信息系统', count: 21 },
+          { name: '工程管理', count: 18 },
+          { name: '大数据管理与应用', count: 23 },
+          { name: '工程造价', count: 16 }
+        ]
+      },
+      {
+        name: '工商管理类',
+        skills: [
+          { name: '工商管理', count: 24 },
+          { name: '市场营销', count: 22 },
+          { name: '会计学', count: 28 },
+          { name: '财务管理', count: 25 },
+          { name: '人力资源管理', count: 19 },
+          { name: '审计学', count: 21 },
+          { name: '资产评估', count: 12 }
+        ]
+      },
+      {
+        name: '农业经济管理',
+        skills: [
+          { name: '农林经济管理', count: 11 },
+          { name: '农村区域发展', count: 7 }
+        ]
+      },
+      {
+        name: '公共管理类',
+        skills: [
+          { name: '行政管理', count: 18 },
+          { name: '公共事业管理', count: 15 },
+          { name: '劳动与社会保障', count: 12 },
+          { name: '土地资源管理', count: 11 },
+          { name: '城市管理', count: 10 }
+        ]
+      },
+      {
+        name: '图书情报与档案',
+        skills: [
+          { name: '图书馆学', count: 7 },
+          { name: '档案学', count: 6 },
+          { name: '信息资源管理', count: 9 }
+        ]
+      },
+      {
+        name: '物流管理与工程',
+        skills: [
+          { name: '物流管理', count: 17 },
+          { name: '物流工程', count: 14 },
+          { name: '供应链管理', count: 19 }
+        ]
+      },
+      {
+        name: '电子商务类',
+        skills: [
+          { name: '电子商务', count: 21 },
+          { name: '跨境电商', count: 16 }
+        ]
+      },
+      {
+        name: '旅游管理类',
+        skills: [
+          { name: '旅游管理', count: 15 },
+          { name: '酒店管理', count: 12 },
+          { name: '会展经济与管理', count: 9 }
+        ]
+      }
+    ]
+  },
+  // 艺术学
+  {
+    name: '艺术学',
+    icon: '🎨',
+    directions: [
+      {
+        name: '艺术学理论',
+        skills: [
+          { name: '艺术史论', count: 8 },
+          { name: '艺术管理', count: 10 }
+        ]
+      },
+      {
+        name: '音乐与舞蹈学',
+        skills: [
+          { name: '音乐表演', count: 16 },
+          { name: '音乐学', count: 14 },
+          { name: '作曲与作曲技术', count: 7 },
+          { name: '舞蹈表演', count: 12 },
+          { name: '舞蹈编导', count: 8 }
+        ]
+      },
+      {
+        name: '戏剧与影视学',
+        skills: [
+          { name: '表演', count: 11 },
+          { name: '戏剧影视文学', count: 10 },
+          { name: '广播电视编导', count: 15 },
+          { name: '播音与主持', count: 14 },
+          { name: '动画', count: 16 },
+          { name: '影视摄影与制作', count: 12 }
+        ]
+      },
+      {
+        name: '美术学',
+        skills: [
+          { name: '绘画', count: 15 },
+          { name: '雕塑', count: 7 },
+          { name: '美术学', count: 12 },
+          { name: '书法学', count: 9 },
+          { name: '中国画', count: 10 }
+        ]
+      },
+      {
+        name: '设计学',
+        skills: [
+          { name: '视觉传达设计', count: 24 },
+          { name: '环境设计', count: 22 },
+          { name: '产品设计', count: 20 },
+          { name: '服装与服饰设计', count: 16 },
+          { name: '数字媒体艺术', count: 23 },
+          { name: '艺术与科技', count: 14 },
+          { name: '陶瓷艺术设计', count: 7 }
+        ]
+      }
+    ]
+  },
+  // 交叉学科
+  {
+    name: '交叉学科',
+    icon: '🔄',
+    directions: [
+      {
+        name: '集成电路科学与工程',
+        skills: [
+          { name: '芯片设计', count: 14 },
+          { name: '工艺集成', count: 9 }
+        ]
+      },
+      {
+        name: '国家安全学',
+        skills: [
+          { name: '国家安全战略', count: 6 },
+          { name: '网络安全', count: 15 }
+        ]
+      },
+      {
+        name: '设计学',
+        skills: [
+          { name: '智能交互设计', count: 12 },
+          { name: '服务设计', count: 8 }
+        ]
+      },
+      {
+        name: '遥感科学与技术',
+        skills: [
+          { name: '遥感应用', count: 11 },
+          { name: '地理信息工程', count: 13 }
+        ]
+      }
+    ]
   }
 ])
 
-// 根据选中标签过滤赛事
-const filteredContests = computed(() => {
-  if (selectedTag.value === '全部') return contestList.value
-  return contestList.value.filter(contest => contest.tags.includes(selectedTag.value))
+
+
+
+
+// ===== 生成赛事卡片（修复日期问题）=====
+const generateContestCards = () => {
+  const cards = []
+  let id = 1
+  
+  // 赛事级别和状态组合
+  const levels = ['国家级', '省级', '国家级', '省级', '省级']
+  const statuses = ['报名中', '即将开始', '备赛中', '预报名']
+  const statusColors = {
+    '报名中': '#10b981',
+    '即将开始': '#f97316',
+    '备赛中': '#8b5cf6',
+    '预报名': '#3b82f6'
+  }
+  
+  // 为每个三级标签生成卡片
+  majorCategories.value.forEach(major => {
+    major.directions.forEach(direction => {
+      direction.skills.forEach(skill => {
+        // 每个技能生成2-3个赛事
+        const cardCount = 2 + Math.floor(Math.random() * 2)
+        
+        for (let i = 0; i < cardCount; i++) {
+          const level = levels[Math.floor(Math.random() * levels.length)]
+          const status = statuses[Math.floor(Math.random() * statuses.length)]
+          const year = 2026
+          const month = 3 + Math.floor(Math.random() * 8)  // 3-10月
+          const day = 1 + Math.floor(Math.random() * 25)   // 1-25日，留几天给加天数
+          const duration = 30 + Math.floor(Math.random() * 60)  // 30-90天
+          
+          // 计算结束日期（用 Date 对象自动处理跨月）
+          const startDate = new Date(year, month-1, day)
+          const endDate = new Date(startDate)
+          endDate.setDate(startDate.getDate() + duration)
+          
+          // 赛事名称模板
+          const nameTemplates = [
+            `全国大学生${skill.name}${['大赛','竞赛','挑战赛','邀请赛'][Math.floor(Math.random()*4)]}`,
+            `${['华东','华南','华北','华中','西南'][Math.floor(Math.random()*5)]}地区${skill.name}邀请赛`,
+            `第${15+Math.floor(Math.random()*10)}届${['挑战杯','互联网+','计算机设计大赛'][Math.floor(Math.random()*3)]}·${skill.name}专项赛`,
+            `${major.name}${direction.name}${skill.name}创新实践大赛`,
+            `2026年${skill.name}应用技能大赛`
+          ]
+          
+          const organizers = [
+            '教育部高等学校教学指导委员会',
+            '中国高等教育学会',
+            '中国计算机学会',
+            '中国电子学会',
+            '中国自动化学会',
+            '中国人工智能学会',
+            '中国机械工程学会',
+            '中国化工学会',
+            '中国环境科学学会',
+            '中国农学会',
+            '中国药学会',
+            '中华医学会',
+            '中国艺术教育促进会'
+          ]
+          
+          cards.push({
+            id: id++,
+            name: nameTemplates[Math.floor(Math.random() * nameTemplates.length)],
+            level: level,
+            status: status,
+            statusColor: statusColors[status],
+            organize: organizers[Math.floor(Math.random() * organizers.length)],
+            startDate: `${year}-${month.toString().padStart(2,'0')}-${day.toString().padStart(2,'0')}`,
+            endDate: `${endDate.getFullYear()}-${(endDate.getMonth()+1).toString().padStart(2,'0')}-${endDate.getDate().toString().padStart(2,'0')}`,
+            tags: [major.name, direction.name, skill.name].slice(0, 2),
+            skills: [
+              `${skill.name}基础`,
+              `${skill.name}应用`,
+              ['创新设计','实践操作','案例分析','团队协作'][Math.floor(Math.random()*4)]
+            ],
+            major: major.name,
+            direction: direction.name,
+            skill: skill.name
+          })
+        }
+      })
+    })
+  })
+  
+  return cards
+}
+
+
+
+
+
+
+
+
+
+// 生成赛事卡片
+const contestCards = ref(generateContestCards())
+
+
+
+
+
+
+
+const selectedMajor = ref('计算机/软件')
+const selectedDirection = ref('软件开发')
+const selectedSkill = ref('全部')
+
+
+
+// 计算属性
+const currentDirections = computed(() => {
+  const major = majorCategories.value.find(m => m.name === selectedMajor.value)
+  return major?.directions || []
 })
 
-// 处理标签点击
-const selectTag = (tagName) => {
-  selectedTag.value = tagName
-}
+const currentSkills = computed(() => {
+  const major = majorCategories.value.find(m => m.name === selectedMajor.value)
+  const direction = major?.directions.find(d => d.name === selectedDirection.value)
+  return direction?.skills || []
+})
 
-// 处理搜索
-const handleSearch = () => {
-  console.log('搜索:', contestKeyword.value)
-  // 实现搜索逻辑
-}
+const filteredContests = computed(() => {
+  let filtered = contestCards.value.filter(card => 
+    card.major === selectedMajor.value &&
+    card.direction === selectedDirection.value
+  )
+  
+  if (selectedSkill.value !== '全部') {
+    filtered = filtered.filter(card => card.skill === selectedSkill.value)
+  }
+  
+  return filtered
+})
 
-// 处理卡片点击
-const goToContestDetail = (contest) => {
-  console.log('查看赛事:', contest)
-  // router.push(`/contest/${contest.id}`)
-}
-
-
-
-
-// 日期格式化
+// 日期格式化函数
 const formatDate = (dateStr) => {
   const date = new Date(dateStr)
   return `${date.getMonth()+1}.${date.getDate()}`
 }
 
-// 计算剩余天数
 const getRemainingDays = (endDateStr) => {
   const end = new Date(endDateStr)
   const now = new Date()
   const diff = Math.ceil((end - now) / (1000 * 60 * 60 * 24))
   return diff > 0 ? diff : 0
 }
-
-
 
 
 
@@ -3590,6 +4230,175 @@ const generateResume = async () => {
 
 
 
+/* 竞赛信息大厅 - 三级标签样式 */
+.major-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #f1f5f9;
+  padding-bottom: 15px;
+}
+
+.major-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #f8fafc;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid #e2e8f0;
+}
+
+.major-tab.active {
+  background: #4aa3d1;
+  border-color: #4aa3d1;
+  color: white;
+}
+
+.major-icon {
+  font-size: 18px;
+}
+
+.direction-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.direction-tab {
+  padding: 6px 16px;
+  cursor: pointer;
+  color: #64748b;
+  border-radius: 30px;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+.direction-tab:hover {
+  color: #4aa3d1;
+  background: #f0f9ff;
+}
+
+.direction-tab.active {
+  color: #4aa3d1;
+  font-weight: 600;
+  background: #e0f2fe;
+}
+
+.skill-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.skill-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  background: #f8fafc;
+  border-radius: 30px;
+  cursor: pointer;
+  border: 1px solid #e2e8f0;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.skill-tag.active {
+  background: #4aa3d1;
+  border-color: #4aa3d1;
+  color: white;
+}
+
+.skill-count {
+  font-size: 11px;
+  color: #64748b;
+  background: #e2e8f0;
+  padding: 2px 6px;
+  border-radius: 30px;
+  margin-left: 4px;
+}
+
+.active .skill-count {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.result-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.result-badge {
+  padding: 4px 16px;
+  background: #e0f2fe;
+  color: #0369a1;
+  border-radius: 30px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.result-count {
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* 能力要求细化样式 */
+.skills-required {
+  margin: 12px 0;
+  padding: 10px;
+  background: #f0f9ff;
+  border-radius: 12px;
+  border-left: 3px solid #4aa3d1;
+}
+
+.skills-title {
+  font-size: 12px;
+  color: #0369a1;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.skill-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.skill-item {
+  padding: 4px 10px;
+  background: white;
+  border-radius: 20px;
+  font-size: 11px;
+  color: #334155;
+  border: 1px solid #bae6fd;
+}
+
+/* 卡片底部箭头 */
+.card-footer {
+  margin-top: 10px;
+  text-align: right;
+}
+
+.card-arrow {
+  font-size: 18px;
+  color: #4aa3d1;
+  opacity: 0.5;
+  transition: all 0.3s;
+}
+
+.contest-card:hover .card-arrow {
+  opacity: 1;
+  transform: translateX(5px);
+}
+
 
 
 
@@ -4062,6 +4871,14 @@ const generateResume = async () => {
   font-size: 14px;
   color: #64748b;
 }
+
+
+
+
+
+
+
+
 
 
 

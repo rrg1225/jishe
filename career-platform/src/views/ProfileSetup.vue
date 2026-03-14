@@ -436,10 +436,16 @@ const skipSetup = () => {
 .toast-message.error { background-color: #ff4d4f; }
 .toast-fade-enter-active, .toast-fade-leave-active { transition: all 0.3s ease; }
 .toast-fade-enter-from, .toast-fade-leave-to { opacity: 0; transform: translate(-50%, -20px); }
+
+
 .setup-container { 
   height: 100vh; 
   width: 100vw; 
-  background: url('https://images.unsplash.com/vector-1758891079993-52adbeccaea7?q=80&w=1450&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D') center/cover no-repeat; display: flex; align-items: center; justify-content: center; }
+  background: url('/images11/vector-1758891079993-52adbeccaea7.avif') center/cover no-repeat; 
+  display: flex; align-items: center; justify-content: center; }
+
+
+
 .glass-card { width: 420px; padding: 40px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 16px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); }
 .title { text-align: center; margin-bottom: 5px; color: #333; }
 .subtitle { text-align: center; color: #888; font-size: 14px; margin-bottom: 30px; }

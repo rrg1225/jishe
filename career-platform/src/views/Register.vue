@@ -14,6 +14,21 @@
     </div>
 
     <div class="right-form">
+
+          <!-- 漂浮元素层 -->
+            <div class="floating-elements">
+            <div class="floating-item book-1">📚</div>
+            <div class="floating-item book-2">📖</div>
+            <div class="floating-item computer-1">💻</div>
+            <div class="floating-item computer-2">🖥️</div>
+            <div class="floating-item diploma">🎓</div>
+            <div class="floating-item lightbulb">💡</div>
+            <div class="floating-item chart">📊</div>
+            <div class="floating-item target">🎯</div>
+            </div>
+
+
+
       <div class="form-box">
         <h2 class="title">欢迎加入平台</h2>
         
@@ -211,9 +226,53 @@ const handleRegister = async () => {
 
 /* 下面保留你所有的原有样式 */
 .register-container { display: flex; height: 100vh; width: 100vw; }
-.left-banner { flex: 6; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; }
-.banner-text h1 { font-size: 3rem; margin-bottom: 1rem; }
-.right-form { flex: 4; background: #fff; display: flex; align-items: center; justify-content: center; }
+
+.left-banner {
+  flex: 6;
+  background: url('/images11/premium_photo-1691962723290-12baaaa0fe2a.avif') no-repeat center center;
+  background-size: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  position: relative;
+  min-height:100vh;
+}
+
+.left-banner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.35); /* 深色遮罩，让文字更清楚 */
+  z-index: 1;
+}
+
+.left-banner .banner-text {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  padding: 20px;
+  max-width:80%;
+}
+
+
+.banner-text h1 { 
+  font-size: 3rem; 
+  margin-bottom: 1rem; }
+
+
+.right-form { 
+  flex: 4; 
+  background: #fff; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; }
+
+
+
 .form-box { width: 400px; padding: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border-radius: 12px; }
 .title { text-align: center; margin-bottom: 30px; color: #333; }
 .tabs { display: flex; margin-bottom: 30px; border-bottom: 2px solid #eee; }
@@ -243,4 +302,158 @@ const handleRegister = async () => {
 .input-with-icon input:focus { border-color: #40a9ff; box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2); color: #333; }
 .search-icon { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #bfbfbf; pointer-events: none; }
 .input-with-icon .dropdown-list { top: calc(100% + 4px); margin-top: 0; }
+
+
+
+.floating-elements {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1; /* 在背景之上，表单之下 */
+  pointer-events: none; /* 让鼠标可以穿透点击表单 */
+  overflow: hidden;
+}
+
+/* 漂浮元素通用样式 */
+.floating-item {
+  position: absolute;
+  font-size: 40px;
+  opacity: 0.15; /* 很淡，不抢眼 */
+  animation: float 20s ease-in-out infinite;
+  filter: drop-shadow(0 0 10px rgba(74, 144, 226, 0.3));
+  transform-origin: center;
+  color: #2c3e50;
+}
+
+/* 各个元素的位置和动画时间 */
+.book-1 {
+  top: 15%;
+  left: 10%;
+  font-size: 48px;
+  animation-duration: 22s;
+  animation-delay: 0s;
+  transform: rotate(-5deg);
+}
+
+.book-2 {
+  bottom: 20%;
+  left: 15%;
+  font-size: 42px;
+  animation-duration: 25s;
+  animation-delay: 2s;
+  transform: rotate(10deg);
+}
+
+.computer-1 {
+  top: 25%;
+  right: 15%;
+  font-size: 50px;
+  animation-duration: 18s;
+  animation-delay: 1s;
+  transform: rotate(3deg);
+}
+
+.computer-2 {
+  bottom: 30%;
+  right: 10%;
+  font-size: 45px;
+  animation-duration: 24s;
+  animation-delay: 3s;
+  transform: rotate(-8deg);
+}
+
+.diploma {
+  top: 40%;
+  left: 20%;
+  font-size: 44px;
+  animation-duration: 21s;
+  animation-delay: 4s;
+  transform: rotate(15deg);
+}
+
+.lightbulb {
+  top: 60%;
+  right: 20%;
+  font-size: 38px;
+  animation-duration: 19s;
+  animation-delay: 2.5s;
+  transform: rotate(-12deg);
+}
+
+.chart {
+  top: 70%;
+  left: 25%;
+  font-size: 40px;
+  animation-duration: 23s;
+  animation-delay: 1.5s;
+  transform: rotate(5deg);
+}
+
+.target {
+  bottom: 15%;
+  right: 25%;
+  font-size: 42px;
+  animation-duration: 26s;
+  animation-delay: 3.5s;
+  transform: rotate(-5deg);
+}
+
+/* 漂浮动画 */
+@keyframes float {
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+  25% {
+    transform: translate(10px, -15px) rotate(5deg) scale(1.05);
+  }
+  50% {
+    transform: translate(-8px, 10px) rotate(-3deg) scale(0.98);
+  }
+  75% {
+    transform: translate(12px, 8px) rotate(4deg) scale(1.02);
+  }
+  100% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+}
+
+/* 确保表单在漂浮元素上面 */
+.right-form {
+  position: relative; /* 让绝对定位的漂浮元素相对于它定位 */
+  flex: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+  overflow: hidden; /* 防止元素溢出 */
+}
+
+.form-box {
+  position: relative;
+  z-index: 10; /* 表单在漂浮元素上面 */
+  width: 450px;
+  padding: 50px 45px;
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+}
+
+
+.floating-elements::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    repeating-linear-gradient(0deg, rgba(74, 144, 226, 0.03) 0px, rgba(74, 144, 226, 0.03) 1px, transparent 1px, transparent 30px),
+    repeating-linear-gradient(90deg, rgba(74, 144, 226, 0.03) 0px, rgba(74, 144, 226, 0.03) 1px, transparent 1px, transparent 30px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+
 </style>
