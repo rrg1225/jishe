@@ -5,6 +5,7 @@ import Dashboard from '../views/Dashboard.vue'
 import ForgotPassword from '../views/ForgotPassword.vue'
 import ProfileSetup from '../views/ProfileSetup.vue' // 【新增】：引入完善信息页面
 import UserProfile from '../views/UserProfile.vue' // 引入刚建的组件
+import Chat from '../views/Chat.vue'
 
 const routes = [
   { path: '/', redirect: '/login' },
@@ -34,7 +35,22 @@ const routes = [
   path: '/resume-preview',
   name: 'ResumePreview',
   component: () => import('../views/ResumePreview.vue')
-}
+},
+{
+      path: '/chat',
+      name: 'chat',
+      component: Chat
+    },
+    {
+    path: '/community/:id',
+    name: 'CommunityDetail',
+    component: () => import('../views/CommunityDetail.vue') // 懒加载写法
+  },
+  {
+    path: '/community-select',
+    name: 'CommunitySelect',
+    component: () => import('../views/CommunitySelect.vue')
+  },
 ]
 
 const router = createRouter({

@@ -1,6 +1,8 @@
 <template>
-  <router-view></router-view>
-  <AIMentor v-if="showMentor" />
+  <div id="app-container">
+    <router-view></router-view>
+    <AIMentor v-if="showMentor" />
+  </div>
 </template>
 
 <script setup>
@@ -24,7 +26,7 @@ body, html {
   width: 100%; 
   font-family: 'Helvetica Neue', Arial, sans-serif; 
 }
-#app { 
+#app, #app-container { 
   min-height: 100vh; 
 }
 </style>

@@ -52,8 +52,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // 🚀 终极白名单：加入 "/error"，防止后端的正常报错被包装成 403 欺骗我们！
-                        .requestMatchers("/api/auth/**", "/api/chat/**", "/api/resume/**", "/error").permitAll()
+                        //白名单防止，后端的正常报错被包装成 403 欺骗我们！
+                        .requestMatchers("/api/auth/login", "/api/auth/register", "/chat/**").permitAll()
                         .anyRequest().authenticated()
                 );
 
