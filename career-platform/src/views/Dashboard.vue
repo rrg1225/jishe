@@ -2,7 +2,51 @@
   <div class="layout">
     <header class="header">
       <div class="logo">学业职业规划平台</div>
-      <div class="search-bar"><input type="text" placeholder="搜索院校、企业或竞赛..." /></div> 
+
+
+       <!-- 搜索栏区域 -->
+<div class="search-container">
+  <div class="search-bar">
+    <span class="search-icon">🔍</span>
+    <input 
+      type="text" 
+      placeholder="搜索院校、企业或竞赛..." 
+      v-model="searchKeyword"
+      @focus="showHotSearch = true"
+      @blur="hideHotSearch"
+    />
+  </div>
+  
+  <!-- 热搜下拉框 -->
+  <div class="hot-search-dropdown" v-show="showHotSearch">
+    <div class="hot-search-header">
+      <span class="hot-title">🔥 热搜榜</span>
+      <span class="update-time">实时更新</span>
+    </div>
+    
+    <div class="hot-search-list">
+      <div 
+        v-for="(item, index) in hotSearchList" 
+        :key="index"
+        class="hot-search-item"
+        @mousedown.prevent="selectHotSearch(item)"
+      >
+        <span class="rank-number" :class="{ 'top-three': index < 3 }">{{ index + 1 }}</span>
+        <span class="hot-icon" v-if="index < 3">🔥</span>
+        <span class="hot-text">{{ item.keyword }}</span>
+        <span class="hot-count" :class="{ 'top-three-count': index < 3 }">{{ item.count }}万</span>
+      </div>
+    </div>
+    
+    <div class="hot-search-footer">
+      <span>更多热搜 →</span>
+    </div>
+  </div>
+</div>
+
+
+
+
       
       <div class="header-right">
         <button class="go-publish-btn" @click="router.push('/publish')">
@@ -50,19 +94,40 @@
       </aside>
 
       <main class="content">
-        <section v-if="activeMenu === 'home'" class="fade-in">
-          <div class="banner-carousel">
-            <div class="banner-content">
-              <h2>🔥 2026 春季大厂校园招聘全面开启</h2>
-              <p>提前批内推 / 简历辅导 / 面试真题全解析，助你拿下心仪 Offer</p>
-            </div>
-            <div class="banner-dots">
-              <span class="dot active"></span>
-              <span class="dot"></span>
-              <span class="dot"></span>
-              <span class="dot"></span>
-            </div>
-          </div>
+        
+          <!-- 首页轮播图区域 -->
+<section v-if="activeMenu === 'home'" class="fade-in">
+  <!-- 轮播图容器 -->
+  <div class="carousel-container">
+    <div class="carousel-wrapper" :style="{ transform: `translateX(-${currentSlide * 100}%)` }">
+      <div v-for="(slide, index) in carouselSlides" :key="index" class="carousel-slide">
+        <img :src="slide.image" :alt="slide.title" class="carousel-image" />
+        <div class="carousel-content">
+          <h2>{{ slide.title }}</h2>
+          <p>{{ slide.description }}</p>
+          <button class="carousel-btn" @click="goToLink(slide.link)">了解更多</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 轮播图指示点 -->
+    <div class="carousel-dots">
+      <span 
+        v-for="(slide, index) in carouselSlides" 
+        :key="index"
+        class="dot"
+        :class="{ active: currentSlide === index }"
+        @click="currentSlide = index"
+      ></span>
+    </div>
+    
+    <!-- 左右箭头 -->
+    <button class="carousel-arrow prev" @click="prevSlide">❮</button>
+    <button class="carousel-arrow next" @click="nextSlide">❯</button>
+  </div>
+  
+
+
 
           <div class="home-sections">
             <div class="section-block" v-for="(section, index) in homeData" :key="index">
@@ -88,44 +153,278 @@
         <section v-if="activeMenu === 'matrix'" class="card-layout fade-in">
           <h3>学业深造信息矩阵</h3>
           <p class="subtitle">为你提供最新的升学与海外留学情报</p>
-          <div class="info-grid">
-            <div class="grid-item">保研/考研最新政策</div>
-            <div class="grid-item">海外留学资讯库</div>
-            <div class="grid-item">大数据院校筛选系统</div>
-          </div>
+          
+
+           
+           <!-- 右侧信息卡片 - 2x2网格 -->
+         <!-- 右侧学业深造信息矩阵 - 田字格按钮卡片 -->
+<div class="academy-grid">
+  <!-- 考研卡片 -->
+  <div class="academy-card" @click="goToPage('/graduate-exam')">
+    <div class="card-content">
+      <span class="card-icon">📚</span>
+      <h4>考研最新政策</h4>
+      <p>大纲解析 · 报名时间 · 院校动态</p>
+      <span class="card-arrow">→</span>
+    </div>
+  </div>
+  
+  <!-- 保研卡片 -->
+  <div class="academy-card" @click="goToPage('/recommendation')">
+    <div class="card-content">
+      <span class="card-icon">🏆</span>
+      <h4>保研推免攻略</h4>
+      <p>夏令营 · 预推免 · 九推指南</p>
+      <span class="card-arrow">→</span>
+    </div>
+  </div>
+  
+  <!-- 留学卡片 -->
+  <div class="academy-card" @click="goToPage('/abroad')">
+    <div class="card-content">
+      <span class="card-icon">✈️</span>
+      <h4>海外留学资讯</h4>
+      <p>QS排名 · 申请时间轴 · 签证政策</p>
+      <span class="card-arrow">→</span>
+    </div>
+  </div>
+  
+  <!-- 院校筛选卡片 -->
+  <div class="academy-card" @click="goToPage('/school-filter')">
+    <div class="card-content">
+      <span class="card-icon">🔍</span>
+      <h4>大数据院校筛选</h4>
+      <p>智能匹配 · 录取概率 · 专业推荐</p>
+      <span class="card-arrow">→</span>
+    </div>
+  </div>
+</div>
+
+
+
+
         </section>
 
-        <section v-if="activeMenu === 'job'" class="card-layout fade-in">
-          <div class="section-header">
-            <div>
-              <h3>产教融合与招聘双选</h3>
-              <p class="subtitle">行业前沿风向标：探索大一至大四的硬核技能与软实力进阶路径</p>
+
+
+<!-- 产教融合与招聘双选 - 招聘信息流风格 -->
+<section v-if="activeMenu === 'job'" class="fade-in">
+  <div class="recruitment-section">
+    <div class="section-header">
+      <div>
+        <h3>🔥 产教融合 · 招聘双选</h3>
+        <p class="section-subtitle">行业前沿风向标：探索大一至大四的硬核技能与软实力进阶路径</p>
+      </div>
+      <div class="header-actions">
+        <span class="filter-tag active">全部</span>
+        <span class="filter-tag">春招</span>
+        <span class="filter-tag">秋招</span>
+        <span class="filter-tag">实习</span>
+        <span class="filter-tag">社招</span>
+      </div>
+    </div>
+    
+    <!-- 按招聘类型分组 -->
+    <div v-for="(category, idx) in jobList" :key="idx" class="job-category">
+      <div class="category-header">
+        <span class="category-badge" :style="{ backgroundColor: category.typeBg, color: category.typeColor }">
+          {{ category.type }}
+        </span>
+        <span class="category-count">{{ category.jobs.length }}个职位</span>
+      </div>
+      
+      <div class="job-cards">
+        <div v-for="(job, index) in category.jobs" :key="index" class="job-card" @click="goToJobDetail(job)">
+          <!-- 左侧公司标识 -->
+          <div class="job-left">
+            <div class="company-logo" :style="{ background: `linear-gradient(135deg, ${category.typeColor}80, ${category.typeColor})` }">
+              {{ job.logo }}
             </div>
-            <button v-if="userRole === 'enterprise'" class="publish-btn" @click="publishJob">
-              + 发布招聘信息
-            </button>
           </div>
-          <div class="job-list">
-            <div class="job-item">【名企内推】后端开发工程师 (Java/Spring Boot) - 附能力要求模型</div>
-            <div class="job-item">【校招】前端开发工程师 (Vue.js/React) - 面试真题库</div>
-            <div class="job-item">【实习】数据分析师 (Python/SQL) - 大厂核心业务</div>
+          
+          <!-- 中间职位信息 -->
+          <div class="job-middle">
+            <div class="job-title-row">
+              <h4>{{ job.position }}</h4>
+              <span v-if="job.hot" class="hot-tag">🔥 热门</span>
+            </div>
+            
+            <div class="company-name">
+              <span>{{ job.company }}</span>
+              <span class="job-salary">{{ job.salary }}</span>
+            </div>
+            
+            <div class="job-tags">
+              <span v-for="(tag, i) in job.tags" :key="i" class="skill-tag">{{ tag }}</span>
+            </div>
+            
+            <div class="job-footer">
+              <span class="job-location">📍 {{ job.location }}</span>
+              <span class="job-deadline">⏰ {{ job.deadline }}</span>
+            </div>
           </div>
-        </section>
+          
+          <!-- 右侧箭头 -->
+          <div class="job-right">
+            <span class="job-arrow">查看详情 →</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="view-more">
+      <span class="view-more-link">查看更多招聘信息 →</span>
+    </div>
+  </div>
+</section>
 
-        <section v-if="activeMenu === 'contest'" class="card-layout fade-in">
-          <h3>竞赛信息大厅</h3>
-          <p class="subtitle">打标签分类，快速匹配适合你的比赛</p>
-          <div class="tags">
-            <span class="tag">互联网+</span>
-            <span class="tag">挑战杯</span>
-            <span class="tag">数学建模(MCM/ICM)</span>
-            <span class="tag">ACM程序设计</span>
-            <span class="tag">英语竞赛</span>
+
+
+
+
+
+       <!-- 竞赛信息大厅 -->
+<section v-if="activeMenu === 'contest'" class="fade-in">
+  <div class="contest-section">
+    <!-- 头部 -->
+    <div class="contest-header">
+      <div>
+        <h3>🏆 竞赛信息大厅</h3>
+        <p class="section-subtitle">打标签分类，快速匹配适合你的比赛</p>
+      </div>
+    </div>
+    
+    <!-- 搜索栏 -->
+    <div class="contest-search">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input 
+          type="text" 
+          placeholder="搜索竞赛名称、关键词..." 
+          v-model="contestKeyword"
+          @keyup.enter="handleSearch"
+        />
+        <button class="search-btn" @click="handleSearch">搜索</button>
+      </div>
+    </div>
+    
+    <!-- 标签栏 - 可横向滚动 -->
+    <div class="tags-wrapper">
+      <div class="tags-scroll">
+        <span 
+          class="tag-chip" 
+          :class="{ active: selectedTag === '全部' }"
+          @click="selectTag('全部')"
+        >
+          🏷️ 全部
+        </span>
+        <span 
+          v-for="tag in contestTags" 
+          :key="tag.name"
+          class="tag-chip"
+          :class="{ active: selectedTag === tag.name }"
+          :style="{ borderColor: selectedTag === tag.name ? tag.color : '#e2e8f0' }"
+          @click="selectTag(tag.name)"
+        >
+          <span class="tag-icon">{{ tag.icon }}</span>
+          <span class="tag-name">{{ tag.name }}</span>
+          <span class="tag-count" :style="{ backgroundColor: tag.color + '20', color: tag.color }">{{ tag.count }}</span>
+        </span>
+      </div>
+    </div>
+    
+    <!-- 当前选中标签提示 -->
+    <div class="selected-tag-info" v-if="selectedTag !== '全部'">
+      <span class="selected-tag-badge" :style="{ backgroundColor: contestTags.find(t => t.name === selectedTag)?.color + '20', color: contestTags.find(t => t.name === selectedTag)?.color }">
+        {{ selectedTag }}
+      </span>
+      <span class="result-count">共 {{ filteredContests.length }} 个赛事</span>
+    </div>
+    
+    <!-- 赛事卡片列表 -->
+    <div class="contest-grid" v-if="filteredContests.length > 0">
+      <div 
+        v-for="contest in filteredContests" 
+        :key="contest.id"
+        class="contest-card"
+        @click="goToContestDetail(contest)"
+      >
+        <!-- 卡片头部 - 状态标识 -->
+        <div class="card-header">
+          <span class="contest-level" :style="{ backgroundColor: contest.level === '国际级' ? '#fef3c7' : contest.level === '国家级' ? '#e0f2fe' : '#f1f5f9' }">
+            {{ contest.level }}
+          </span>
+          <span class="contest-status" :style="{ backgroundColor: contest.statusColor + '20', color: contest.statusColor }">
+            {{ contest.status }}
+          </span>
+        </div>
+        
+        <!-- 标题 -->
+        <h4 class="contest-title">{{ contest.title }}</h4>
+        
+        <!-- 主办方 -->
+        <div class="contest-organizer">
+          <span class="organizer-label">主办：</span>
+          {{ contest.organize }}
+        </div>
+        
+        <!-- 时间信息 -->
+        <div class="contest-time">
+          <div class="time-item">
+            <span class="time-icon">📅</span>
+            <span>{{ formatDate(contest.startDate) }} - {{ formatDate(contest.endDate) }}</span>
           </div>
-          <div class="contest-placeholder">
-             (赛事卡片列表加载中...)
+          <div class="time-remain" v-if="contest.status === '报名中'">
+            距报名截止 {{ getRemainingDays(contest.endDate) }}天
           </div>
-        </section>
+        </div>
+        
+        <!-- 标签 -->
+        <div class="contest-tags">
+          <span v-for="tag in contest.tags" :key="tag" class="contest-tag">
+            {{ tag }}
+          </span>
+        </div>
+        
+        <!-- 能力要求 -->
+        <div class="ability-section">
+          <div class="section-label">✨ 能力要求：</div>
+          <div class="ability-tags">
+            <span v-for="ability in contest.abilities" :key="ability" class="ability-tag">
+              {{ ability }}
+            </span>
+          </div>
+        </div>
+        
+        <!-- 参赛人数 -->
+        <div class="contest-participants">
+          <span class="participants-icon">👥</span>
+          {{ contest.participants }}
+        </div>
+        
+        <!-- 查看详情 -->
+        <div class="card-footer">
+          <span class="view-detail">查看详情 →</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 空状态 -->
+    <div v-else class="empty-state">
+      <div class="empty-icon">🏆</div>
+      <p>暂无相关赛事</p>
+      <span class="empty-sub">试试其他标签或关键词</span>
+    </div>
+  </div>
+</section>
+
+
+
+
+
+
+
+
 
         <section v-if="activeMenu === 'profile'" class="card-layout fade-in">
           <h3>动态能力画像与简历定制</h3>
@@ -172,7 +471,336 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+
+
+
+
+// 热搜数据
+const hotSearchList = ref([
+  { keyword: '2026考研大纲', count: 128 },
+  { keyword: '互联网+大赛', count: 96 },
+  { keyword: '字节跳动实习', count: 85 },
+  { keyword: '春招时间表', count: 64 },
+  { keyword: '雅思机考', count: 52 },
+  { keyword: '计算机二级', count: 43 },
+  { keyword: '保研夏令营', count: 38 },
+  { keyword: '腾讯校招', count: 31 }
+])
+
+const showHotSearch = ref(false)
+const searchKeyword = ref('')
+
+// 延迟关闭，让点击事件能触发
+let blurTimer = null
+const hideHotSearch = () => {
+  blurTimer = setTimeout(() => {
+    showHotSearch.value = false
+  }, 200)
+}
+
+// 点击热搜词
+const selectHotSearch = (item) => {
+  searchKeyword.value = item.keyword
+  showHotSearch.value = false
+  // 执行搜索
+  performSearch(item.keyword)
+}
+
+// 执行搜索
+const performSearch = (keyword) => {
+  console.log('搜索：', keyword)
+  // 这里可以调搜索接口或跳转
+  // router.push(`/search?q=${keyword}`)
+}
+
+// 组件销毁时清除定时器
+onUnmounted(() => {
+  if (blurTimer) clearTimeout(blurTimer)
+})
+
+
+
+
+
+
+
+// 产教融合招聘数据 - 按招聘类型分类
+const jobList = ref([
+  // 春招
+  {
+    id: 1,
+    type: '春招',
+    typeColor: '#f97316',
+    typeBg: '#fff7ed',
+    jobs: [
+      {
+        company: '腾讯',
+        logo: '🐧',
+        position: '后端开发工程师',
+        tags: ['Java', 'Spring Boot', '微服务'],
+        salary: '25k-40k',
+        location: '北京/深圳',
+        deadline: '2026.04.30',
+        hot: true
+      },
+      {
+        company: '字节跳动',
+        logo: '📱',
+        position: '前端开发工程师',
+        tags: ['Vue.js', 'React', 'TypeScript'],
+        salary: '22k-38k',
+        location: '北京/上海',
+        deadline: '2026.05.15',
+        hot: true
+      }
+    ]
+  },
+  // 秋招
+  {
+    id: 2,
+    type: '秋招',
+    typeColor: '#3b82f6',
+    typeBg: '#eff6ff',
+    jobs: [
+      {
+        company: '阿里巴巴',
+        logo: '🛒',
+        position: 'Java开发工程师',
+        tags: ['Java', 'Spring Cloud', 'Redis'],
+        salary: '24k-42k',
+        location: '杭州',
+        deadline: '2026.10.31'
+      },
+      {
+        company: '美团',
+        logo: '🍔',
+        position: '算法工程师',
+        tags: ['Python', 'PyTorch', '推荐系统'],
+        salary: '28k-45k',
+        location: '北京',
+        deadline: '2026.11.15'
+      }
+    ]
+  },
+  // 普通招/实习
+  {
+    id: 3,
+    type: '实习/社招',
+    typeColor: '#10b981',
+    typeBg: '#f0fdf4',
+    jobs: [
+      {
+        company: '网易',
+        logo: '🎵',
+        position: '数据分析师',
+        tags: ['Python', 'SQL', 'Tableau'],
+        salary: '200-300/天',
+        location: '杭州',
+        deadline: '长期有效',
+        intern: true
+      },
+      {
+        company: '京东',
+        logo: '🐶',
+        position: '产品经理',
+        tags: ['Axure', '数据分析', '用户研究'],
+        salary: '18k-30k',
+        location: '北京',
+        deadline: '2026.06.30'
+      }
+    ]
+  }
+])
+
+
+
+
+
+// ===== 竞赛信息大厅数据 =====
+const contestTags = ref([
+  { name: '互联网+', icon: '💡', count: 24, color: '#f97316' },
+  { name: '挑战杯', icon: '🏆', count: 18, color: '#3b82f6' },
+  { name: '数学建模', icon: '📊', count: 32, color: '#10b981' },
+  { name: 'ACM程序设计', icon: '💻', count: 15, color: '#8b5cf6' },
+  { name: '英语竞赛', icon: '📝', count: 12, color: '#ec4899' },
+  { name: '蓝桥杯', icon: '🖥️', count: 21, color: '#6366f1' },
+  { name: '计算机设计大赛', icon: '🎨', count: 9, color: '#14b8a6' },
+  { name: '创新创业', icon: '🚀', count: 16, color: '#f43f5e' }
+])
+
+const selectedTag = ref('互联网+')
+const contestKeyword = ref('')
+
+// 赛事卡片数据
+const contestList = ref([
+  {
+    id: 1,
+    title: '第九届中国国际“互联网+”大学生创新创业大赛',
+    tags: ['互联网+', '创新创业'],
+    level: '国家级',
+    organize: '教育部',
+    startDate: '2026-03-15',
+    endDate: '2026-07-20',
+    status: '报名中',
+    statusColor: '#10b981',
+    requirements: ['商业计划书', '项目演示视频', '团队介绍'],
+    abilities: ['创新思维', '团队协作', '商业分析'],
+    participants: '3-5人/队',
+    link: '/contest/1'
+  },
+  {
+    id: 2,
+    title: '第十八届“挑战杯”全国大学生课外学术科技作品竞赛',
+    tags: ['挑战杯'],
+    level: '国家级',
+    organize: '共青团中央',
+    startDate: '2026-04-01',
+    endDate: '2026-10-15',
+    status: '即将开始',
+    statusColor: '#f97316',
+    requirements: ['学术论文', '调研报告', '答辩PPT'],
+    abilities: ['学术研究', '数据分析', '论文写作'],
+    participants: '1-3人/队',
+    link: '/contest/2'
+  },
+  {
+    id: 3,
+    title: '2026年高教社杯全国大学生数学建模竞赛',
+    tags: ['数学建模'],
+    level: '国家级',
+    organize: '中国工业与应用数学学会',
+    startDate: '2026-09-10',
+    endDate: '2026-09-13',
+    status: '备赛中',
+    statusColor: '#8b5cf6',
+    requirements: ['数学模型', '论文', '程序代码'],
+    abilities: ['数学建模', '编程', '论文写作'],
+    participants: '3人/队',
+    link: '/contest/3'
+  },
+  {
+    id: 4,
+    title: '第47届ACM国际大学生程序设计竞赛亚洲区域赛',
+    tags: ['ACM程序设计'],
+    level: '国际级',
+    organize: 'ACM',
+    startDate: '2026-10-20',
+    endDate: '2026-10-21',
+    status: '预报名',
+    statusColor: '#3b82f6',
+    requirements: ['算法设计', '编程实现'],
+    abilities: ['算法思维', 'C++/Java', '团队配合'],
+    participants: '3人/队',
+    link: '/contest/4'
+  },
+  {
+    id: 5,
+    title: '2026年全国大学生英语竞赛（NECCS）',
+    tags: ['英语竞赛'],
+    level: '国家级',
+    organize: '国际英语外语教师协会',
+    startDate: '2026-04-15',
+    endDate: '2026-05-20',
+    status: '报名中',
+    statusColor: '#10b981',
+    requirements: ['听力', '阅读', '写作', '翻译'],
+    abilities: ['英语综合能力'],
+    participants: '个人',
+    link: '/contest/5'
+  },
+  {
+    id: 6,
+    title: '第十六届蓝桥杯全国软件和信息技术专业人才大赛',
+    tags: ['蓝桥杯'],
+    level: '国家级',
+    organize: '工业和信息化部',
+    startDate: '2026-03-25',
+    endDate: '2026-06-10',
+    status: '报名中',
+    statusColor: '#10b981',
+    requirements: ['编程能力', '算法设计'],
+    abilities: ['Java/C++/Python', '算法'],
+    participants: '个人',
+    link: '/contest/6'
+  }
+])
+
+// 根据选中标签过滤赛事
+const filteredContests = computed(() => {
+  if (selectedTag.value === '全部') return contestList.value
+  return contestList.value.filter(contest => contest.tags.includes(selectedTag.value))
+})
+
+// 处理标签点击
+const selectTag = (tagName) => {
+  selectedTag.value = tagName
+}
+
+// 处理搜索
+const handleSearch = () => {
+  console.log('搜索:', contestKeyword.value)
+  // 实现搜索逻辑
+}
+
+// 处理卡片点击
+const goToContestDetail = (contest) => {
+  console.log('查看赛事:', contest)
+  // router.push(`/contest/${contest.id}`)
+}
+
+
+
+
+// 日期格式化
+const formatDate = (dateStr) => {
+  const date = new Date(dateStr)
+  return `${date.getMonth()+1}.${date.getDate()}`
+}
+
+// 计算剩余天数
+const getRemainingDays = (endDateStr) => {
+  const end = new Date(endDateStr)
+  const now = new Date()
+  const diff = Math.ceil((end - now) / (1000 * 60 * 60 * 24))
+  return diff > 0 ? diff : 0
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const goToJobDetail = (job) => {
+  console.log('查看职位：', job)
+  // 可以跳转到详情页
+  // router.push(`/job/${job.id}`)
+}
+
+
+
+
+
+
+// 页面跳转函数
+const goToPage = (path) => {
+  router.push(path)
+}
+
+
+
+
+
+import { ref, onMounted, onUnmounted,watch,computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import request from '../utils/request'
 
@@ -271,6 +899,84 @@ const logout = () => {
 
 const publishJob = () => alert('弹出发布招聘信息的表单（待开发）')
 
+
+
+
+// 轮播图数据
+const carouselSlides = ref([
+  {
+    image: '/images11/photo-1522071820081-009f0129c71c.jpg',
+    title: '2026春季大厂校园招聘全面开启',
+    description: '提前批内推 / 简历辅导 / 面试真题全解析，助你拿下心仪 Offer',
+    link: '/recruitment'
+  },
+  {
+    image: '/images11/photo-1517245386807-bb43f82c33c4.jpg',
+    title: '考研倒计时：冲刺阶段复习规划',
+    description: '名师押题 / 真题精讲 / 模拟考试，最后三个月如何高效提分',
+    link: '/graduate-exam'
+  },
+  {
+    image: '/images11/photo-1434030216411-0b793f4b4173.jpg',
+    title: '留学申请季：全球TOP50院校指南',
+    description: '文书写作 / 推荐信 / 面试辅导，一站式留学服务',
+    link: '/abroad'
+  },
+  {
+    image: '/images11/photo-1524178232363-1fb2b075b655.jpg',
+    title: '互联网大厂实习内推专场',
+    description: '字节 / 腾讯 / 阿里 / 美团，50+岗位等你来投',
+    link: '/internship'
+  },
+  {
+    image: '/images11/photo-1552664730-d307ca884978.jpg',
+    title: '竞赛集训营：冲击国奖',
+    description: '互联网+ / 挑战杯 / 数学建模，金牌导师带队',
+    link: '/competition'
+  }
+])
+
+const currentSlide = ref(0)
+let slideInterval = null
+
+// 自动轮播
+const startAutoPlay = () => {
+  slideInterval = setInterval(() => {
+    nextSlide()
+  }, 5000) // 5秒切换一次
+}
+
+// 下一张
+const nextSlide = () => {
+  currentSlide.value = (currentSlide.value + 1) % carouselSlides.value.length
+}
+
+// 上一张
+const prevSlide = () => {
+  currentSlide.value = (currentSlide.value - 1 + carouselSlides.value.length) % carouselSlides.value.length
+}
+
+// 跳转到链接
+const goToLink = (link) => {
+  router.push(link)
+}
+
+// 组件挂载时开始自动轮播
+onMounted(() => {
+  startAutoPlay()
+})
+
+// 组件卸载时清除定时器
+onUnmounted(() => {
+  if (slideInterval) {
+    clearInterval(slideInterval)
+  }
+})
+
+
+
+
+
 const homeData = ref([
   {
     title: '🎓 学业深造推荐',
@@ -354,6 +1060,1048 @@ const generateResume = async () => {
 </script>
 
 <style scoped>
+
+
+/* 轮播图容器 */
+.carousel-container {
+  position: relative;
+  width: 100%;
+  height: 400px;
+  overflow: hidden;
+  border-radius: 16px;
+  margin-bottom: 30px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+/* 轮播图轨道 */
+.carousel-wrapper {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.5s ease-in-out;
+}
+
+/* 单个幻灯片 */
+.carousel-slide {
+  flex: 0 0 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* 轮播图图片 */
+.carousel-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 图片上的文字内容 */
+.carousel-content {
+  position: absolute;
+  bottom: 60px;
+  left: 50px;
+  color: white;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  z-index: 2;
+  max-width: 60%;
+}
+
+.carousel-content h2 {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  line-height: 1.2;
+}
+
+.carousel-content p {
+  font-size: 16px;
+  margin-bottom: 20px;
+  opacity: 0.9;
+}
+
+.carousel-btn {
+  padding: 12px 30px;
+  background: linear-gradient(135deg, #4aa3d1, #6cc29a);
+  color: white;
+  border: none;
+  border-radius: 40px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.carousel-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(74, 163, 209, 0.4);
+}
+
+/* 半透明遮罩，让文字更清楚 */
+.carousel-slide::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  background: linear-gradient(to top, rgba(0,0,0,0.5), transparent);
+  z-index: 1;
+}
+
+/* 指示点 */
+.carousel-dots {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  z-index: 3;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.dot.active {
+  width: 30px;
+  border-radius: 10px;
+  background: white;
+}
+
+/* 左右箭头 */
+.carousel-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+  z-index: 3;
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.carousel-arrow:hover {
+  background: rgba(255, 255, 255, 0.5);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.carousel-arrow.prev {
+  left: 20px;
+}
+
+.carousel-arrow.next {
+  right: 20px;
+}
+
+
+
+
+/* 右侧信息卡片网格 */
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;  /* 两列 */
+  gap: 16px;                        /* 卡片间距 */
+  margin-top: 20px;
+}
+
+.info-card {
+  background: white;
+  border-radius: 20px;
+  padding: 20px 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+.info-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(74, 163, 209, 0.12);
+}
+
+.card-icon {
+  font-size: 28px;
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, #4aa3d1, #6cc29a);
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 6px 12px rgba(74, 163, 209, 0.2);
+}
+
+.info-card h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 6px 0;
+}
+
+.info-card p {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.4;
+}
+
+
+
+
+/* 学业深造田字格 */
+.academy-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;  /* 两列，形成田字格 */
+  gap: 16px;
+  margin: 20px 0;
+}
+
+/* 卡片样式 - 像按钮一样可点击 */
+.academy-card {
+  background: white;
+  border-radius: 16px;
+  padding: 14px 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  cursor: pointer;  /* 鼠标变成小手 */
+  display:flex;
+  flex-direction:column;
+  position: relative;
+  overflow: hidden;
+}
+
+.academy-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(74, 163, 209, 0.15);
+  border-color: #4aa3d1;
+}
+
+.academy-card:active {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(74, 163, 209, 0.2);
+}
+
+/* 卡片内容 */
+.academy-card .card-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* 图标 */
+.card-icon {
+  font-size: 28px;
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, #4aa3d1, #6cc29a);
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 6px 12px rgba(74, 163, 209, 0.2);
+  transition: all 0.3s ease;
+}
+
+.academy-card:hover .card-icon {
+  transform: scale(1.05);
+}
+
+/* 标题 */
+.academy-card h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 6px 0;
+  transition: color 0.3s;
+}
+
+.academy-card:hover h4 {
+  color: #4aa3d1;
+}
+
+/* 描述文字 */
+.academy-card p {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0 0 12px 0;
+  line-height: 1.4;
+}
+
+/* 箭头 - 提示可点击 */
+.card-arrow {
+  font-size: 14px;
+  color: #4aa3d1;
+  opacity: 0.5;
+  transition: all 0.3s ease;
+  margin-top:2px;
+  display: inline-block;
+}
+
+.academy-card:hover .card-arrow {
+  opacity: 1;
+  transform: translateX(5px);
+}
+
+/* 点击涟漪效果 */
+.academy-card::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  background: rgba(74, 163, 209, 0.3);
+  opacity: 0;
+  border-radius: 100%;
+  transform: scale(1, 1) translate(-50%);
+  transform-origin: 50% 50%;
+}
+
+.academy-card:focus:not(:active)::after {
+  animation: ripple 0.6s ease-out;
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0, 0);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(20, 20);
+    opacity: 0;
+  }
+}
+
+
+
+
+
+
+/* 产教融合 - 招聘信息流风格 */
+.recruitment-section {
+  background: white;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.section-header h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 4px 0;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-tag {
+  padding: 6px 14px;
+  border-radius: 30px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-tag.active {
+  background: #4aa3d1;
+  color: white;
+}
+
+.filter-tag:hover {
+  background: #e2e8f0;
+}
+
+/* 招聘分类 */
+.job-category {
+  margin-bottom: 30px;
+}
+
+.category-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.category-badge {
+  padding: 4px 12px;
+  border-radius: 30px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.category-count {
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* 职位卡片 */
+.job-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.job-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  background: #f8fafc;
+  border-radius: 20px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.job-card:hover {
+  background: white;
+  border-color: #e2e8f0;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);
+}
+
+/* 左侧公司logo */
+.job-left {
+  flex-shrink: 0;
+}
+
+.company-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: white;
+}
+
+/* 中间职位信息 */
+.job-middle {
+  flex: 1;
+}
+
+.job-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.job-title-row h4 {
+  font-size: 17px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.hot-tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 30px;
+  background: #fef2f2;
+  color: #ef4444;
+  font-weight: 500;
+}
+
+.company-name {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: #475569;
+}
+
+.job-salary {
+  font-weight: 600;
+  color: #4aa3d1;
+}
+
+.job-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.skill-tag {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 30px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+}
+
+.job-footer {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* 右侧箭头 */
+.job-right {
+  flex-shrink: 0;
+  width: 100px;
+  text-align: right;
+}
+
+.job-arrow {
+  font-size: 14px;
+  color: #4aa3d1;
+  opacity: 0.5;
+  transition: all 0.3s;
+}
+
+.job-card:hover .job-arrow {
+  opacity: 1;
+  transform: translateX(5px);
+}
+
+/* 查看更多 */
+.view-more {
+  text-align: center;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.view-more-link {
+  color: #4aa3d1;
+  font-size: 14px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.view-more-link:hover {
+  color: #1e6f9f;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* 搜索容器 */
+.search-container {
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto 20px;
+}
+
+/* 搜索栏 */
+.search-bar {
+  display: flex;
+  align-items: center;
+  background: white;
+  border-radius: 40px;
+  padding: 8px 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+}
+
+.search-icon {
+  font-size: 18px;
+  color: #94a3b8;
+  margin-right: 10px;
+}
+
+.search-bar input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 15px;
+  padding: 8px 0;
+  background: transparent;
+}
+
+.search-bar input::placeholder {
+  color: #94a3b8;
+}
+
+/* 热搜下拉框 */
+.hot-search-dropdown {
+  position: absolute;
+  top: 60px;
+  left: 0;
+  right: 0;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  overflow: hidden;
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 热搜头部 */
+.hot-search-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.hot-title {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 16px;
+}
+
+.update-time {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* 热搜列表 */
+.hot-search-list {
+  padding: 8px 0;
+}
+
+.hot-search-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.hot-search-item:hover {
+  background: #f8fafc;
+}
+
+/* 排名数字 */
+.rank-number {
+  width: 30px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.rank-number.top-three {
+  color: #f43f5e;  /* 红色 */
+  font-weight: 700;
+}
+
+/* 小火苗图标 */
+.hot-icon {
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+/* 热搜词 */
+.hot-text {
+  flex: 1;
+  font-size: 15px;
+  color: #1e293b;
+}
+
+/* 热度数字 */
+.hot-count {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.hot-count.top-three-count {
+  color: #f43f5e;  /* 红色 */
+  font-weight: 600;
+}
+
+/* 底部 */
+.hot-search-footer {
+  padding: 12px 20px;
+  border-top: 1px solid #f1f5f9;
+  text-align: center;
+  color: #4aa3d1;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.hot-search-footer:hover {
+  background: #f8fafc;
+}
+
+
+
+
+/* 竞赛信息大厅 */
+.contest-section {
+  background: white;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.contest-header {
+  margin-bottom: 20px;
+}
+
+.contest-header h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 4px 0;
+}
+
+/* 搜索栏 */
+.contest-search {
+  margin-bottom: 24px;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  background: #f8fafc;
+  border-radius: 40px;
+  padding: 4px 4px 4px 16px;
+  border: 1px solid #e2e8f0;
+}
+
+.search-icon {
+  color: #94a3b8;
+  margin-right: 8px;
+}
+
+.search-box input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 12px 0;
+  font-size: 15px;
+}
+
+.search-btn {
+  padding: 8px 24px;
+  background: #4aa3d1;
+  color: white;
+  border: none;
+  border-radius: 40px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.search-btn:hover {
+  background: #1e6f9f;
+}
+
+/* 标签区域 */
+.tags-wrapper {
+  margin-bottom: 24px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.tags-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+.tags-scroll {
+  display: flex;
+  gap: 10px;
+  padding-bottom: 4px;
+}
+
+.tag-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #f8fafc;
+  border-radius: 40px;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.tag-chip.active {
+  background: white;
+  border-width: 2px;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+.tag-icon {
+  font-size: 16px;
+}
+
+.tag-count {
+  padding: 2px 8px;
+  border-radius: 30px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* 选中标签提示 */
+.selected-tag-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.selected-tag-badge {
+  padding: 4px 16px;
+  border-radius: 30px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.result-count {
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* 赛事卡片网格 */
+.contest-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+/* 赛事卡片 */
+.contest-card {
+  background: #f8fafc;
+  border-radius: 20px;
+  padding: 20px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: 1px solid transparent;
+  display: flex;
+  flex-direction: column;
+}
+
+.contest-card:hover {
+  background: white;
+  border-color: #e2e8f0;
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.05);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.contest-level {
+  padding: 4px 12px;
+  border-radius: 30px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.contest-status {
+  padding: 4px 12px;
+  border-radius: 30px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.contest-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+}
+
+.contest-organizer {
+  font-size: 13px;
+  color: #475569;
+  margin-bottom: 12px;
+}
+
+.organizer-label {
+  color: #64748b;
+}
+
+.contest-time {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.time-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #475569;
+}
+
+.time-remain {
+  font-size: 12px;
+  color: #f97316;
+  font-weight: 500;
+}
+
+.contest-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.contest-tag {
+  padding: 4px 10px;
+  background: #e2e8f0;
+  border-radius: 30px;
+  font-size: 11px;
+  color: #334155;
+}
+
+.ability-section {
+  margin-bottom: 12px;
+}
+
+.section-label {
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.ability-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ability-tag {
+  padding: 4px 10px;
+  background: #e0f2fe;
+  border-radius: 30px;
+  font-size: 11px;
+  color: #0369a1;
+}
+
+.contest-participants {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 12px;
+}
+
+.card-footer {
+  margin-top: auto;
+  text-align: right;
+}
+
+.view-detail {
+  font-size: 13px;
+  color: #4aa3d1;
+  opacity: 0.7;
+  transition: all 0.3s;
+}
+
+.contest-card:hover .view-detail {
+  opacity: 1;
+  transform: translateX(5px);
+  display: inline-block;
+}
+
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  background: #f8fafc;
+  border-radius: 20px;
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  font-size: 16px;
+  color: #1e293b;
+  margin: 0 0 8px 0;
+}
+
+.empty-sub {
+  font-size: 14px;
+  color: #64748b;
+}
+
+
+
+
+
+
+
+
+
 .layout { display: flex; flex-direction: column; height: 100vh; width: 100vw; background: #f5f7fa; }
 .header { height: 60px; background: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); z-index: 10; }
 .logo { font-size: 20px; font-weight: bold; color: #4a90e2; }
