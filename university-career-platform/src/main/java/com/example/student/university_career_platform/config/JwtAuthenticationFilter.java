@@ -27,22 +27,33 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     @NonNull FilterChain filterChain)
             throws ServletException, IOException {
 
+        String path = request.getRequestURI();
+
+        // 🚀 终极免检补丁：看到白名单路径或者跨域预检，直接放行，连 Authorization 头都不看！
+        if (path.startsWith("/api/auth") ||
+                path.startsWith("/api/chat") ||
+                path.startsWith("/api/resume") ||
+                path.startsWith("/error") ||   // 🚀 加上这行
+                "OPTIONS".equalsIgnoreCase(request.getMethod())) {
+
+            filterChain.doFilter(request, response);
+            return; // 直接 return，跳过下面的全部 Jwt 解析逻辑
+        }
+
+        // ==========================================
+        // 下面保留你原本的代码，一点都不用改
         String header = request.getHeader("Authorization");
 
-        // 1. 如果没带 Token，放行给白名单
         if (header == null || !header.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
         String token = header.substring(7);
-
         try {
             String phone = jwtUtil.extractPhone(token);
-
             if (phone != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 if (jwtUtil.validateToken(token)) {
-                    // 验证成功，盖章放行！
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             phone, null, new ArrayList<>()
                     );
@@ -54,7 +65,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         } catch (Exception e) {
             System.err.println("❌ [后端安检报错] Token 解析彻底失败！报错信息: " + e.getMessage());
-            System.err.println("🔍 仔细看！前端传过来的 Token 是这样的: [" + token + "]");
         }
 
         filterChain.doFilter(request, response);

@@ -1,67 +1,67 @@
 package com.example.student.university_career_platform.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.alibaba.dashscope.aigc.generation.Generation;
+import com.alibaba.dashscope.aigc.generation.GenerationParam;
+import com.alibaba.dashscope.aigc.generation.GenerationResult;
+import com.alibaba.dashscope.common.Message;
+import com.alibaba.dashscope.common.Role;
+import io.reactivex.Flowable;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.Arrays;
 
 @Service
 public class LlmClientService {
 
-    // 用 @Value 自动读取配置文件里的值
     @Value("${ai.aliyun.api-key}")
     private String apiKey;
 
-    @Value("${ai.aliyun.api-url}")
-    private String apiUrl;
+    /**
+     * 🚀 企业级真流式接口（专门给聊天用）
+     * 返回 RxJava 的 Flowable 数据流，大模型每憋出一个字，流里就多一个字
+     */
+    public Flowable<GenerationResult> streamChat(String modelId, String systemPrompt, String userInput) {
+        try {
+            Generation gen = new Generation();
+            Message systemMsg = Message.builder().role(Role.SYSTEM.getValue()).content(systemPrompt).build();
+            Message userMsg = Message.builder().role(Role.USER.getValue()).content(userInput).build();
 
-    // Spring Boot 内置的 JSON 处理工具
-    private final ObjectMapper objectMapper = new ObjectMapper();
-    // 使用 Spring 原生的 RestTemplate 发送网络请求，告别版本冲突
-    private final RestTemplate restTemplate = new RestTemplate();
+            GenerationParam param = GenerationParam.builder()
+                    .apiKey(apiKey)
+                    .model(modelId)
+                    .messages(Arrays.asList(systemMsg, userMsg))
+                    .resultFormat(GenerationParam.ResultFormat.MESSAGE)
+                    // 🚨 核心灵魂：必须开启增量输出！这样每次传过来的才是一个字，而不是每次都把之前的拼接上
+                    .incrementalOutput(true)
+                    .build();
 
+            // 发起流式长连接调用
+            return gen.streamCall(param);
+        } catch (Exception e) {
+            throw new RuntimeException("大模型流式调用初始化失败", e);
+        }
+    }
+
+    /**
+     * 📦 保留原有的同步阻塞接口（专门给简历生成用，因为简历不需要打字机效果）
+     */
     public String sendRequest(String modelId, String systemPrompt, String userInput) {
         try {
-            // 1. 构建 JSON 请求体
-            Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("model", modelId);
-            requestBody.put("messages", List.of(
-                    Map.of("role", "system", "content", systemPrompt),
-                    Map.of("role", "user", "content", userInput)
-            ));
-            requestBody.put("temperature", 0.7); // 修正了拼写错误
+            Generation gen = new Generation();
+            Message systemMsg = Message.builder().role(Role.SYSTEM.getValue()).content(systemPrompt).build();
+            Message userMsg = Message.builder().role(Role.USER.getValue()).content(userInput).build();
 
-            String jsonString = objectMapper.writeValueAsString(requestBody);
+            GenerationParam param = GenerationParam.builder()
+                    .apiKey(apiKey)
+                    .model(modelId)
+                    .messages(Arrays.asList(systemMsg, userMsg))
+                    .resultFormat(GenerationParam.ResultFormat.MESSAGE)
+                    .build();
 
-            // 2. 设置 HTTP 请求头
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setBearerAuth(apiKey); // 自动拼接 "Bearer " 前缀
-
-            // 3. 组装完整请求 (请求体 + 请求头)
-            HttpEntity<String> request = new HttpEntity<>(jsonString, headers);
-
-            // 4. 发送 POST 请求并接收响应
-            ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, request, String.class);
-
-            // 5. 解析返回的 JSON 结果
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                JsonNode rootNode = objectMapper.readTree(response.getBody());
-                // 按照 API 格式，精准抠出 AI 回复的那句话
-                return rootNode.path("choices").get(0).path("message").path("content").asText();
-            } else {
-                return "API 调用失败，状态码：" + response.getStatusCode() + "，错误信息：" + response.getBody();
-            }
-
+            // 同步等待完整结果返回
+            GenerationResult result = gen.call(param);
+            return result.getOutput().getChoices().get(0).getMessage().getContent();
         } catch (Exception e) {
             e.printStackTrace();
             return "服务暂时开小差了，请稍后再试。";

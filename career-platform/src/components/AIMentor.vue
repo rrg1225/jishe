@@ -86,43 +86,51 @@ const sendMessage = async () => {
   messageList.value.push({ role: 'ai', content: '' });
 
   try {
-    // 确保你的 Spring Boot 运行在 8080 端口
+    const token = localStorage.getItem('token');
     const response = await fetch('http://localhost:8080/api/chat/qwen/stream', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': token ? `Bearer ${token}` : ''
       },
-      body: JSON.stringify({
-        messages: messageList.value.slice(0, -1) 
-      })
+      body: JSON.stringify({ message: userMsg })
     });
 
-    if (!response.ok) throw new Error('网络请求失败');
+    if (!response.ok) throw new Error('请求失败');
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder('utf-8');
     let done = false;
+    let buffer = ''; 
 
-    while (!done) {
-      const { value, done: readerDone } = await reader.read();
-      done = readerDone;
-      if (value) {
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
-        
-        for (const line of lines) {
-          if (line.startsWith('data:')) {
-            const dataStr = line.replace('data:', '');
-            if (dataStr === '[DONE]') {
-              done = true;
-              break;
-            }
-            messageList.value[currentAiMsgIndex].content += dataStr;
-            scrollToBottom();
-          }
+// AIMentor.vue 中的 sendMessage 逻辑
+while (!done) {
+  const { value, done: readerDone } = await reader.read();
+  done = readerDone;
+  if (value) {
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop(); 
+    
+    for (const line of lines) {
+      if (!line.startsWith('data:')) continue;
+      const dataStr = line.substring(5).trim(); 
+      try {
+        const jsonObj = JSON.parse(dataStr);
+        if (jsonObj.text === '[DONE]') {
+          done = true;
+          break;
         }
+        // 🚀 双保险：解析 JSON 保证不丢字，正则过滤保证不显示标签
+        const cleanText = jsonObj.text.replace(/【[^】]*(】|$)/g, '');
+        messageList.value[currentAiMsgIndex].content += cleanText;
+        scrollToBottom();
+      } catch (e) {
+        // 自动忽略不完整的 JSON
       }
     }
+  }
+}
   } catch (error) {
     console.error('流式请求出错:', error);
     messageList.value[currentAiMsgIndex].content = '网络有点开小差，请稍后再试哦~';

@@ -9,8 +9,8 @@ public class ResumeGenService {
     @Autowired
     private LlmClientService llmClientService;
 
-    // 这里填你微调后的 instruct 模型 ID，没微调前可以先写 "qwen2.5-7b-instruct" 测试
-    private static final String MODEL_ID = "qwen2.5-7b-instruct";
+    // 这里填你微调后的 qwen-turbo 模型 ID，没微调前可以先写 "qwen-turbo" 测试
+    private static final String MODEL_ID = "qwen2.5-7b-instruct_5fd34c80";
 
     // 绝对无情的排版指令
     private static final String SYSTEM_PROMPT =

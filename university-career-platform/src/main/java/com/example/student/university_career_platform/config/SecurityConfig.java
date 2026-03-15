@@ -51,9 +51,21 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // 1. 放行所有的 OPTIONS 请求（跨域预检）
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        //白名单防止，后端的正常报错被包装成 403 欺骗我们！
-                        .requestMatchers("/api/auth/login", "/api/auth/register", "/chat/**").permitAll()
+
+                        // 2. 将所有白名单合并到一个 requestMatchers 中
+                        .requestMatchers(
+                                "/api/auth/login",
+                                "/api/auth/register",
+                                "/api/chat/**",      // 放行 Vue 前端调用的 Qwen 流式接口
+                                "/api/resume/**",    // 放行 Vue 前端调用的智谱简历接口
+                                "/api/resume-gen/**",// 兼容你后端原有的简历 Controller 路径
+                                "/chat/**",// 保留你原来写的备用路径
+                                    "/error "
+                        ).permitAll()
+
+                        // 3. 其他所有请求必须带上有效的 Token 才能访问
                         .anyRequest().authenticated()
                 );
 
