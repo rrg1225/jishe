@@ -122,11 +122,11 @@ const password = ref('')
 const confirmPassword = ref('')
 const captcha = ref('')
 
-// 倒计时
+// 倒计时相关
 const countdown = ref(0)
 let timer = null
 
-// Toast
+// 全局 Toast 提示状态
 const toast = ref({ show: false, message: '', type: 'success' })
 const showToast = (msg, type = 'success') => {
   toast.value = { show: true, message: msg, type }
@@ -191,7 +191,7 @@ const handleRegister = async () => {
     }
     await request.post('/api/auth/register', requestData)
 
-    // 静默登录
+    // 静默登录获取 Token
     const loginRes = await request.post('/api/auth/login', {
       username: phone.value,
       password: password.value
@@ -212,7 +212,7 @@ const handleRegister = async () => {
 </script>
 
 <style scoped>
-/* Toast */
+/* ================= Toast ================= */
 .toast-message {
   position: fixed;
   top: 30px;
@@ -225,16 +225,18 @@ const handleRegister = async () => {
   font-weight: 500;
   z-index: 9999;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  display: flex;
+  align-items: center;
 }
 .toast-message.success { background-color: #52c41a; }
 .toast-message.error   { background-color: #ff4d4f; }
 .toast-fade-enter-active, .toast-fade-leave-active { transition: all 0.3s ease; }
 .toast-fade-enter-from, .toast-fade-leave-to { opacity: 0; transform: translate(-50%, -20px); }
 
-/* 布局 */
+/* ================= 布局 ================= */
 .register-container {
   display: flex;
-  height: 100vh;
+  min-height: 100vh;
   width: 100vw;
 }
 
@@ -276,24 +278,14 @@ const handleRegister = async () => {
 .right-form {
   position: relative;
   flex: 4;
-  background: #f8fafc;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: #f8fafc;
   overflow: hidden;
 }
 
-.form-box {
-  position: relative;
-  z-index: 10;
-  width: 450px;
-  padding: 50px 45px;
-  background: white;
-  border-radius: 24px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
-}
-
-/* 漂浮元素 */
+/* ================= 漂浮元素 ================= */
 .floating-elements {
   position: absolute;
   top: 0;
@@ -303,6 +295,20 @@ const handleRegister = async () => {
   z-index: 1;
   pointer-events: none;
   overflow: hidden;
+}
+
+.floating-elements::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    repeating-linear-gradient(0deg, rgba(74, 144, 226, 0.03) 0px, rgba(74, 144, 226, 0.03) 1px, transparent 1px, transparent 30px),
+    repeating-linear-gradient(90deg, rgba(74, 144, 226, 0.03) 0px, rgba(74, 144, 226, 0.03) 1px, transparent 1px, transparent 30px);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .floating-item {
@@ -315,7 +321,6 @@ const handleRegister = async () => {
   color: #2c3e50;
 }
 
-/* 各个漂浮元素位置与延迟（可自行微调） */
 .book-1     { top: 15%; left: 10%; font-size: 48px; animation-duration: 22s; animation-delay: 0s;    transform: rotate(-5deg); }
 .book-2     { bottom: 20%; left: 15%; font-size: 42px; animation-duration: 25s; animation-delay: 2s;  transform: rotate(10deg); }
 .computer-1 { top: 25%; right: 15%; font-size: 50px; animation-duration: 18s; animation-delay: 1s;   transform: rotate(3deg); }
@@ -333,19 +338,17 @@ const handleRegister = async () => {
   100% { transform: translate(0, 0) rotate(0deg) scale(1); }
 }
 
-/* 网格背景（可选淡化） */
-.floating-elements::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image:
-    repeating-linear-gradient(0deg, rgba(74, 144, 226, 0.03) 0px, rgba(74, 144, 226, 0.03) 1px, transparent 1px, transparent 30px),
-    repeating-linear-gradient(90deg, rgba(74, 144, 226, 0.03) 0px, rgba(74, 144, 226, 0.03) 1px, transparent 1px, transparent 30px);
-  pointer-events: none;
-  z-index: 0;
+/* ================= 表单区域 ================= */
+.form-box {
+  position: relative;
+  z-index: 10;
+  width: 450px;
+  padding: 50px 45px;
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
 }
 
-/* 表单通用样式（来自 2.0 优化版） */
 .title { text-align: center; margin-bottom: 30px; color: #333; font-size: 1.8rem; font-weight: 600; }
 
 .tabs {
@@ -440,6 +443,7 @@ const handleRegister = async () => {
   font-weight: 500;
 }
 
+/* ================= 自动补全组件 ================= */
 .form-item { display: flex; align-items: center; margin-bottom: 22px; gap: 12px; }
 
 .item-label {
@@ -456,7 +460,20 @@ const handleRegister = async () => {
 .input-with-icon { position: relative; flex: 1; }
 
 .input-with-icon input {
-  padding-right: 44px;
+  width: 100%;
+  padding: 10px 40px 10px 15px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  outline: none;
+  font-size: 14px;
+  color: #aaa;
+  transition: all 0.3s cubic-bezier(.645,.045,.355,1);
+}
+
+.input-with-icon input:focus {
+  border-color: #40a9ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+  color: #333;
 }
 
 .search-icon {
@@ -470,13 +487,13 @@ const handleRegister = async () => {
 
 .dropdown-list {
   position: absolute;
-  top: 100%;
+  top: calc(100% + 4px);
   left: 0;
   right: 0;
   background: white;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
-  margin-top: 6px;
+  margin-top: 0;
   padding: 6px 0;
   list-style: none;
   max-height: 200px;

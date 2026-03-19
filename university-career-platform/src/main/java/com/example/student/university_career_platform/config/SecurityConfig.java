@@ -58,11 +58,12 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/login",
                                 "/api/auth/register",
-                                "/api/chat/**",      // 放行 Vue 前端调用的 Qwen 流式接口
-                                "/api/resume/**",    // 放行 Vue 前端调用的智谱简历接口
-                                "/api/resume-gen/**",// 兼容你后端原有的简历 Controller 路径
-                                "/chat/**",// 保留你原来写的备用路径
-                                    "/error "
+                                "/api/chat/**",
+                                "/api/resume/**",
+                                "/api/resume-gen/**",
+                                "/chat/**",
+                                "/error",
+                                "/api/content/**"
                         ).permitAll()
 
                         // 3. 其他所有请求必须带上有效的 Token 才能访问

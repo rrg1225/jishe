@@ -8,21 +8,26 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/resume-gen")
-@CrossOrigin
+@RequestMapping("/api/resume")
 public class AiResumeController {
 
     @Autowired
     private ResumeGenService resumeGenService;
 
-    @PostMapping("/generate")
-    public ResponseEntity<?> generate(@RequestBody Map<String, String> request) {
-        String rawInfo = request.get("rawInfo");
-        if (rawInfo == null || rawInfo.trim().isEmpty()) {
-            return ResponseEntity.badRequest().body("个人信息不能为空");
-        }
+    /**
+     * AI 一键生成/润色简历接口
+     */
+    @PostMapping("/ai-generate")
+    public ResponseEntity<?> aiGenerateResume(@RequestBody Map<String, Object> rawResumeData) {
+        try {
+            // 调用 Service 层，将用户填写的草稿交给大模型处理
+            Map<String, Object> optimizedData = resumeGenService.optimizeResume(rawResumeData);
 
-        String markdownResume = resumeGenService.generateAiResume(rawInfo);
-        return ResponseEntity.ok(Map.of("resumeContent", markdownResume));
+            // 返回给前端，前端拿到后直接跳转到 ResumeFinalEdit.vue 并展示
+            return ResponseEntity.ok(optimizedData);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("AI 生成失败：" + e.getMessage());
+        }
     }
 }

@@ -159,18 +159,91 @@ const submitComment = (post) => {
 </script>
 
 <style scoped>
-.community-page { background: #f1f5f9; min-height: 100vh; }
-.community-header { background: white; border-bottom: 1px solid #e2e8f0; padding: 20px 0; position: sticky; top: 0; z-index: 10; }
+/* ================= 页面整体与背景 ================= */
+.community-page {
+  min-height: 100vh;
+  position: relative;
+  background: #f8fafc; /* 底部纯色背景 */
+}
+
+/* 背景图片层 - 从上到下逐渐虚化 */
+.community-page::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 70%; /* 只占上半部分70%高度 */
+  background: url('/images11/vector-1752213931744-234231b1c08c.avif') no-repeat center top;
+  background-size: cover;
+  mask: linear-gradient(to bottom, black 0%, black 50%, transparent 100%);
+  -webkit-mask: linear-gradient(to bottom, black 0%, black 50%, transparent 100%);
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.3;
+}
+
+/* 为了让文字更清晰，加一个半透明遮罩层（只在上半部分） */
+.community-page::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 70%;
+  background: linear-gradient(to bottom, 
+    rgba(255, 255, 255, 0.2) 0%, 
+    rgba(255, 255, 255, 0.1) 70%, 
+    transparent 100%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* 让所有内容浮在背景层上面 */
+.community-page > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* ================= 顶部导航 ================= */
+.community-header {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(74, 163, 209, 0.2);
+  padding: 16px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
 .header-inner { max-width: 1000px; margin: 0 auto; display: flex; align-items: center; gap: 20px; padding: 0 20px; }
 .back-btn { background: none; border: none; color: #64748b; cursor: pointer; font-size: 15px; }
-.header-inner h2 { margin: 0; font-size: 20px; color: #1e293b; }
+.header-inner h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #1e4f6b, #2d8b6f);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin-left: 16px;
+}
 
+/* ================= 布局容器 ================= */
 .content-layout { display: flex; max-width: 1000px; margin: 20px auto; gap: 20px; padding: 0 20px; align-items: flex-start; }
-
 .feed-column { flex: 1; display: flex; flex-direction: column; gap: 20px; }
 
-/* 发帖区 */
-.publish-box { background: white; border-radius: 12px; padding: 20px; display: flex; gap: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+/* ================= 发帖区 ================= */
+.publish-box {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  border-radius: 20px;
+  padding: 20px;
+  display: flex;
+  gap: 16px;
+  border: 1px solid rgba(74, 163, 209, 0.2);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.03);
+}
 .user-avatar { width: 40px; height: 40px; background: #e2e8f0; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; flex-shrink: 0; }
 .input-area { flex: 1; }
 .input-area textarea { width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; font-family: inherit; resize: vertical; outline: none; transition: 0.2s; background: #f8fafc; box-sizing: border-box; }
@@ -180,22 +253,87 @@ const submitComment = (post) => {
 .submit-btn { background: #4a90e2; color: white; border: none; padding: 8px 20px; border-radius: 20px; cursor: pointer; font-weight: bold; }
 .submit-btn:disabled { background: #94a3b8; cursor: not-allowed; }
 
-/* 帖子卡片 */
-.post-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+/* ================= 帖子卡片 ================= */
+.post-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(74, 163, 209, 0.15);
+  transition: all 0.3s ease;
+}
+.post-card:hover {
+  transform: translateY(-4px);
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(74, 163, 209, 0.3);
+  box-shadow: 0 12px 24px rgba(74, 163, 209, 0.1);
+}
+
 .post-header { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; }
-.author-avatar { width: 40px; height: 40px; background: linear-gradient(135deg, #f6d365, #fda085); border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+.author-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #4aa3d1, #2d8b6f);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 600;
+  box-shadow: 0 6px 12px rgba(74, 163, 209, 0.2);
+}
 .author-info { display: flex; flex-direction: column; }
-.author-name { font-weight: bold; color: #1e293b; font-size: 15px; }
-.post-time { font-size: 12px; color: #94a3b8; }
+.author-name {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 16px;
+  margin-right: 8px;
+}
+.post-time {
+  font-size: 12px;
+  color: #64748b;
+  background: rgba(100, 116, 139, 0.1);
+  padding: 2px 8px;
+  border-radius: 30px;
+}
 .post-content { color: #334155; line-height: 1.6; margin-bottom: 15px; font-size: 15px; }
 
-/* 互动条 */
-.interaction-bar { display: flex; gap: 30px; border-top: 1px solid #f1f5f9; padding-top: 15px; margin-top: 10px; }
-.action-btn { display: flex; align-items: center; gap: 6px; background: none; border: none; color: #64748b; cursor: pointer; font-size: 14px; transition: 0.2s; }
-.action-btn:hover { color: #4a90e2; }
-.action-btn.active { color: #ef4444; font-weight: bold; }
+/* ================= 互动条 ================= */
+.interaction-bar {
+  display: flex;
+  gap: 24px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  padding-top: 16px;
+  margin-top: 8px;
+}
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 6px 12px;
+  border-radius: 30px;
+}
+.action-btn:hover {
+  background: rgba(74, 163, 209, 0.1);
+  color: #4aa3d1;
+}
+.action-btn.active {
+  color: #ef4444;
+  font-weight: 500;
+}
+.action-btn.active .icon {
+  transform: scale(1.1);
+}
 
-/* 评论区 */
+/* ================= 评论区 ================= */
 .comments-section { margin-top: 15px; background: #f8fafc; border-radius: 8px; padding: 15px; animation: slideDown 0.3s ease; }
 .comment-input-box { display: flex; gap: 10px; margin-bottom: 15px; }
 .comment-input-box input { flex: 1; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 20px; outline: none; }
@@ -209,12 +347,53 @@ const submitComment = (post) => {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* 右侧边栏 */
-.side-column { width: 300px; display: flex; flex-direction: column; gap: 20px; }
-.side-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
-.side-card h3 { margin: 0 0 15px; font-size: 16px; color: #1e293b; }
-.notice-text { color: #64748b; font-size: 14px; line-height: 1.6; margin: 0; }
-.hot-topics { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
-.hot-topics li { color: #4a90e2; font-size: 14px; cursor: pointer; padding: 8px; border-radius: 6px; background: #f0f7ff; transition: 0.2s; }
-.hot-topics li:hover { background: #e0f2fe; }
+/* ================= 右侧边栏 ================= */
+.side-column {
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.side-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  border-radius: 20px;
+  padding: 20px;
+  border: 1px solid rgba(74, 163, 209, 0.15);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.02);
+}
+.side-card h3 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  color: #1e293b;
+  font-weight: 600;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(74, 163, 209, 0.2);
+}
+.notice-text {
+  color: #475569;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+}
+.hot-topics {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.hot-topics li {
+  padding: 10px 0;
+  color: #1e293b;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+}
+.hot-topics li:last-child {
+  border-bottom: none;
+}
+.hot-topics li:hover {
+  color: #4aa3d1;
+  padding-left: 8px;
+}
 </style>

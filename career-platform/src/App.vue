@@ -11,10 +11,8 @@ import { useRoute } from 'vue-router'
 import AIMentor from './components/AIMentor.vue' 
 
 const route = useRoute()
-const showMentor = computed(() => {
-  const hiddenPaths = ['/login', '/register', '/forgot-password']
-  return !hiddenPaths.includes(route.path)
-})
+// 直接通过 meta 属性判断，无需维护路径列表
+const showMentor = computed(() => !route.meta.hideMentor)
 </script>
 
 <style>

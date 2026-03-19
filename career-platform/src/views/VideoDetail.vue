@@ -22,13 +22,13 @@
           </div>
         </div>
 
-        <div class="player-wrapper">
+      <div class="player-wrapper">
           <video 
             class="b-player" 
             controls 
-            poster="https://images.unsplash.com/photo-1517694712202-14dd9538aa97?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80"
-          >
-            <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+            autoplay
+            :src="videoUrl"
+            >
             您的浏览器不支持 HTML5 视频播放。
           </video>
         </div>
@@ -122,14 +122,21 @@ const router = useRouter()
 
 const videoTitle = ref('')
 const videoAuthor = ref('')
+// 🌟 核心修改点：新增 videoUrl 响应式变量
+const videoUrl = ref('') 
+
 const likeCount = ref(0)
 const isLiked = ref(false)
 const commentList = ref([])
 const newCommentContent = ref('')
 
 onMounted(() => {
+  // 从路由 query 中获取参数，如果没有则使用备用的假数据保底
   videoTitle.value = route.query.title || '【默认测试视频】'
   videoAuthor.value = route.query.author || '全栈小导师'
+  // 🌟 核心修改点：接收从 Dashboard 传过来的 OSS 真实链接
+  videoUrl.value = route.query.url || 'https://www.w3schools.com/html/mov_bbb.mp4'
+
   fetchLikeStatus()
   fetchComments()
 })
@@ -191,7 +198,7 @@ const formatDate = (dateString) => {
 </script>
 
 <style scoped>
-/* 🌟 这里是修复滚动条的关键代码 🌟 */
+/* 保持你的原样 */
 .bilibili-layout { 
   background-color: #f4f5f7; 
   height: 100vh; 

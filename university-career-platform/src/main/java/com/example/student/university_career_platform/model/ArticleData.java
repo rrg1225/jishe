@@ -1,0 +1,37 @@
+package com.example.student.university_career_platform.model;
+
+import jakarta.persistence.*;
+import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.time.LocalDateTime;
+
+@Data
+@Getter
+@Setter
+@Entity
+@Table(name = "article_data")
+public class ArticleData {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, length = 100)
+    private String topic;
+
+    @Column(nullable = false, length = 255)
+    private String title;
+
+    @Lob // 表示这是一个长文本字段
+    @Column(columnDefinition = "LONGTEXT")
+    private String content;
+
+    @Lob
+    @Column(name = "image_urls", columnDefinition = "TEXT")
+    private String imageUrls;
+
+    @Column(name = "create_time")
+    private LocalDateTime createTime;
+}
