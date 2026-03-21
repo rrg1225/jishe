@@ -32,13 +32,18 @@ public class ChatController {
         return ResponseEntity.ok(history);
     }
 
-    // 流式对话接口（修复了持久化问题）
+    // 流式对话接口（修复了持久化问题、判空异常和连接超时问题）
     @PostMapping(value = "/qwen/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamChat(@RequestBody Map<String, String> request) {
         String userMessage = request.get("message");
         String userId = request.get("userId"); // 获取前端传来的 userId
 
-        SseEmitter emitter = new SseEmitter(120000L);
+        SseEmitter emitter = new SseEmitter(120000L); // 120秒超时
+
+        // 🌟 修复：绑定超时和错误回调，避免前端异常断开导致 Tomcat 抛错崩溃
+        emitter.onTimeout(emitter::complete);
+        emitter.onError(e -> emitter.complete());
+
         if (userMessage == null || userMessage.trim().isEmpty()) {
             emitter.completeWithError(new IllegalArgumentException("消息不能为空"));
             return emitter;
@@ -61,13 +66,33 @@ public class ChatController {
 
             flowable.subscribe(
                     result -> {
-                        String chunk = result.getOutput().getChoices().get(0).getMessage().getContent();
-                        if (chunk != null) {
-                            aiResponseBuilder.append(chunk); // 累加流式输出的内容
-                            emitter.send(Map.of("text", chunk));
+                        // 🌟 修复：严谨判空，防止大模型触发限流或敏感词返回空结果导致抛出空指针
+                        if (result.getOutput() != null &&
+                                result.getOutput().getChoices() != null &&
+                                !result.getOutput().getChoices().isEmpty()) {
+
+                            String chunk = result.getOutput().getChoices().get(0).getMessage().getContent();
+                            if (chunk != null) {
+                                aiResponseBuilder.append(chunk); // 累加流式输出的内容
+                                try {
+                                    emitter.send(Map.of("text", chunk));
+                                } catch (Exception e) {
+                                    // 如果推送过程中客户端主动断开，直接关闭流
+                                    emitter.complete();
+                                }
+                            }
                         }
                     },
-                    emitter::completeWithError,
+                    error -> {
+                        // 🌟 修复：捕获流内部抛出的异常，友善兜底，防止直接切断 Socket
+                        error.printStackTrace();
+                        try {
+                            emitter.send(Map.of("text", "\n[网络连接波动，请稍后再试]"));
+                            emitter.complete();
+                        } catch (Exception ignore) {
+                            emitter.completeWithError(error);
+                        }
+                    },
                     () -> {
                         // 2. 当 AI 回答完毕（流结束）时，将【AI的完整回答】存入数据库
                         if (userId != null && !userId.isEmpty()) {
@@ -78,7 +103,9 @@ public class ChatController {
                             chatMessageRepository.save(aiMsgObj);
                         }
 
-                        emitter.send(Map.of("text", "[DONE]"));
+                        try {
+                            emitter.send(Map.of("text", "[DONE]"));
+                        } catch (Exception ignore) {}
                         emitter.complete();
                     }
             );

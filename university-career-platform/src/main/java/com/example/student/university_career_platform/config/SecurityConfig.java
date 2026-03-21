@@ -1,5 +1,6 @@
 package com.example.student.university_career_platform.config;
 
+import jakarta.servlet.DispatcherType; // 🌟 新增导入这个类
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,12 +35,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // 🚀 终极跨域解法：精准放行 Vue 端口，绝不和 Token 冲突
         configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173", "http://127.0.0.1:5173"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
-
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
@@ -52,11 +51,15 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // 🌟 核心修复 1：放行所有的 ASYNC 异步分发，防止 SseEmitter 结束时被安全框架暴力切断
+                        .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
+
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
                                 "/api/auth/login",
                                 "/api/auth/register",
-                                "/chat/**",
+                                "/api/chat/**",  // 🌟 核心修复 2：加上 /api 前缀，修正拦截路径
+                                "/chat/**",      // 保留原来的，用于放行 WebSocket
                                 "/error",
                                 "/api/content/**",
                                 "/api/university/**"
