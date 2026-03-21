@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ContentRepository extends JpaRepository<Content, Long> {
 
     // 根据分类和类型分页查询
+    @SuppressWarnings("unused")
     Page<Content> findByCategoryAndType(String category, String type, Pageable pageable);
 
     // 根据分类分页查询（用于保研/留学等大板块）

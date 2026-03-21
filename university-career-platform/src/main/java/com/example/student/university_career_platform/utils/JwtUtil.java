@@ -3,46 +3,52 @@ package com.example.student.university_career_platform.utils;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 @Component
 public class JwtUtil {
-    // 32字节密钥，适配 HMAC-SHA256
-    private static final String SECRET = "12345678901234567890123456789012";
-    private static final long EXPIRATION_MS = 86400000; // 24小时
+    private final SecretKey secretKey;
+    private final long expirationMs;
 
-    // 0.12.x 标准密钥生成方式
-    private static final SecretKey SECRET_KEY = Keys.hmacShaKeyFor(SECRET.getBytes());
+    public JwtUtil(
+            @Value("${jwt.secret}") String secret,
+            @Value("${jwt.expiration:86400000}") long expirationMs
+    ) {
+        if (secret == null || secret.length() < 32) {
+            throw new IllegalArgumentException("jwt.secret must be at least 32 characters.");
+        }
+        this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.expirationMs = expirationMs;
+    }
 
-    // 生成 Token（0.12.x 仅支持 subject()）
     public String generateToken(String phone) {
         return Jwts.builder()
                 .subject(phone)
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + EXPIRATION_MS))
-                .signWith(SECRET_KEY)
+                .expiration(new Date(System.currentTimeMillis() + expirationMs))
+                .signWith(secretKey)
                 .compact();
     }
 
-    // 提取手机号（0.12.x 必须用 parser() -> verifyWith() -> build()）
     public String extractPhone(String token) {
-        // 注意：Jwts.parser() 返回的是 JwtParserBuilder，所以需要先调用 verifyWith() 和 build()
         Claims claims = Jwts.parser()
-                .verifyWith(SECRET_KEY)
+                .verifyWith(secretKey)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
         return claims.getSubject();
     }
 
-    // 校验 Token
+    @SuppressWarnings("unused")
     public boolean validateToken(String token) {
         try {
             Jwts.parser()
-                    .verifyWith(SECRET_KEY)
+                    .verifyWith(secretKey)
                     .build()
                     .parseSignedClaims(token);
             return true;

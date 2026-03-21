@@ -17,6 +17,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -36,7 +37,7 @@ public class SecurityConfig {
         // 🚀 终极跨域解法：精准放行 Vue 端口，绝不和 Token 冲突
         configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173", "http://127.0.0.1:5173"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -51,23 +52,15 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // 1. 放行所有的 OPTIONS 请求（跨域预检）
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-
-                        // 2. 将所有白名单合并到一个 requestMatchers 中
                         .requestMatchers(
                                 "/api/auth/login",
                                 "/api/auth/register",
-                                "/api/chat/**",
-                                "/api/resume/**",
-                                "/api/resume-gen/**",
                                 "/chat/**",
                                 "/error",
                                 "/api/content/**",
                                 "/api/university/**"
                         ).permitAll()
-
-                        // 3. 其他所有请求必须带上有效的 Token 才能访问
                         .anyRequest().authenticated()
                 );
 

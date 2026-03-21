@@ -27,6 +27,7 @@ public class OssService {
      * @param inputStream 视频文件的输入流（通常从前端 Controller 接收 MultipartFile 获取）
      * @return 视频的公网播放URL
      */
+    @SuppressWarnings("unused")
     public String uploadVideo(String objectName, InputStream inputStream) {
         try {
             // 1. 执行上传操作
@@ -37,9 +38,7 @@ public class OssService {
             String publicEndpoint = endpoint.replace("-internal", "");
             publicEndpoint = publicEndpoint.replace("http://", ""); // 去掉 http 前缀方便拼接 HTTPS
 
-            String videoUrl = "https://" + bucketName + "." + publicEndpoint + "/" + objectName;
-
-            return videoUrl;
+            return "https://" + bucketName + "." + publicEndpoint + "/" + objectName;
 
         } catch (Exception e) {
             e.printStackTrace();

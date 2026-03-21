@@ -52,8 +52,8 @@ public class ContentController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String category,
-            @RequestParam(required = false) String keyword, // 🌟 新增这个接收搜索词
-            @RequestParam(required = false) String type) {
+            @RequestParam(required = false) String keyword // 🌟 新增这个接收搜索词
+    ) {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("gmtCreated").descending());
 

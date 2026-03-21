@@ -67,7 +67,7 @@ public class ChatController {
                             emitter.send(Map.of("text", chunk));
                         }
                     },
-                    error -> emitter.completeWithError(error),
+                    emitter::completeWithError,
                     () -> {
                         // 2. 当 AI 回答完毕（流结束）时，将【AI的完整回答】存入数据库
                         if (userId != null && !userId.isEmpty()) {

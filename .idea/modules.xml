@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/university-career-platform/university-career-platform.iml" filepath="$PROJECT_DIR$/university-career-platform/university-career-platform.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/计设.iml" filepath="$PROJECT_DIR$/.idea/计设.iml" />
     </modules>
   </component>

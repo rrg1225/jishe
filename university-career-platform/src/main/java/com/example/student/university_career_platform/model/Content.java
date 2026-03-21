@@ -26,7 +26,7 @@ public class Content {
     @Column(columnDefinition = "LONGTEXT")
     private String content;    // 图文内容的HTML字符串，或者视频的简介
 
-    private String videoUrl;   // 阿里云OSS返回的视频绝对路径
+    private String videoUrl;   //绝对路径
 
     @Column(name = "gmt_created", updatable = false)
     private LocalDateTime gmtCreated;

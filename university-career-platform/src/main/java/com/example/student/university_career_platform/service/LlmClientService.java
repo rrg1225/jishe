@@ -74,6 +74,7 @@ public class LlmClientService {
         }
     }
 
+    @SuppressWarnings("unused")
     public String chatWithMingliMentor(String userId, String userMessage) {
         // 1. 保存用户的真实提问 (注意 ID 全部改为 String 类型)
         ChatMessage userMsg = new ChatMessage();

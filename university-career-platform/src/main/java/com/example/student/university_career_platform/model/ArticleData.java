@@ -21,7 +21,7 @@ public class ArticleData {
     @Column(nullable = false, length = 100)
     private String topic;
 
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false, length = 256)
     private String title;
 
     @Lob // 表示这是一个长文本字段
@@ -32,6 +32,19 @@ public class ArticleData {
     @Column(name = "image_urls", columnDefinition = "TEXT")
     private String imageUrls;
 
-    @Column(name = "create_time")
-    private LocalDateTime createTime;
+    @Column(name = "gmt_created", updatable = false)
+    private LocalDateTime gmtCreated;
+
+    @Column(name = "gmt_modified")
+    private LocalDateTime gmtModified;
+
+    @PrePersist
+    protected void onCreate() {
+        this.gmtCreated = LocalDateTime.now();
+        this.gmtModified = LocalDateTime.now();
+    }
+    @PreUpdate
+    protected void onUpdate() {
+        this.gmtModified = LocalDateTime.now();
+    }
 }
