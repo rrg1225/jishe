@@ -1,30 +1,44 @@
 <template>
   <div class="ai-mentor-wrapper">
+    <!-- 可拖拽的小精灵容器 -->
     <div 
       class="draggable-ai-mentor" 
       ref="mentorRef"
       :style="{ 
         left: position.x + 'px', 
-        top: position.y + 'px', 
-        '--px': eyePosition.x, 
-        '--py': eyePosition.y 
+        top: position.y + 'px' 
       }"
       @mousedown="startDrag"
       @click="toggleChat"
     >
-      <figure class="boi">
-        <div class="boi-blush boi-blush-left"></div>
-        <div class="boi-blush boi-blush-right"></div>
-        <div class="boi-eye boi-eye-left"></div>
-        <div class="boi-eye boi-eye-right"></div>
-        <div class="boi-mouth"></div>
-      </figure>
+      <!-- 精灵图片 -->
+      <img 
+        src="/images11/1e8b234e85fde8ca0482f3fdc3a4225e.png" 
+        alt="明理导师"
+        class="sprite-img"
+        draggable="false"
+      />
+      
+      <!-- 动态眼睛图层 -->
+      <div class="eyes-overlay">
+        <div class="eye left-eye">
+          <div class="pupil" :style="leftPupilStyle"></div>
+        </div>
+        <div class="eye right-eye">
+          <div class="pupil" :style="rightPupilStyle"></div>
+        </div>
+      </div>
     </div>
 
-    <div class="ai-chat-window" v-show="isChatOpen">
+    <!-- 对话框 - 实时跟随小精灵坐标 -->
+    <div 
+      class="ai-chat-window" 
+      v-show="isChatOpen"
+      :style="chatWindowStyle"
+    >
       <div class="ai-chat-header">
-        <span class="title">明理导师</span>
-        <span class="close-btn" @click="isChatOpen = false">✖</span>
+        <span class="title">✨ 明理导师</span>
+        <span class="close-btn" @click.stop="isChatOpen = false">✖</span>
       </div>
       
       <div class="chat-messages" ref="chatBoxRef">
@@ -54,73 +68,94 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue';
 
+// --- 基础状态 ---
 const mentorRef = ref(null);
 const isChatOpen = ref(false);
 const chatBoxRef = ref(null);
-
 const inputText = ref('');
 const isGenerating = ref(false);
-const messageList = ref([]); // 初始置空，通过挂载时请求加载历史记录
+const messageList = ref([]);
 const myUserId = localStorage.getItem('userId') || "1001";
 
-// 拉取导师聊天历史记录
+// --- 小精灵位置（初始位置） ---
+const position = reactive({ x: window.innerWidth - 220, y: window.innerHeight - 300 });
+const mousePos = reactive({ x: 0.5, y: 0.5 });
+const pupilMaxOffset = 4;
+
+// 瞳孔样式
+const leftPupilStyle = computed(() => ({
+  transform: `translate(${(mousePos.x - 0.5) * 2 * pupilMaxOffset}px, ${(mousePos.y - 0.5) * 2 * pupilMaxOffset}px)`
+}));
+const rightPupilStyle = computed(() => ({
+  transform: `translate(${(mousePos.x - 0.5) * 2 * pupilMaxOffset}px, ${(mousePos.y - 0.5) * 2 * pupilMaxOffset}px)`
+}));
+
+// --- 核心修改：聊天框实时跟随计算属性 ---
+const chatWindowStyle = computed(() => {
+  const chatW = 360; // 聊天框宽度
+  const chatH = 480; // 聊天框高度
+  const spriteSize = 170; // 当前精灵大小
+
+  // 1. 基础定位：默认在精灵右侧
+  let left = position.x + spriteSize + 15;
+  let top = position.y - 40; // 稍微往上一点，显得更自然
+
+  // 2. 边界检查：如果右边放不下了，就弹到精灵左边
+  if (left + chatW > window.innerWidth) {
+    left = position.x - chatW - 15;
+  }
+
+  // 3. 垂直边界检查：确保不会飞出屏幕上下方
+  if (top + chatH > window.innerHeight) top = window.innerHeight - chatH - 20;
+  if (top < 10) top = 10;
+  if (left < 10) left = 10;
+
+  return { 
+    position: 'fixed', 
+    left: left + 'px', 
+    top: top + 'px', 
+    width: chatW + 'px', 
+    zIndex: 10001,
+    // 添加微量过渡，让跟随不那么僵硬（可选）
+    transition: 'none' 
+  };
+});
+
+// --- 业务逻辑：历史记录与发送 ---
 const fetchMentorHistory = async () => {
   try {
     const token = localStorage.getItem('token');
     const response = await fetch(`http://localhost:8080/api/chat/history?userId=${myUserId}&otherId=0`, {
-      headers: {
-        'Authorization': token ? `Bearer ${token}` : ''
-      }
+      headers: { 'Authorization': token ? `Bearer ${token}` : '' }
     });
-    
     if (response.ok) {
       const data = await response.json();
+      const defaultMsg = { role: 'ai', content: '你好，我是明理。无论遇到什么学业或未来的困惑，都可以和我说说。' };
       if (Array.isArray(data) && data.length > 0) {
-        // 格式化后端返回的历史记录
         const historyMsgs = data.map(msg => ({
           role: String(msg.senderId) === '0' ? 'ai' : 'user',
           content: msg.content
         }));
-        
-        // 保留一条默认打招呼并拼接历史记录
-        messageList.value = [
-          { role: 'ai', content: '你好，我是明理。无论遇到什么学业或未来的困惑，都可以和我说说。' },
-          ...historyMsgs
-        ];
-        scrollToBottom();
+        messageList.value = [defaultMsg, ...historyMsgs];
       } else {
-        // 如果没有历史记录，显示默认消息
-        messageList.value = [
-          { role: 'ai', content: '你好，我是明理。无论遇到什么学业或未来的困惑，都可以和我说说。' }
-        ];
+        messageList.value = [defaultMsg];
       }
+      scrollToBottom();
     }
   } catch (error) {
-    console.error('获取明理导师历史记录失败', error);
-    messageList.value = [
-      { role: 'ai', content: '你好，我是明理。无论遇到什么学业或未来的困惑，都可以和我说说。' }
-    ];
-  }
-};
-
-const scrollToBottom = async () => {
-  await nextTick();
-  if (chatBoxRef.value) {
-    chatBoxRef.value.scrollTop = chatBoxRef.value.scrollHeight;
+    messageList.value = [{ role: 'ai', content: '你好，我是明理。' }];
   }
 };
 
 const sendMessage = async () => {
   const userMsg = inputText.value.trim();
   if (!userMsg || isGenerating.value) return;
-
   messageList.value.push({ role: 'user', content: userMsg });
   inputText.value = '';
   isGenerating.value = true;
-  scrollToBottom();
-
+  await scrollToBottom();
   const currentAiMsgIndex = messageList.value.length;
   messageList.value.push({ role: 'ai', content: '' });
 
@@ -128,25 +163,13 @@ const sendMessage = async () => {
     const token = localStorage.getItem('token');
     const response = await fetch('http://localhost:8080/api/chat/qwen/stream', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': token ? `Bearer ${token}` : ''
-      },
-      // ✅ 这里是修复后的正确传参方式，增加了 userId
-      body: JSON.stringify({ 
-        message: userMsg,
-        userId: myUserId
-      })
+      headers: { 'Content-Type': 'application/json', 'Authorization': token ? `Bearer ${token}` : '' },
+      body: JSON.stringify({ message: userMsg, userId: myUserId })
     });
-
-    if (!response.ok) throw new Error('请求失败');
-
     const reader = response.body.getReader();
     const decoder = new TextDecoder('utf-8');
     let done = false;
     let buffer = ''; 
-
-    // 流式读取逻辑
     while (!done) {
       const { value, done: readerDone } = await reader.read();
       done = readerDone;
@@ -154,114 +177,183 @@ const sendMessage = async () => {
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
         buffer = lines.pop(); 
-        
         for (const line of lines) {
           if (!line.startsWith('data:')) continue;
           const dataStr = line.substring(5).trim(); 
           try {
             const jsonObj = JSON.parse(dataStr);
-            if (jsonObj.text === '[DONE]') {
-              done = true;
-              break;
-            }
-            // 🚀 双保险：解析 JSON 保证不丢字，正则过滤保证不显示标签
+            if (jsonObj.text === '[DONE]') { done = true; break; }
             const cleanText = jsonObj.text.replace(/【[^】]*(】|$)/g, '');
             messageList.value[currentAiMsgIndex].content += cleanText;
             scrollToBottom();
-          } catch (e) {
-            // 自动忽略不完整的 JSON
-          }
+          } catch (e) {}
         }
       }
     }
   } catch (error) {
-    console.error('流式请求出错:', error);
-    messageList.value[currentAiMsgIndex].content = '网络有点开小差，请稍后再试哦~';
+    messageList.value[currentAiMsgIndex].content = '网络出错啦~';
   } finally {
     isGenerating.value = false;
   }
 };
 
-/* 拖拽动画逻辑完整保留 */
-const position = reactive({ x: window.innerWidth - 100, y: window.innerHeight - 150 });
-const eyePosition = reactive({ x: 0.5, y: 0.5 });
+// --- 拖拽交互逻辑 ---
 let hasMoved = false;
-let startMouseX = 0, startMouseY = 0, startPosX = 0, startPosY = 0;
+let startX = 0, startY = 0, startPosX = 0, startPosY = 0;
 
 const startDrag = (e) => {
-  hasMoved = false; startMouseX = e.clientX; startMouseY = e.clientY;
+  e.stopPropagation();
+  hasMoved = false;
+  startX = e.clientX; startY = e.clientY;
   startPosX = position.x; startPosY = position.y;
   document.addEventListener('mousemove', onDrag);
   document.addEventListener('mouseup', stopDrag);
 };
+
 const onDrag = (e) => {
-  const dx = e.clientX - startMouseX, dy = e.clientY - startMouseY;
+  const dx = e.clientX - startX, dy = e.clientY - startY;
   if (Math.abs(dx) > 5 || Math.abs(dy) > 5) hasMoved = true;
   if (hasMoved) {
-    const width = mentorRef.value ? mentorRef.value.offsetWidth : 80;
-    const height = mentorRef.value ? mentorRef.value.offsetHeight : 80;
-    position.x = Math.max(0, Math.min(startPosX + dx, window.innerWidth - width));
-    position.y = Math.max(0, Math.min(startPosY + dy, window.innerHeight - height));
+    const w = 170; // 对应 CSS 里的放大尺寸
+    const h = 170;
+    position.x = Math.max(0, Math.min(startPosX + dx, window.innerWidth - w));
+    position.y = Math.max(0, Math.min(startPosY + dy, window.innerHeight - h));
   }
 };
+
 const stopDrag = () => {
   document.removeEventListener('mousemove', onDrag);
   document.removeEventListener('mouseup', stopDrag);
 };
-const toggleChat = () => { if (!hasMoved) isChatOpen.value = !isChatOpen.value; };
-const trackMouse = (e) => { eyePosition.x = e.clientX / window.innerWidth; eyePosition.y = e.clientY / window.innerHeight; };
-const handleResize = () => {
-  if (!mentorRef.value) return;
-  const width = mentorRef.value.offsetWidth, height = mentorRef.value.offsetHeight;
-  position.x = Math.min(position.x, window.innerWidth - width); position.y = Math.min(position.y, window.innerHeight - height);
+
+const toggleChat = () => {
+  if (!hasMoved) {
+    isChatOpen.value = !isChatOpen.value;
+    if (isChatOpen.value) scrollToBottom();
+  }
 };
 
-onMounted(() => { 
-  fetchMentorHistory(); // 组件加载时直接拉取历史记录
-  document.addEventListener('mousemove', trackMouse); 
-  window.addEventListener('resize', handleResize); 
-});
+const scrollToBottom = async () => {
+  await nextTick();
+  if (chatBoxRef.value) chatBoxRef.value.scrollTop = chatBoxRef.value.scrollHeight;
+};
 
-onUnmounted(() => { 
-  document.removeEventListener('mousemove', trackMouse); 
-  document.removeEventListener('mousemove', onDrag); 
-  document.removeEventListener('mouseup', stopDrag); 
-  window.removeEventListener('resize', handleResize); 
+const trackMouse = (e) => {
+  mousePos.x = e.clientX / window.innerWidth;
+  mousePos.y = e.clientY / window.innerHeight;
+};
+
+onMounted(() => {
+  fetchMentorHistory();
+  document.addEventListener('mousemove', trackMouse);
+  window.addEventListener('resize', () => {
+    position.x = Math.min(position.x, window.innerWidth - 170);
+    position.y = Math.min(position.y, window.innerHeight - 170);
+  });
 });
 </script>
 
 <style scoped>
-/* 样式完美，未做任何改动，直接保留你的原生设计 */
-.draggable-ai-mentor { position: fixed; width: 80px; height: 80px; cursor: grab; z-index: 9999; user-select: none; transition: transform 0.1s ease; }
-.draggable-ai-mentor:active { cursor: grabbing; transform: scale(0.95); }
-.boi { width: 100%; height: 100%; background-image: radial-gradient(#f7e0b2, #eb5); border-radius: 100%; overflow: hidden; margin: 0; border: 2px solid #ecb23e; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2); position: relative; box-sizing: border-box; }
-.boi * { box-sizing: border-box; }
-.boi-blush { position: absolute; width: 20%; height: 10%; background-color: rgba(255, 100, 100, 0.3); border: 3px solid rgba(255, 100, 100, 0.3); top: calc(45% + var(--py) * 10%); border-radius: 100%; }
-.boi-blush-left { left: calc(7% + var(--px) * 2%); }
-.boi-blush-right { right: calc(9% - var(--px) * 2%); }
-.boi-eye { position: absolute; width: 24%; height: 24%; background-color: #f6f6f6; border-radius: 100%; top: calc(25% + var(--py) * 10%); overflow: hidden; }
-.boi-eye-left { left: calc(18% + var(--px) * 4%); }
-.boi-eye-right { right: calc(22% - var(--px) * 4%); }
-.boi-eye::after { content: ''; display: block; background-color: #421; width: 45%; height: 45%; border-radius: 100%; }
-.boi-eye-left::after { transform: translate(calc(var(--px) * 100%), calc(var(--py) * 100%)); }
-.boi-eye-right::after { transform: translate(calc(var(--px) * 100%), calc(var(--py) * 100%)); }
-.boi-mouth { position: absolute; width: 49%; height: 24%; background-color: #a33; border-radius: 0 0 16em 16em; top: calc(57.5% + var(--py) * 5%); left: calc(47.5% + var(--px) * 5%); transform: translateX(-50%); overflow: hidden; border: 3px solid #962d2d; }
-.boi-mouth::before { content: ''; display: block; position: absolute; width: 20%; height: 20%; top: 0; left: 50%; background-color: white; border-radius: 0 0 0.5rem 0.5rem; transform: translateX(-50%); }
-.boi-mouth::after { content: ''; display: block; position: absolute; width: 60%; height: 50%; left: 20%; bottom: 0; background-color: rgba(0, 0, 0, 0.2); border-radius: 20rem 20rem 0 0; }
-.ai-chat-window { position: fixed; right: 30px; bottom: 30px; width: 340px; background: #fff; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); z-index: 10000; display: flex; flex-direction: column; animation: slideUp 0.3s ease-out; }
-@keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
-.ai-chat-header { background: #4a90e2; color: #fff; padding: 12px 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; border-radius: 12px 12px 0 0; }
-.title { font-size: 15px; }
-.close-btn { cursor: pointer; font-size: 14px; opacity: 0.8; transition: 0.2s; }
-.close-btn:hover { opacity: 1; transform: scale(1.1); }
-.chat-messages { height: 320px; padding: 15px; background: #f5f7fa; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-.msg-bubble { max-width: 80%; padding: 10px 14px; border-radius: 8px; font-size: 14px; line-height: 1.5; word-break: break-all; white-space: pre-wrap; } 
-.msg-ai { background: #fff; color: #333; align-self: flex-start; border: 1px solid #e4e7ed; box-shadow: 0 2px 4px rgba(0,0,0,0.02); border-bottom-left-radius: 2px;}
-.msg-user { background: #4a90e2; color: #fff; align-self: flex-end; border-bottom-right-radius: 2px; }
-.chat-input { display: flex; padding: 12px; background: #fff; border-top: 1px solid #eee; border-radius: 0 0 12px 12px; }
-.chat-input input { flex: 1; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; outline: none; transition: 0.2s; font-size: 14px; }
-.chat-input input:focus { border-color: #4a90e2; box-shadow: 0 0 4px rgba(74, 144, 226, 0.2); }
-.chat-input button { margin-left: 8px; background: #4a90e2; color: white; border: none; padding: 0 15px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-.chat-input button:hover { background: #357ebd; }
-.chat-input button:disabled { background: #a0cfff; cursor: not-allowed; }
+/* 小精灵容器 - 已保持 170px 放大比例 */
+.draggable-ai-mentor {
+  position: fixed;
+  width: 170px; 
+  height: 170px;
+  cursor: grab;
+  z-index: 9999;
+  user-select: none;
+  filter: drop-shadow(0 8px 15px rgba(0, 0, 0, 0.15));
+}
+
+.draggable-ai-mentor:active {
+  cursor: grabbing;
+  transform: scale(0.96);
+}
+
+.sprite-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+/* 眼睛定位 */
+.eyes-overlay {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none;
+}
+
+.eye {
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  background: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.2);
+}
+
+/* 修正后的眼睛高度 */
+.left-eye { left: 46%; top: 34%; }
+.right-eye { left: 58%; top: 34%; }
+
+.pupil {
+  width: 6px;
+  height: 6px;
+  background: #333;
+  border-radius: 50%;
+  transition: transform 0.1s linear;
+}
+
+/* 对话框样式 */
+.ai-chat-window {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #eef2f5;
+  /* 去掉这里的全局 transition 确保移动时不延迟 */
+}
+
+.ai-chat-header {
+  background: linear-gradient(135deg, #7EC8E0, #5AB0CC);
+  color: white;
+  padding: 14px 18px;
+  font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chat-messages {
+  height: 380px;
+  padding: 15px;
+  background: #fcfdfe;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.msg-bubble {
+  max-width: 85%;
+  padding: 10px 14px;
+  border-radius: 15px;
+  font-size: 14px;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.msg-ai { background: #f0f7f9; color: #3e5a67; align-self: flex-start; border-bottom-left-radius: 2px; }
+.msg-user { background: #5AB0CC; color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+
+.chat-input { display: flex; padding: 12px; background: white; border-top: 1px solid #f0f0f0; gap: 8px; }
+.chat-input input { flex: 1; padding: 10px 15px; border: 1px solid #e0e0e0; border-radius: 25px; outline: none; }
+.chat-input button { background: #5AB0CC; color: white; border: none; padding: 0 18px; border-radius: 20px; cursor: pointer; font-weight: bold; }
 </style>
