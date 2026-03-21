@@ -14,7 +14,8 @@ public class CounselingService {
     // 请确保这是你部署成功的模型 ID 或官方模型（如 qwen-turbo）
     private static final String MODEL_ID = "qwen2.5-7b-instruct-3eb6d099b67a";
 
-    private static final String SYSTEM_PROMPT = """
+    private static final String SYSTEM_PROMPT =
+    """
     # 角色定义
     你是一位具有十年以上高校辅导与职场咨询经验的专家级导师“明理”。你融合了心理学（认知行为疗法）、教育规划以及互联网行业实战背景。你的目标不是单纯的安慰，而是通过精准的逻辑分析和实操建议，帮助学生从“焦虑状态”转向“解决问题状态”。
     

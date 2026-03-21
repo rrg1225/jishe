@@ -1,7 +1,6 @@
 <template>
   <div class="im-page-container">
     
-    <!-- 左侧：联系人列表栏 -->
     <div class="im-list-pane">
       <div class="search-area">
         <input v-model="searchId" type="text" placeholder="输入对方ID加好友..." class="search-input" />
@@ -39,15 +38,13 @@
       </div>
     </div>
 
-    <!-- 右侧：聊天对话栏 -->
     <div class="im-chat-pane">
       <template v-if="currentChatUser">
         <div class="im-header">
           <h3>与 {{ currentChatUser.name }} 聊天中</h3>
         </div>
 
-        <!-- 聊天记录区域 -->
-        <div class="message-box">
+        <div class="message-box" ref="messageBoxRef">
           <div 
             v-for="(msg, index) in messageList" 
             :key="index"
@@ -76,9 +73,7 @@
           </div>
         </div>
 
-        <!-- 输入区域 -->
         <div class="input-area">
-          <!-- 隐藏的文件上传 -->
           <input 
             type="file" 
             ref="fileInput" 
@@ -87,13 +82,11 @@
             style="display: none;"
           >
           
-          <!-- 加号按钮和弹出菜单 -->
           <div class="more-actions">
             <button @click.stop="toggleMoreMenu" class="more-btn" title="更多功能">
               <span class="plus-icon">+</span>
             </button>
             
-            <!-- 弹出菜单 -->
             <div v-if="showMoreMenu" class="more-menu" @click.stop>
               <div class="menu-grid">
                 <div class="menu-item" @click="triggerUpload">
@@ -116,12 +109,10 @@
             </div>
           </div>
 
-          <!-- 表情按钮 -->
           <button @click.stop="toggleEmoji" class="emoji-btn" title="表情">
             <span class="emoji-icon">😊</span>
           </button>
 
-          <!-- 表情面板 -->
           <div v-if="showEmoji" class="emoji-panel" @click.stop>
             <div class="emoji-tabs">
               <span class="tab active">😊 表情</span>
@@ -138,7 +129,6 @@
             </div>
           </div>
 
-          <!-- 输入框 -->
           <input 
             v-model="inputText" 
             type="text" 
@@ -147,12 +137,10 @@
             @keyup.enter="sendMessage"
           >
 
-          <!-- 发送按钮 -->
           <button @click="sendMessage" class="send-btn" :disabled="!inputText.trim()">发送</button>
         </div>
       </template>
 
-      <!-- 空状态 -->
       <div v-else class="empty-chat-state">
         <div class="empty-icon">💬</div>
         <p>请在左侧选择联系人开始聊天</p>
@@ -163,7 +151,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick } from 'vue';
 import request from '../utils/request'; 
 
 // ================== 状态变量 ==================
@@ -175,6 +163,7 @@ const inputText = ref('');
 let socket = null;
 const pendingRequests = ref([]);
 const fileInput = ref(null);
+const messageBoxRef = ref(null); // 用于控制消息自动滚动到底部
 
 const myUserId = localStorage.getItem('userId') || "1001"; 
 const wsUrl = `ws://localhost:8080/chat/${myUserId}`;
@@ -208,6 +197,14 @@ const emojiList = ref([
   '🥃', '🍸', '🍹', '🧉', '🍾', '🧊'
 ]);
 
+// 滚动到底部的方法
+const scrollToBottom = async () => {
+  await nextTick();
+  if (messageBoxRef.value) {
+    messageBoxRef.value.scrollTop = messageBoxRef.value.scrollHeight;
+  }
+};
+
 // ================== 界面交互控制 ==================
 const toggleMoreMenu = () => {
   showMoreMenu.value = !showMoreMenu.value;
@@ -237,7 +234,29 @@ const handleClickOutside = (event) => {
   }
 };
 
-// ================== HTTP 请求部分 (好友管理) ==================
+// ================== HTTP 请求部分 ==================
+
+// 拉取历史消息
+const fetchChatHistory = async (targetId) => {
+  try {
+    const res = await request.get(`/api/chat/history?userId=${myUserId}&otherId=${targetId}`);
+    // 兼容后端返回格式 (如果是 axios 封装直接返回了 array，或者是 {code: 200, data: []})
+    const historyData = res.data || res; 
+    if (Array.isArray(historyData)) {
+      messageList.value = historyData.map(msg => ({
+        sender: String(msg.senderId) === String(myUserId) ? 'me' : 'other',
+        messageType: msg.messageType || 'TEXT',
+        content: msg.content,
+        fileName: msg.fileName,
+        fileSize: msg.fileSize
+      }));
+      scrollToBottom();
+    }
+  } catch (error) {
+    console.error("获取历史记录失败:", error);
+  }
+};
+
 const fetchFriendList = async () => {
   try {
     const res = await request.get(`/api/friend/list?userId=${myUserId}`);
@@ -304,6 +323,9 @@ const openChatRoom = (friend) => {
   showEmoji.value = false;
   showMoreMenu.value = false;
   
+  // 拉取与该好友的历史聊天记录
+  fetchChatHistory(friend.id);
+  
   if (!socket || socket.readyState !== WebSocket.OPEN) {
     initWebSocket();
   }
@@ -328,6 +350,7 @@ const initWebSocket = () => {
     } catch (e) {
       messageList.value.push({ sender: 'other', messageType: 'TEXT', content: event.data });
     }
+    scrollToBottom();
   };
   
   socket.onerror = (error) => console.error("WebSocket 发生错误:", error);
@@ -348,6 +371,7 @@ const sendMessage = () => {
     messageList.value.push({ sender: 'me', ...messageObj });
     inputText.value = '';
     showEmoji.value = false;
+    scrollToBottom();
   } else {
     alert("连接未建立或已断开，请刷新页面重试！");
   }
@@ -386,6 +410,7 @@ const handleFileUpload = async (event) => {
       if (socket && socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify(messageObj));
         messageList.value.push({ sender: 'me', ...messageObj });
+        scrollToBottom();
       } else {
         alert("WebSocket未连接，发送失败");
       }
@@ -602,6 +627,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 15px;
+  scroll-behavior: smooth;
 }
 
 .message-item {

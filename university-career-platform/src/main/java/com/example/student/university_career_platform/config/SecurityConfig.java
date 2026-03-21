@@ -63,7 +63,8 @@ public class SecurityConfig {
                                 "/api/resume-gen/**",
                                 "/chat/**",
                                 "/error",
-                                "/api/content/**"
+                                "/api/content/**",
+                                "/api/university/**"
                         ).permitAll()
 
                         // 3. 其他所有请求必须带上有效的 Token 才能访问

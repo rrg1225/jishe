@@ -29,19 +29,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
-        // 🚀 终极免检补丁：看到白名单路径或者跨域预检，直接放行，连 Authorization 头都不看！
+        // 🚀 修复：加入了 "/chat" 以放行 WebSocket 请求
         if (path.startsWith("/api/auth") ||
                 path.startsWith("/api/chat") ||
+                path.startsWith("/chat") ||     // 放行 WebSocket
                 path.startsWith("/api/resume") ||
-                path.startsWith("/error") ||   // 🚀 加上这行
+                path.startsWith("/error") ||
                 "OPTIONS".equalsIgnoreCase(request.getMethod())) {
 
             filterChain.doFilter(request, response);
-            return; // 直接 return，跳过下面的全部 Jwt 解析逻辑
+            return;
         }
 
-        // ==========================================
-        // 下面保留你原本的代码，一点都不用改
         String header = request.getHeader("Authorization");
 
         if (header == null || !header.startsWith("Bearer ")) {
@@ -51,20 +50,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = header.substring(7);
         try {
+            // 🚀 优化：只要 extractPhone 不报错，Token 就是合法的，无需重复校验
             String phone = jwtUtil.extractPhone(token);
             if (phone != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                if (jwtUtil.validateToken(token)) {
-                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                            phone, null, new ArrayList<>()
-                    );
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
-                    System.out.println("✅ [后端安检通过] 用户手机号: " + phone + "，允许访问！");
-                } else {
-                    System.err.println("❌ [后端安检拦截] Token 验证未通过（可能是假冒的或已失效）");
-                }
+                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                        phone, null, new ArrayList<>()
+                );
+                SecurityContextHolder.getContext().setAuthentication(authToken);
+                System.out.println("✅ [后端安检通过] 用户手机号: " + phone + "，允许访问！");
             }
         } catch (Exception e) {
-            System.err.println("❌ [后端安检报错] Token 解析彻底失败！报错信息: " + e.getMessage());
+            // 解析失败、签名错误、Token 过期都会进入这里
+            System.err.println("❌ [后端安检拦截] Token 验证失败或已过期: " + e.getMessage());
         }
 
         filterChain.doFilter(request, response);

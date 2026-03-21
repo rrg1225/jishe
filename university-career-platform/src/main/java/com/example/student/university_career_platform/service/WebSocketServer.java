@@ -102,4 +102,20 @@ public class WebSocketServer {
         System.err.println("WebSocket 发生错误！");
         error.printStackTrace();
     }
+
+    /**
+     * 广播消息给所有在线用户（看板实时更新专用）
+     */
+    public void sendAllMessage(String message) {
+        for (Session session : sessionPool.values()) {
+            try {
+                if (session != null && session.isOpen()) {
+                    session.getBasicRemote().sendText(message);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
 }

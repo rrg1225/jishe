@@ -5,7 +5,10 @@ import com.alibaba.dashscope.aigc.generation.GenerationParam;
 import com.alibaba.dashscope.aigc.generation.GenerationResult;
 import com.alibaba.dashscope.common.Message;
 import com.alibaba.dashscope.common.Role;
+import com.example.student.university_career_platform.model.ChatMessage;
+import com.example.student.university_career_platform.repository.ChatMessageRepository;
 import io.reactivex.Flowable;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +19,9 @@ public class LlmClientService {
 
     @Value("${ai.aliyun.api-key}")
     private String apiKey;
+
+    @Autowired
+    private ChatMessageRepository chatMessageRepository;
 
     /**
      * 🚀 企业级真流式接口（专门给聊天用）
@@ -67,4 +73,30 @@ public class LlmClientService {
             return "服务暂时开小差了，请稍后再试。";
         }
     }
+
+    public String chatWithMingliMentor(String userId, String userMessage) {
+        // 1. 保存用户的真实提问 (注意 ID 全部改为 String 类型)
+        ChatMessage userMsg = new ChatMessage();
+        userMsg.setSenderId(userId);
+        userMsg.setReceiverId("0"); // "0" 代表明理导师
+        userMsg.setContent(userMessage);
+        // 你的 ChatMessage 实体类自带 @PrePersist 自动生成时间，无需手动 setGmtCreated
+        chatMessageRepository.save(userMsg);
+
+        // 2. 调用大模型获取 AI 回复
+        // 这里借用你类里已经写好的参数，你可以根据实际需要调整 Prompt
+        String modelId = "qwen2.5-7b-instruct-3eb6d099b67a";
+        String systemPrompt = "你是明理导师。请友善地解答学生的学业和未来困惑。";
+        String aiResponse = sendRequest(modelId, systemPrompt, userMessage);
+
+        // 3. 保存 AI 导师的回答
+        ChatMessage aiMsg = new ChatMessage();
+        aiMsg.setSenderId("0"); // "0" 代表明理导师
+        aiMsg.setReceiverId(userId);
+        aiMsg.setContent(aiResponse);
+        chatMessageRepository.save(aiMsg);
+
+        return aiResponse;
+    }
+
 }

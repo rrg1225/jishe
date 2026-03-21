@@ -62,9 +62,48 @@ const chatBoxRef = ref(null);
 
 const inputText = ref('');
 const isGenerating = ref(false);
-const messageList = ref([
-  { role: 'ai', content: '你好，我是明理。无论遇到什么学业或未来的困惑，都可以和我说说。' }
-]);
+const messageList = ref([]); // 初始置空，通过挂载时请求加载历史记录
+const myUserId = localStorage.getItem('userId') || "1001";
+
+// 拉取导师聊天历史记录
+const fetchMentorHistory = async () => {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`http://localhost:8080/api/chat/history?userId=${myUserId}&otherId=0`, {
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : ''
+      }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      if (Array.isArray(data) && data.length > 0) {
+        // 格式化后端返回的历史记录
+        const historyMsgs = data.map(msg => ({
+          role: String(msg.senderId) === '0' ? 'ai' : 'user',
+          content: msg.content
+        }));
+        
+        // 保留一条默认打招呼并拼接历史记录
+        messageList.value = [
+          { role: 'ai', content: '你好，我是明理。无论遇到什么学业或未来的困惑，都可以和我说说。' },
+          ...historyMsgs
+        ];
+        scrollToBottom();
+      } else {
+        // 如果没有历史记录，显示默认消息
+        messageList.value = [
+          { role: 'ai', content: '你好，我是明理。无论遇到什么学业或未来的困惑，都可以和我说说。' }
+        ];
+      }
+    }
+  } catch (error) {
+    console.error('获取明理导师历史记录失败', error);
+    messageList.value = [
+      { role: 'ai', content: '你好，我是明理。无论遇到什么学业或未来的困惑，都可以和我说说。' }
+    ];
+  }
+};
 
 const scrollToBottom = async () => {
   await nextTick();
@@ -93,7 +132,11 @@ const sendMessage = async () => {
         'Content-Type': 'application/json',
         'Authorization': token ? `Bearer ${token}` : ''
       },
-      body: JSON.stringify({ message: userMsg })
+      // ✅ 这里是修复后的正确传参方式，增加了 userId
+      body: JSON.stringify({ 
+        message: userMsg,
+        userId: myUserId
+      })
     });
 
     if (!response.ok) throw new Error('请求失败');
@@ -103,34 +146,34 @@ const sendMessage = async () => {
     let done = false;
     let buffer = ''; 
 
-// AIMentor.vue 中的 sendMessage 逻辑
-while (!done) {
-  const { value, done: readerDone } = await reader.read();
-  done = readerDone;
-  if (value) {
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop(); 
-    
-    for (const line of lines) {
-      if (!line.startsWith('data:')) continue;
-      const dataStr = line.substring(5).trim(); 
-      try {
-        const jsonObj = JSON.parse(dataStr);
-        if (jsonObj.text === '[DONE]') {
-          done = true;
-          break;
+    // 流式读取逻辑
+    while (!done) {
+      const { value, done: readerDone } = await reader.read();
+      done = readerDone;
+      if (value) {
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop(); 
+        
+        for (const line of lines) {
+          if (!line.startsWith('data:')) continue;
+          const dataStr = line.substring(5).trim(); 
+          try {
+            const jsonObj = JSON.parse(dataStr);
+            if (jsonObj.text === '[DONE]') {
+              done = true;
+              break;
+            }
+            // 🚀 双保险：解析 JSON 保证不丢字，正则过滤保证不显示标签
+            const cleanText = jsonObj.text.replace(/【[^】]*(】|$)/g, '');
+            messageList.value[currentAiMsgIndex].content += cleanText;
+            scrollToBottom();
+          } catch (e) {
+            // 自动忽略不完整的 JSON
+          }
         }
-        // 🚀 双保险：解析 JSON 保证不丢字，正则过滤保证不显示标签
-        const cleanText = jsonObj.text.replace(/【[^】]*(】|$)/g, '');
-        messageList.value[currentAiMsgIndex].content += cleanText;
-        scrollToBottom();
-      } catch (e) {
-        // 自动忽略不完整的 JSON
       }
     }
-  }
-}
   } catch (error) {
     console.error('流式请求出错:', error);
     messageList.value[currentAiMsgIndex].content = '网络有点开小差，请稍后再试哦~';
@@ -172,8 +215,19 @@ const handleResize = () => {
   const width = mentorRef.value.offsetWidth, height = mentorRef.value.offsetHeight;
   position.x = Math.min(position.x, window.innerWidth - width); position.y = Math.min(position.y, window.innerHeight - height);
 };
-onMounted(() => { document.addEventListener('mousemove', trackMouse); window.addEventListener('resize', handleResize); });
-onUnmounted(() => { document.removeEventListener('mousemove', trackMouse); document.removeEventListener('mousemove', onDrag); document.removeEventListener('mouseup', stopDrag); window.removeEventListener('resize', handleResize); });
+
+onMounted(() => { 
+  fetchMentorHistory(); // 组件加载时直接拉取历史记录
+  document.addEventListener('mousemove', trackMouse); 
+  window.addEventListener('resize', handleResize); 
+});
+
+onUnmounted(() => { 
+  document.removeEventListener('mousemove', trackMouse); 
+  document.removeEventListener('mousemove', onDrag); 
+  document.removeEventListener('mouseup', stopDrag); 
+  window.removeEventListener('resize', handleResize); 
+});
 </script>
 
 <style scoped>
@@ -201,7 +255,7 @@ onUnmounted(() => { document.removeEventListener('mousemove', trackMouse); docum
 .close-btn { cursor: pointer; font-size: 14px; opacity: 0.8; transition: 0.2s; }
 .close-btn:hover { opacity: 1; transform: scale(1.1); }
 .chat-messages { height: 320px; padding: 15px; background: #f5f7fa; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-.msg-bubble { max-width: 80%; padding: 10px 14px; border-radius: 8px; font-size: 14px; line-height: 1.5; word-break: break-all; white-space: pre-wrap; } /* 增加了 white-space 保证换行显示 */
+.msg-bubble { max-width: 80%; padding: 10px 14px; border-radius: 8px; font-size: 14px; line-height: 1.5; word-break: break-all; white-space: pre-wrap; } 
 .msg-ai { background: #fff; color: #333; align-self: flex-start; border: 1px solid #e4e7ed; box-shadow: 0 2px 4px rgba(0,0,0,0.02); border-bottom-left-radius: 2px;}
 .msg-user { background: #4a90e2; color: #fff; align-self: flex-end; border-bottom-right-radius: 2px; }
 .chat-input { display: flex; padding: 12px; background: #fff; border-top: 1px solid #eee; border-radius: 0 0 12px 12px; }

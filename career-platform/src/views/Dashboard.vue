@@ -187,12 +187,24 @@
 
         <section v-if="activeMenu === 'matrix'" class="fade-in matrix-layout">
           <div class="big-data-board">
-            <div class="board-header">
-              <div class="title-area">
-                <h3>📊 大数据院校筛选实时看板</h3>
-                <p>全网实时抓取考研/保研核心数据，精准匹配目标院校</p>
-              </div>
+          <div class="board-header">
+                <div class="title-area">
+                  <h3>📊 大数据院校筛选实时看板</h3>
+                  <p>全网实时抓取考研/保研核心数据，精准匹配目标院校</p>
+                </div>
+              </div> <!-- 🚨 注意：就是刚才漏掉了这一行 🚨 -->
+
               <div class="school-search-box">
+                <!-- 新增：专业选择下拉框 -->
+                <select v-model="selectedSchoolMajor" class="major-select">
+                  <option value="全部">所有专业</option>
+                  <option value="计算机科学与技术">计算机科学与技术</option>
+                  <option value="软件工程">软件工程</option>
+                  <option value="人工智能">人工智能</option>
+                  <option value="电子信息">电子信息</option>
+                </select>
+                <span class="divider-line">|</span>
+                
                 <span class="search-icon">🔍</span>
                 <input 
                   type="text" 
@@ -202,7 +214,6 @@
                 />
                 <button class="search-btn" @click="handleSchoolSearch">智能检索</button>
               </div>
-            </div>
 
             <div class="data-table-container">
               <div class="data-tabs">
@@ -212,9 +223,10 @@
               
               <div class="table-responsive">
                 <table class="school-data-table">
-                  <thead>
+                <thead>
                     <tr v-if="schoolDataType === 'kaoyan'">
                       <th>院校名称</th>
+                      <th>招生专业</th> <!-- 新增表头 -->
                       <th>近三年复试线均值</th>
                       <th>近三年复录比均值</th>
                       <th>报录比 (激烈程度)</th>
@@ -222,6 +234,7 @@
                     </tr>
                     <tr v-if="schoolDataType === 'baoyan'">
                       <th>院校名称</th>
+                      <th>招生专业</th>
                       <th>夏令营/预推免节点</th>
                       <th>成绩排位要求</th>
                       <th>四六级要求</th>
@@ -230,6 +243,7 @@
                   </thead>
                   <tbody>
                     <tr v-for="(school, index) in currentSchoolData" :key="index">
+                      <!-- 1. 公共列：院校名称和 Logo -->
                       <td class="school-name">
                         <span class="s-logo">{{ school.name.charAt(0) }}</span>
                         <div class="s-info">
@@ -238,7 +252,9 @@
                         </div>
                       </td>
                       
+                      <!-- 2. 考研数据专属列 (含专属跳转按钮) -->
                       <template v-if="schoolDataType === 'kaoyan'">
+                        <td class="major-col"><span class="major-tag">{{ school.major || '计算机科学与技术' }}</span></td>
                         <td class="score-trend">{{ school.scoreLine }}</td>
                         <td>{{ school.reExamRatio }}</td>
                         <td>
@@ -246,15 +262,25 @@
                             {{ school.intensityLevel }} ({{ school.applyRatio }})
                           </span>
                         </td>
+                        <!-- 考研的操作按钮：如果有 officialUrl 就用 a 标签，否则用弹窗 -->
+                        <td>
+                          <a v-if="school.officialUrl" :href="school.officialUrl" target="_blank" class="detail-btn" style="text-decoration: none; display: inline-block; text-align: center;">查看详情</a>
+                          <button v-else class="detail-btn" @click="viewSchoolDetail(school)">查看详情</button>
+                        </td>
                       </template>
-                      
-                      <template v-if="schoolDataType === 'baoyan'">
-                        <td class="time-node">{{ school.timeline }}</td>
-                        <td>{{ school.rankReq }}</td>
+
+                      <!-- 3. 保研数据专属列 (含专属跳转按钮) -->
+                      <template v-else-if="schoolDataType === 'baoyan'">
+                        <td class="major-col"><span class="major-tag">{{ school.major || '计算机科学与技术' }}</span></td>
+                        <td class="timeline-text">{{ school.timeline }}</td>
+                        <td><span class="highlight-text">{{ school.rankReq }}</span></td>
                         <td>{{ school.englishReq }}</td>
+                        <!-- 保研的操作按钮：直接跳转官网链接 -->
+                        <td>
+                          <a :href="school.officialUrl" target="_blank" class="detail-btn" style="text-decoration: none; display: inline-block; text-align: center;">查看详情</a>
+                        </td>
                       </template>
-                      
-                      <td><button class="detail-btn" @click="viewSchoolDetail(school)">查看详情</button></td>
+
                     </tr>
                   </tbody>
                 </table>
@@ -902,13 +928,31 @@ const fallbackToLocalData = () => {
   userAccount.value = '暂无网络'
 }
 
+// ================= 新增：初次进入页面加载 Redis 最新数据 =================
+const fetchInitialBoardData = async () => {
+  try {
+    const res = await request.get('/api/university/getLatestData');
+    // 如果返回的不是空数组
+    if (res && res.length > 0) {
+      hotKaoyanData.value = res;
+    }
+  } catch (error) {
+    console.error("拉取看板初始快照失败", error);
+  }
+}
+
 onMounted(() => {
   fetchHeaderUserInfo()
   startAutoPlay()
   initRealData()
   fetchContestArticles()
+  
+  // 👉 新增：先拉取 Redis 最新快照填充页面
+  fetchInitialBoardData()
+  
+  // 👉 然后建立 WebSocket 长连接，监听后续的变动
+  initWebSocket()
 })
-
 watch(() => route.query.edit, (newVal) => {
   if (newVal === 'true') {
     activeMenu.value = 'profile' 
@@ -1049,6 +1093,10 @@ const performSearch = async (keyword) => {
 onUnmounted(() => {
   if (blurTimer) clearTimeout(blurTimer)
   if (slideInterval) clearInterval(slideInterval)
+  // 👉 离开页面时断开连接，节省资源
+  if (ws) {
+    ws.close()
+  }
 })
 
 // ================= 首页推荐数据 =================
@@ -1082,6 +1130,36 @@ const goToLink = (link) => {
 const targetSchoolKeyword = ref('')
 const schoolDataType = ref('kaoyan') 
 
+
+// ================= 新增：实时数据 WebSocket 逻辑 =================
+let ws = null;
+
+const initWebSocket = () => {
+  // 为了不和聊天室冲突，给看板一个专属的伪用户ID标识
+  const wsUrl = `ws://localhost:8080/chat/dashboard_viewer_${new Date().getTime()}`; 
+  ws = new WebSocket(wsUrl);
+
+  ws.onopen = () => console.log("📊 实时数据看板：WebSocket 连接成功");
+
+  ws.onmessage = (event) => {
+    try {
+      const newData = JSON.parse(event.data);
+      console.log("收到最新抓取的数据：", newData);
+      // 直接覆盖现有的考研数据，Vue 会自动触发页面动画和更新
+      hotKaoyanData.value = newData;
+    } catch (e) {
+      // 忽略非 JSON 格式的消息（比如普通的聊天文本）
+    }
+  };
+
+  ws.onerror = (error) => console.error("WebSocket 发生错误", error);
+  
+  ws.onclose = () => {
+    console.log("WebSocket 断开，3秒后尝试重连...");
+    setTimeout(initWebSocket, 3000);
+  };
+};
+
 const hotKaoyanData = ref([
   { name: '北京大学', tags: ['985', '双一流', '综合类'], scoreLine: '356 -> 365 -> 372', reExamRatio: '1.2:1', applyRatio: '12:1', intensityLevel: '高' },
   { name: '清华大学', tags: ['985', '双一流', '理工类'], scoreLine: '340 -> 355 -> 360', reExamRatio: '1.3:1', applyRatio: '9:1', intensityLevel: '中等' },
@@ -1090,18 +1168,84 @@ const hotKaoyanData = ref([
 ])
 
 const hotBaoyanData = ref([
-  { name: '浙江大学', tags: ['985', '双一流', '综合类'], timeline: '夏令营:6月中旬 | 预推免:8月下旬', rankReq: '专业排名前 5%', englishReq: 'CET-6 ≥ 480' },
-  { name: '上海交通大学', tags: ['985', '双一流', '综合类'], timeline: '夏令营:7月上旬 | 预推免:9月上旬', rankReq: '专业排名前 3%', englishReq: 'CET-6 ≥ 500' },
-  { name: '南京大学', tags: ['985', '双一流', '综合类'], timeline: '夏令营:6月底 | 预推免:9月中旬', rankReq: '专业排名前 10%', englishReq: 'CET-6 ≥ 460' },
-  { name: '同济大学', tags: ['985', '双一流', '理工类'], timeline: '夏令营:7月中旬 | 预推免:9月初', rankReq: '专业排名前 8%', englishReq: 'CET-6 ≥ 425' }
+  { 
+    name: '清华大学', 
+    tags: ['985', '双一流', '理工类'], 
+    major: '计算机科学与技术', // ✨ 补充了计科
+    timeline: '夏令营:6月上旬 | 预推免:8月底', 
+    rankReq: '专业排名前3%', 
+    englishReq: 'CET6 520+',
+    officialUrl: 'https://yz.tsinghua.edu.cn/' 
+  },
+  { 
+    name: '北京航空航天大学', 
+    tags: ['985', '双一流', '理工类'], 
+    major: '计算机科学与技术', // ✨ 补充了计科
+    timeline: '夏令营:6月中旬 | 预推免:9月初', 
+    rankReq: '专业排名前5%', 
+    englishReq: 'CET6 480+',
+    officialUrl: 'http://yzb.buaa.edu.cn/' 
+  },
+  { 
+    name: '浙江大学', 
+    tags: ['985', '双一流', '综合类'], 
+    major: '人工智能', 
+    timeline: '夏令营:6月中旬 | 预推免:8月下旬', 
+    rankReq: '专业排名前5%', 
+    englishReq: 'CET6 500+',
+    officialUrl: 'http://grs.zju.edu.cn/yjszs/' 
+  },
+  { 
+    name: '上海交通大学', 
+    tags: ['985', '双一流', '理工类'], 
+    major: '软件工程', 
+    timeline: '夏令营:7月上旬 | 预推免:9月上旬', 
+    rankReq: '专业排名前10%', 
+    englishReq: 'CET6 460+',
+    officialUrl: 'https://yzb.sjtu.edu.cn/' 
+  },
+  { 
+    name: '南京大学', 
+    tags: ['985', '双一流', '综合类'], 
+    major: '人工智能', 
+    timeline: '夏令营:6月底 | 预推免:9月中旬', 
+    rankReq: '专业排名前10%', 
+    englishReq: 'CET6 460+',
+    officialUrl: 'https://gsec.nju.edu.cn/' 
+  },
+  { 
+    name: '同济大学', 
+    tags: ['985', '双一流', '理工类'], 
+    major: '电子信息', 
+    timeline: '夏令营:7月中旬 | 预推免:9月初', 
+    rankReq: '专业排名前8%', 
+    englishReq: 'CET6 425+',
+    officialUrl: 'https://yz.tongji.edu.cn/' 
+  }
 ])
 
+// 新增响应式变量，默认选中全部
+const selectedSchoolMajor = ref('全部')
+
 const currentSchoolData = computed(() => {
+  // 拿到大盘传过来的全部 500 条数据
   let data = schoolDataType.value === 'kaoyan' ? hotKaoyanData.value : hotBaoyanData.value;
-  if (targetSchoolKeyword.value.trim()) {
-    data = data.filter(s => s.name.includes(targetSchoolKeyword.value));
+  
+  const keyword = targetSchoolKeyword.value.trim();
+  // 换用新的变量名
+  const major = selectedSchoolMajor.value;
+
+  // 🔍 过滤第一层：按专业筛选
+  if (major !== '全部') {
+    data = data.filter(s => s.major === major);
   }
-  return data;
+
+  // 🔍 过滤第二层：按学校名称搜索，或默认展示前4个热门
+  if (keyword) {
+    return data.filter(s => s.name.includes(keyword));
+  } else {
+    return data.slice(0, 4);
+  }
 })
 
 const handleSchoolSearch = () => {
@@ -1115,7 +1259,11 @@ const getIntensityClass = (level) => {
 }
 
 const viewSchoolDetail = (school) => {
-  console.log('查看学校详情:', school)
+  if (school.officialUrl) {
+    window.open(school.officialUrl, '_blank');
+  } else {
+    alert(`暂未收录【${school.name}】的官方网址`);
+  }
 }
 
 
@@ -2592,4 +2740,27 @@ watch(contestActiveTab, (newVal) => {
 .rh-info { padding: 15px; border-top: 1px solid #f1f5f9; }
 .rh-info h4 { margin: 0 0 6px 0; font-size: 14px; color: #1e293b; }
 .rh-info p { margin: 0; font-size: 12px; color: #64748b; }
+
+.major-select {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 14px;
+  color: #475569;
+  padding: 8px 10px;
+  cursor: pointer;
+  font-weight: 500;
+}
+.divider-line {
+  color: #e2e8f0;
+  margin: 0 8px;
+}
+.major-tag {
+  background: #f1f5f9;
+  color: #0369a1;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+}
 </style>
