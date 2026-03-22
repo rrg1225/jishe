@@ -2,8 +2,10 @@ package com.example.student.university_career_platform.controller;
 
 import com.example.student.university_career_platform.model.FriendRequest;
 import com.example.student.university_career_platform.model.UserFriend;
+import com.example.student.university_career_platform.repository.ChatMessageRepository;
 import com.example.student.university_career_platform.repository.FriendRequestRepository;
 import com.example.student.university_career_platform.repository.UserFriendRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,6 +23,10 @@ public class FriendController {
 
     @Autowired
     private FriendRequestRepository friendRequestRepository;
+
+    // 新增注入聊天记录 Repository
+    @Autowired
+    private ChatMessageRepository chatMessageRepository;
 
     // 1. 获取我的好友列表 (保持不变)
     @GetMapping("/list")
@@ -98,6 +104,29 @@ public class FriendController {
         } else {
             result.put("code", 400);
             result.put("msg", "请求不存在或已处理");
+        }
+        return result;
+    }
+
+    // 粘贴这个新的删除接口
+    @PostMapping("/delete")
+    @Transactional // 保证事务，要么都删成功，要么都不删
+    public Map<String, Object> deleteFriend(@RequestParam String userId, @RequestParam String friendId) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            // 1. 删除好友关系（因为是双向的，所以要删两条记录）
+            userFriendRepository.deleteByUserIdAndFriendId(userId, friendId);
+            userFriendRepository.deleteByUserIdAndFriendId(friendId, userId);
+
+            // 2. 清空聊天记录
+            chatMessageRepository.deleteChatHistoryBetween(userId, friendId);
+
+            result.put("code", 200);
+            result.put("msg", "删除成功");
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.put("code", 500);
+            result.put("msg", "删除失败: " + e.getMessage());
         }
         return result;
     }

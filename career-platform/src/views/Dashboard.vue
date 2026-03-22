@@ -1579,7 +1579,7 @@ const selectedDirection = ref('计算机类')
 const selectedSkill = ref('全部')
 const contestKeyword = ref('')
 
-const contestActiveTab = ref('guide') 
+const contestActiveTab = ref('info') 
 const contestArticles = ref([])
 const loadingArticles = ref(false)
 const guideFilterType = ref('all') 

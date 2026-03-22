@@ -1,5 +1,6 @@
 package com.example.student.university_career_platform.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -21,6 +22,7 @@ public class User {
     private String phone;
 
     @Column(nullable = false)
+    @JsonIgnore
     private String password;
 
     private String role;      // 前端传 'student' 或 'enterprise'，现在对应数据库 varchar，完美！

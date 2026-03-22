@@ -1,11 +1,16 @@
 package com.example.student.university_career_platform.controller;
 
+import com.example.student.university_career_platform.common.Result;
 import com.example.student.university_career_platform.model.User;
 import com.example.student.university_career_platform.repository.UserRepository;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Objects;
@@ -18,31 +23,31 @@ public class UserController {
     @Autowired
     private UserRepository userRepository;
 
+    @Data
     public static class ProfileUpdateRequest {
+        @NotBlank(message = "昵称不能为空")
         @JsonProperty("nickname")
         public String nickName;
 
-        @JsonProperty("age")
+        @Min(value = 1, message = "年龄不能小于1")
+        @Max(value = 120, message = "年龄不能大于120")
         public Integer age;
 
-        @JsonProperty("gender")
         public String gender;
 
-        @JsonProperty("bio")
         public String bio;
 
-        // 🌟 新增：接收前端传来的学校/企业信息
-        @JsonProperty("org")
         public String org;
     }
 
+    @Validated
     @PostMapping("/profile")
-    public ResponseEntity<?> updateProfile(@RequestBody ProfileUpdateRequest request) {
+    public Result<?> updateProfile(@RequestBody ProfileUpdateRequest request) {
         String currentPhone = Objects.requireNonNull(SecurityContextHolder.getContext().getAuthentication()).getName();
         User user = userRepository.findByPhone(currentPhone).orElse(null);
 
         if (user == null) {
-            return ResponseEntity.badRequest().body("用户不存在");
+            return Result.error(400, "用户不存在");
         }
 
         // 更新各个字段
@@ -61,17 +66,41 @@ public class UserController {
         }
 
         userRepository.save(user);
-        return ResponseEntity.ok("个人信息完善成功！");
+        return Result.success(user);
     }
 
     @GetMapping("/info")
-    public ResponseEntity<?> getUserInfo() {
+    public Result<User> getUserInfo() {
         String currentPhone = Objects.requireNonNull(SecurityContextHolder.getContext().getAuthentication()).getName();
         User user = userRepository.findByPhone(currentPhone).orElse(null);
         if (user == null) {
-            return ResponseEntity.status(404).body("用户不存在");
+            return Result.error(404,"用户不存在");
         }
         user.setPassword(null);
-        return ResponseEntity.ok(user);
+        return Result.success(user);
     }
+
+    /**
+     * 模糊搜索用户 (按昵称或手机号)
+     */
+    @GetMapping("/search")
+    public Result<?> searchUser(@RequestParam String keyword) {
+        // 1. 调用刚才在 Repository 写的模糊搜索方法
+        java.util.List<User> users = userRepository.findByNickNameContainingOrPhoneContaining(keyword, keyword);
+
+        // 2. 过滤掉密码等敏感信息，只返回前端需要的字段
+        java.util.List<java.util.Map<String, Object>> safeUserList = new java.util.ArrayList<>();
+        for (User user : users) {
+            java.util.Map<String, Object> map = new java.util.HashMap<>();
+            // 前端好友表用 phone 作为字符串类型的 ID
+            map.put("id", user.getPhone());
+            map.put("nickName", user.getNickName());
+            map.put("phone", user.getPhone());
+            map.put("avatar", user.getAvatar());
+            safeUserList.add(map);
+        }
+
+        return Result.success(safeUserList);
+    }
+
 }

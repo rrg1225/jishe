@@ -20,6 +20,12 @@ public class LlmClientService {
     @Value("${ai.aliyun.api-key}")
     private String apiKey;
 
+    @Value("${ai.mentor.model-id}")
+    private String mentorModelId;
+
+    @Value("${ai.mentor.system-prompt}")
+    private String mentorSystemPrompt;
+
     @Autowired
     private ChatMessageRepository chatMessageRepository;
 
@@ -85,10 +91,7 @@ public class LlmClientService {
         chatMessageRepository.save(userMsg);
 
         // 2. 调用大模型获取 AI 回复
-        // 这里借用你类里已经写好的参数，你可以根据实际需要调整 Prompt
-        String modelId = "qwen2.5-7b-instruct-3eb6d099b67a";
-        String systemPrompt = "你是明理导师。请友善地解答学生的学业和未来困惑。";
-        String aiResponse = sendRequest(modelId, systemPrompt, userMessage);
+        String aiResponse = sendRequest(mentorModelId, mentorSystemPrompt, userMessage);
 
         // 3. 保存 AI 导师的回答
         ChatMessage aiMsg = new ChatMessage();
