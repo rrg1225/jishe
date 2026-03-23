@@ -96,7 +96,14 @@ onMounted(() => {
 
 <style scoped>
 /* 包含刚才所有的左侧专属CSS，比如 .im-list-pane, .search-area, .search-results-list 等 */
-.im-list-pane { width: 280px; border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; background-color: #f8fafc; }
+.im-list-pane { 
+  width: 280px; /* PC端保持 280px */
+  max-width: 100%; /* 防止溢出 */
+  border-right: 1px solid #e2e8f0; 
+  display: flex; 
+  flex-direction: column; 
+  background-color: #f8fafc; 
+}
 .search-area { padding: 15px; border-bottom: 1px solid #e2e8f0; display: flex; gap: 10px; position: relative; }
 .search-input { flex-grow: 1; padding: 8px 30px 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; font-size: 13px; }
 .search-input:focus { border-color: #4a90e2; }

@@ -187,15 +187,12 @@
 
         <section v-if="activeMenu === 'matrix'" class="fade-in matrix-layout">
           <div class="big-data-board">
-          <div class="board-header">
-                <div class="title-area">
-                  <h3>📊 大数据院校筛选实时看板</h3>
-                  <p>全网实时抓取考研/保研核心数据，精准匹配目标院校</p>
-                </div>
-              </div> <!-- 🚨 注意：就是刚才漏掉了这一行 🚨 -->
-
+            <div class="board-header">
+              <div class="title-area">
+                <h3>📊 大数据院校筛选实时看板</h3>
+                <p>全网实时抓取考研/保研核心数据，精准匹配目标院校</p>
+              </div>
               <div class="school-search-box">
-                <!-- 新增：专业选择下拉框 -->
                 <select v-model="selectedSchoolMajor" class="major-select">
                   <option value="全部">所有专业</option>
                   <option value="计算机科学与技术">计算机科学与技术</option>
@@ -214,6 +211,7 @@
                 />
                 <button class="search-btn" @click="handleSchoolSearch">智能检索</button>
               </div>
+            </div>
 
             <div class="data-table-container">
               <div class="data-tabs">
@@ -223,10 +221,10 @@
               
               <div class="table-responsive">
                 <table class="school-data-table">
-                <thead>
+                  <thead>
                     <tr v-if="schoolDataType === 'kaoyan'">
                       <th>院校名称</th>
-                      <th>招生专业</th> <!-- 新增表头 -->
+                      <th>招生专业</th>
                       <th>近三年复试线均值</th>
                       <th>近三年复录比均值</th>
                       <th>报录比 (激烈程度)</th>
@@ -243,7 +241,6 @@
                   </thead>
                   <tbody>
                     <tr v-for="(school, index) in currentSchoolData" :key="index">
-                      <!-- 1. 公共列：院校名称和 Logo -->
                       <td class="school-name">
                         <span class="s-logo">{{ school.name.charAt(0) }}</span>
                         <div class="s-info">
@@ -252,7 +249,6 @@
                         </div>
                       </td>
                       
-                      <!-- 2. 考研数据专属列 (含专属跳转按钮) -->
                       <template v-if="schoolDataType === 'kaoyan'">
                         <td class="major-col"><span class="major-tag">{{ school.major || '计算机科学与技术' }}</span></td>
                         <td class="score-trend">{{ school.scoreLine }}</td>
@@ -262,25 +258,21 @@
                             {{ school.intensityLevel }} ({{ school.applyRatio }})
                           </span>
                         </td>
-                        <!-- 考研的操作按钮：如果有 officialUrl 就用 a 标签，否则用弹窗 -->
                         <td>
                           <a v-if="school.officialUrl" :href="school.officialUrl" target="_blank" class="detail-btn" style="text-decoration: none; display: inline-block; text-align: center;">查看详情</a>
                           <button v-else class="detail-btn" @click="viewSchoolDetail(school)">查看详情</button>
                         </td>
                       </template>
-
-                      <!-- 3. 保研数据专属列 (含专属跳转按钮) -->
-                      <template v-else-if="schoolDataType === 'baoyan'">
+                      
+                      <template v-if="schoolDataType === 'baoyan'">
                         <td class="major-col"><span class="major-tag">{{ school.major || '计算机科学与技术' }}</span></td>
-                        <td class="timeline-text">{{ school.timeline }}</td>
+                        <td class="time-node">{{ school.timeline }}</td>
                         <td><span class="highlight-text">{{ school.rankReq }}</span></td>
                         <td>{{ school.englishReq }}</td>
-                        <!-- 保研的操作按钮：直接跳转官网链接 -->
                         <td>
                           <a :href="school.officialUrl" target="_blank" class="detail-btn" style="text-decoration: none; display: inline-block; text-align: center;">查看详情</a>
                         </td>
                       </template>
-
                     </tr>
                   </tbody>
                 </table>
@@ -624,62 +616,126 @@
           </div>
         </section>
 
+        <!-- 🌟 升级版：AI 简历中心模块 -->
         <section v-if="activeMenu === 'profile'" class="fade-in resume-hub-container">
           
           <div class="rh-module ai-module">
             <div class="rh-header">
               <div class="rh-title">
-                <h3>✨ AI 专属简历定制</h3>
+                <h3>
+                  <span class="title-icon">✨</span> 
+                  AI 专属简历定制
+                  <span class="hot-badge-new">🔥 智能生成</span>
+                </h3>
                 <p>只需两步：选择心仪的排版风格，粘贴所有经历信息，AI 将为您生成专业级描述与排版。</p>
               </div>
             </div>
 
             <div class="step-container">
-              <h4 class="step-title"><span class="step-num">1</span> 选择简历模板</h4>
-              <div class="template-grid">
+              <div class="step-header-mini">
+                <div class="step-badge">01</div>
+                <h4 class="step-title-new">选择简历模板</h4>
+                <span class="step-count">共 {{ aiTemplates.length }} 款精选模板</span>
+              </div>
+
+              <div class="template-grid-new">
                 <div
                   v-for="tpl in aiTemplates"
                   :key="tpl.id"
-                  class="tpl-card"
+                  class="tpl-card-new"
                   :class="{ active: selectedAiTemplate.id === tpl.id }"
                   @click="selectedAiTemplate = tpl"
                 >
-                  <div class="tpl-visual" :style="{ background: tpl.gradient }">
-                     <div class="skeleton-line title"></div>
-                     <div class="skeleton-line"></div>
-                     <div class="skeleton-line short"></div>
-                     <div class="active-mask" v-if="selectedAiTemplate.id === tpl.id">
-                       <div class="check-icon">✓</div>
-                     </div>
+                  <div class="tpl-preview" :style="{ background: tpl.gradient }">
+                    <div class="preview-content">
+                      <div class="preview-name">{{ tpl.previewName }}</div>
+                      <div class="preview-line"></div>
+                      <div class="preview-desc">{{ tpl.previewDesc }}</div>
+                    </div>
+                    <div class="tpl-badge">{{ tpl.tag }}</div>
+                    <div class="active-check" v-if="selectedAiTemplate.id === tpl.id">✓</div>
                   </div>
-                  <div class="tpl-info">
-                    <span class="tpl-name">{{ tpl.name }}</span>
-                    <span class="tpl-tag">{{ tpl.tag }}</span>
+                  <div class="tpl-info-new">
+                    <div class="tpl-name-new">{{ tpl.name }}</div>
+                    <div class="tpl-tags">
+                      <span v-for="tag in tpl.tags" :key="tag" class="tpl-tag">{{ tag }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
             <div class="step-container">
-              <h4 class="step-title">
-                <span class="step-num">2</span> 录入核心经历 
-                <span class="step-hint">（哪怕只写大白话，或者格式乱飞，AI 也会帮您整理成专业简历）</span>
-              </h4>
-              <div class="input-wrapper">
-                <div class="textarea-box">
-                  <textarea 
-                    v-model="rawResumeInput" 
-                    rows="8" 
-                    placeholder="输入示例：我叫张三，电话 13800000000。想找前端工作。曾做过一个外卖项目，用了 Vue3。熟悉 HTML5、CSS3，南京工业大学..."
-                  ></textarea>
-                  <div class="ai-hint-tag">✨ AI 将自动提取并使用 STAR 法则重写</div>
+              <div class="step-header-mini">
+                <div class="step-badge">02</div>
+                <h4 class="step-title-new">录入核心经历</h4>
+                <span class="step-hint-new">哪怕只写大白话，AI也会帮您整理成专业简历</span>
+              </div>
+
+              <div class="example-card-new">
+                <div class="example-icon">💡</div>
+                <div class="example-content">
+                  <div class="example-title">📝 输入示例</div>
+                  <div class="example-text">
+                    我叫张三，电话 13800000000，邮箱 zhangsan@email.com。南京工业大学计算机专业，GPA 3.8/4.0。曾做过一个校园外卖平台项目，使用 Vue3 + Vite + Pinia，实现商家展示、购物车、订单管理等功能。熟悉 HTML5、CSS3、JavaScript，获得校一等奖学金...
+                  </div>
+                </div>
+                <button class="use-example-btn" @click="useExample">一键填充示例</button>
+              </div>
+              
+              <!-- 增强输入区域 -->
+              <div class="input-area-new">
+                <div class="input-toolbar-new">
+                  <div class="toolbar-buttons">
+                    <button class="tool-btn" @click="addTemplate('education')" title="添加教育经历"><span>🎓</span> 教育</button>
+                    <button class="tool-btn" @click="addTemplate('work')" title="添加工作经历"><span>💼</span> 工作</button>
+                    <button class="tool-btn" @click="addTemplate('project')" title="添加项目经历"><span>🚀</span> 项目</button>
+                    <button class="tool-btn" @click="addTemplate('skill')" title="添加技能"><span>⚡</span> 技能</button>
+                    <button class="tool-btn" @click="addTemplate('award')" title="添加获奖"><span>🏆</span> 获奖</button>
+                  </div>
+                  <div class="toolbar-stats">
+                    <span class="char-count">{{ rawResumeInput.length }}</span>
+                    <span class="char-max">/ 5000</span>
+                    <button class="clear-btn" @click="clearInput" v-if="rawResumeInput">清空</button>
+                  </div>
+                </div>
+                
+                <textarea
+                  v-model="rawResumeInput"
+                  placeholder="在这里粘贴或输入您的经历信息...
+                  
+💡 小贴士：
+• 可以随意写，AI会自动整理
+• 支持中英文混合输入
+• 可以粘贴招聘JD，AI会匹配您的经历"
+                  class="resume-textarea-new"
+                  :class="{ 'has-content': rawResumeInput }"
+                ></textarea>
+              </div>
+
+              <!-- AI智能分析卡片 -->
+              <div class="ai-analysis-new" v-if="rawResumeInput && rawResumeInput.length > 30">
+                <div class="analysis-header-new">
+                  <span class="analysis-icon">🤖</span>
+                  <span>AI 智能分析</span>
+                </div>
+                <div class="analysis-content-new">
+                  <div class="analysis-item">
+                    <span class="item-label">检测到关键信息：</span>
+                    <span class="item-value">{{ detectedInfo.join('、') || '暂无' }}</span>
+                  </div>
+                  <div class="analysis-item">
+                    <span class="item-label">建议补充：</span>
+                    <span class="item-value suggestion">{{ suggestions.join('、') || '信息较完整' }}</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div class="action-footer">
-              <button class="generate-btn" @click="handleGenerateResume" :disabled="isGeneratingResume">
-                {{ isGeneratingResume ? 'AI 大模型正在奋笔疾书中...' : '🚀 一键生成专属简历' }}
+            <div class="action-footer-new">
+              <button class="generate-btn-new" @click="handleGenerateResume" :disabled="isGeneratingResume">
+                <span class="btn-icon">🚀</span>
+                <span class="btn-text">{{ isGeneratingResume ? 'AI 大模型正在奋笔疾书中...' : '一键生成专属简历' }}</span>
               </button>
             </div>
           </div>
@@ -687,19 +743,22 @@
           <div class="rh-module">
             <div class="rh-header">
               <div class="rh-title">
-                <h3>🗂️ 手动模板库 <span class="badge">纯手动 · 无AI</span></h3>
+                <h3>🗂️ 手动模板库 <span class="badge-new">纯手动 · 无AI</span></h3>
               </div>
             </div>
-            <div class="rh-grid">
-              <div class="rh-card" v-for="i in 4" :key="'tpl'+i">
-                <div class="card-inner">
-                  <div class="rh-cover tpl-cover">模板缩略图 {{ i }}</div>
-                  <div class="hover-overlay">
-                    <button class="overlay-btn primary" @click="alertMsg('进入手动编辑')">在线编辑</button>
-                    <button class="overlay-btn outline" @click="alertMsg('下载模板')">下载空模板</button>
+            <div class="rh-grid-new">
+              <div class="rh-card-new" v-for="i in 4" :key="'tpl'+i">
+                <div class="card-inner-new">
+                  <div class="rh-cover-new tpl-cover">
+                    <span class="cover-icon">📄</span>
+                    <span class="cover-name">模板缩略图 {{ i }}</span>
+                  </div>
+                  <div class="hover-overlay-new">
+                    <button class="overlay-btn-new primary" @click="alertMsg('进入手动编辑')">在线编辑</button>
+                    <button class="overlay-btn-new outline" @click="alertMsg('下载模板')">下载空模板</button>
                   </div>
                 </div>
-                <div class="rh-info">
+                <div class="rh-info-new">
                   <h4>经典商务风格 {{ i }}</h4>
                   <p>适合外企、金融行业</p>
                 </div>
@@ -714,16 +773,19 @@
                 <p>真实大厂脱敏案例，可直接参考</p>
               </div>
             </div>
-            <div class="rh-grid">
-              <div class="rh-card case-card" v-for="i in 4" :key="'case'+i">
-                <div class="card-inner">
-                  <div class="rh-cover case-cover">案例截图 {{ i }}</div>
-                  <div class="hover-overlay">
-                    <button class="overlay-btn primary" @click="alertMsg('查看案例')">在线查看</button>
-                    <button class="overlay-btn outline" @click="alertMsg('下载 PDF')">直接下载</button>
+            <div class="rh-grid-new">
+              <div class="rh-card-new case-card" v-for="i in 4" :key="'case'+i">
+                <div class="card-inner-new">
+                  <div class="rh-cover-new case-cover">
+                    <span class="cover-icon">🌟</span>
+                    <span class="cover-name">案例截图 {{ i }}</span>
+                  </div>
+                  <div class="hover-overlay-new">
+                    <button class="overlay-btn-new primary" @click="alertMsg('查看案例')">在线查看</button>
+                    <button class="overlay-btn-new outline" @click="alertMsg('下载 PDF')">直接下载</button>
                   </div>
                 </div>
-                <div class="rh-info">
+                <div class="rh-info-new">
                   <h4>腾讯产品经理校招案例</h4>
                   <p>重点突出实战项目与量化数据</p>
                 </div>
@@ -928,11 +990,10 @@ const fallbackToLocalData = () => {
   userAccount.value = '暂无网络'
 }
 
-// ================= 新增：初次进入页面加载 Redis 最新数据 =================
+// ================= 初次进入页面加载 Redis 最新数据 =================
 const fetchInitialBoardData = async () => {
   try {
     const res = await request.get('/api/university/getLatestData');
-    // 如果返回的不是空数组
     if (res && res.length > 0) {
       hotKaoyanData.value = res;
     }
@@ -946,11 +1007,7 @@ onMounted(() => {
   startAutoPlay()
   initRealData()
   fetchContestArticles()
-  
-  // 👉 新增：先拉取 Redis 最新快照填充页面
   fetchInitialBoardData()
-  
-  // 👉 然后建立 WebSocket 长连接，监听后续的变动
   initWebSocket()
 })
 watch(() => route.query.edit, (newVal) => {
@@ -998,16 +1055,85 @@ const alertMsg = (msg) => {
   alert(msg)
 }
 
-// ================= 🌟 新增：内嵌极简简历中心数据与逻辑 =================
+// ================= 🌟 全新升级：内嵌极简简历中心数据与逻辑 =================
+// 8种简历模板配置
 const aiTemplates = ref([
-  { id: 1, name: '极简学术风', tag: '校招 / 考研', gradient: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)' },
-  { id: 2, name: '现代科技蓝', tag: '互联网 / IT', gradient: 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)' },
-  { id: 3, name: '国际商务金', tag: '金融 / 外企', gradient: 'linear-gradient(135deg, #fefce8 0%, #fef08a 100%)' },
-  { id: 4, name: '创意时间轴', tag: '设计 / 运营', gradient: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)' }
+  { id: 1, name: '极简学术风', tag: '校招 / 考研', tags: ['学术', '考研', '校招'], gradient: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)', previewName: '张 三', previewDesc: '计算机科学与技术 · 硕士' },
+  { id: 2, name: '现代科技蓝', tag: '互联网 / IT', tags: ['互联网', 'IT', '科技'], gradient: 'linear-gradient(135deg, #1890ff 0%, #096dd9 100%)', previewName: 'ZHANG SAN', previewDesc: 'Frontend Developer' },
+  { id: 3, name: '国际商务金', tag: '金融 / 外企', tags: ['金融', '外企', '商务'], gradient: 'linear-gradient(135deg, #d4af37 0%, #b8860b 100%)', previewName: 'San Zhang', previewDesc: 'Financial Analyst' },
+  { id: 4, name: '创意时间轴', tag: '设计 / 运营', tags: ['设计', '运营', '创意'], gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', previewName: '创意作品集', previewDesc: 'UI/UX Designer' },
+  { id: 5, name: '暗夜极客', tag: '技术 / 极客', tags: ['技术', '极客', '高级感'], gradient: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)', previewName: 'Code Master', previewDesc: 'Full Stack Developer' },
+  { id: 6, name: '清新绿野', tag: '教育 / 公益', tags: ['教育', '公益', '清新'], gradient: 'linear-gradient(135deg, #56ab2f 0%, #a8e063 100%)', previewName: '李 明', previewDesc: '教育工作者' },
+  { id: 7, name: '优雅粉黛', tag: '文职 / 运营', tags: ['文职', '运营', '优雅'], gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', previewName: 'Emma Wang', previewDesc: 'Content Creator' },
+  { id: 8, name: '商务灰调', tag: '管理 / 咨询', tags: ['管理', '咨询', '专业'], gradient: 'linear-gradient(135deg, #434343 0%, #1f1f1f 100%)', previewName: 'Michael Chen', previewDesc: 'Management Consultant' }
 ])
+
 const selectedAiTemplate = ref(aiTemplates.value[0])
 const rawResumeInput = ref('')
 const isGeneratingResume = ref(false)
+
+// AI分析：检测到的信息
+const detectedInfo = computed(() => {
+  const info = []
+  const text = rawResumeInput.value
+  if (text.match(/[1-9]\d{10}/)) info.push('📱 手机号')
+  if (text.match(/@/)) info.push('📧 邮箱')
+  if (text.match(/大学|学院|学校/)) info.push('🎓 教育经历')
+  if (text.match(/项目|开发|设计|负责|参与/)) info.push('💼 项目经历')
+  if (text.match(/熟悉|掌握|精通|了解/)) info.push('⚡ 技能特长')
+  if (text.match(/获奖|荣誉|一等奖|奖学金/)) info.push('🏆 获奖经历')
+  return info.slice(0, 5)
+})
+
+// AI分析：建议补充的信息
+const suggestions = computed(() => {
+  const sug = []
+  const text = rawResumeInput.value
+  if (!text.match(/大学|学院|学校/)) sug.push('教育背景')
+  if (!text.match(/项目|工作|实习|经历/)) sug.push('项目/工作经历')
+  if (!text.match(/熟悉|掌握|精通|了解/)) sug.push('技能特长')
+  if (!text.match(/获奖|荣誉|一等奖|奖学金/)) sug.push('获奖/证书')
+  if (!text.match(/电话|手机|邮箱|@/)) sug.push('联系方式')
+  return sug.slice(0, 4)
+})
+
+// 使用示例
+const useExample = () => {
+  rawResumeInput.value = `我叫张三，电话 13800000000，邮箱 zhangsan@email.com。2024年毕业于南京工业大学计算机科学与技术专业，GPA 3.8/4.0。
+
+【项目经历】
+校园外卖平台项目 | 2023.09 - 2024.02
+- 使用 Vue3 + Vite + Pinia 构建前端，实现商家展示、购物车、订单管理等功能
+- 基于 Axios 封装请求，实现 JWT 身份验证和路由守卫
+- 项目获得院级优秀项目，服务校内用户 2000+
+
+【技能特长】
+- 编程语言：JavaScript、TypeScript、Python
+- 框架工具：Vue3、React、Node.js、Git
+- 语言能力：CET-6 (550分)
+
+【获奖情况】
+- 校一等奖学金 (2022-2023)
+- 全国计算机设计大赛省二等奖
+- 校优秀学生干部`
+}
+
+// 清空输入
+const clearInput = () => {
+  rawResumeInput.value = ''
+}
+
+// 添加模板片段
+const addTemplate = (type) => {
+  const templates = {
+    education: '\n\n【教育经历】\n• 学校名称 | 专业 | 学历 | 2020.09 - 2024.06\n• 主修课程：\n• GPA：3.8/4.0\n',
+    work: '\n\n【工作经历】\n• 公司名称 | 职位 | 2023.07 - 至今\n• 工作内容：\n• 主要成果：\n',
+    project: '\n\n【项目经历】\n• 项目名称 | 技术栈 | 2023.09 - 2024.02\n• 项目描述：\n• 我的职责：\n• 项目成果：\n',
+    skill: '\n\n【专业技能】\n• 编程语言：JavaScript、Python、Java\n• 框架工具：Vue3、React、Node.js\n• 语言能力：英语 CET-6\n',
+    award: '\n\n【获奖情况】\n• 奖项名称 | 级别 | 时间\n• 奖项名称 | 级别 | 时间\n'
+  }
+  rawResumeInput.value += templates[type] || ''
+}
 
 const handleGenerateResume = () => {
   if (!rawResumeInput.value.trim()) {
@@ -1023,7 +1149,7 @@ const handleGenerateResume = () => {
   }, 1500)
 }
 
-// ================= 🌟 全局搜索逻辑 =================
+// ================= 全局搜索逻辑 =================
 const hotSearchList = ref([
   { keyword: '2026考研大纲', count: 128 },
   { keyword: '互联网+大赛', count: 96 },
@@ -1093,7 +1219,6 @@ const performSearch = async (keyword) => {
 onUnmounted(() => {
   if (blurTimer) clearTimeout(blurTimer)
   if (slideInterval) clearInterval(slideInterval)
-  // 👉 离开页面时断开连接，节省资源
   if (ws) {
     ws.close()
   }
@@ -1129,13 +1254,12 @@ const goToLink = (link) => {
 // ================= 学业深造矩阵 =================
 const targetSchoolKeyword = ref('')
 const schoolDataType = ref('kaoyan') 
+const selectedSchoolMajor = ref('全部')
 
-
-// ================= 新增：实时数据 WebSocket 逻辑 =================
+// 实时数据 WebSocket 逻辑
 let ws = null;
 
 const initWebSocket = () => {
-  // 为了不和聊天室冲突，给看板一个专属的伪用户ID标识
   const wsUrl = `ws://localhost:8080/chat/dashboard_viewer_${new Date().getTime()}`; 
   ws = new WebSocket(wsUrl);
 
@@ -1144,11 +1268,9 @@ const initWebSocket = () => {
   ws.onmessage = (event) => {
     try {
       const newData = JSON.parse(event.data);
-      console.log("收到最新抓取的数据：", newData);
-      // 直接覆盖现有的考研数据，Vue 会自动触发页面动画和更新
       hotKaoyanData.value = newData;
     } catch (e) {
-      // 忽略非 JSON 格式的消息（比如普通的聊天文本）
+      // ignore
     }
   };
 
@@ -1168,79 +1290,23 @@ const hotKaoyanData = ref([
 ])
 
 const hotBaoyanData = ref([
-  { 
-    name: '清华大学', 
-    tags: ['985', '双一流', '理工类'], 
-    major: '计算机科学与技术', // ✨ 补充了计科
-    timeline: '夏令营:6月上旬 | 预推免:8月底', 
-    rankReq: '专业排名前3%', 
-    englishReq: 'CET6 520+',
-    officialUrl: 'https://yz.tsinghua.edu.cn/' 
-  },
-  { 
-    name: '北京航空航天大学', 
-    tags: ['985', '双一流', '理工类'], 
-    major: '计算机科学与技术', // ✨ 补充了计科
-    timeline: '夏令营:6月中旬 | 预推免:9月初', 
-    rankReq: '专业排名前5%', 
-    englishReq: 'CET6 480+',
-    officialUrl: 'http://yzb.buaa.edu.cn/' 
-  },
-  { 
-    name: '浙江大学', 
-    tags: ['985', '双一流', '综合类'], 
-    major: '人工智能', 
-    timeline: '夏令营:6月中旬 | 预推免:8月下旬', 
-    rankReq: '专业排名前5%', 
-    englishReq: 'CET6 500+',
-    officialUrl: 'http://grs.zju.edu.cn/yjszs/' 
-  },
-  { 
-    name: '上海交通大学', 
-    tags: ['985', '双一流', '理工类'], 
-    major: '软件工程', 
-    timeline: '夏令营:7月上旬 | 预推免:9月上旬', 
-    rankReq: '专业排名前10%', 
-    englishReq: 'CET6 460+',
-    officialUrl: 'https://yzb.sjtu.edu.cn/' 
-  },
-  { 
-    name: '南京大学', 
-    tags: ['985', '双一流', '综合类'], 
-    major: '人工智能', 
-    timeline: '夏令营:6月底 | 预推免:9月中旬', 
-    rankReq: '专业排名前10%', 
-    englishReq: 'CET6 460+',
-    officialUrl: 'https://gsec.nju.edu.cn/' 
-  },
-  { 
-    name: '同济大学', 
-    tags: ['985', '双一流', '理工类'], 
-    major: '电子信息', 
-    timeline: '夏令营:7月中旬 | 预推免:9月初', 
-    rankReq: '专业排名前8%', 
-    englishReq: 'CET6 425+',
-    officialUrl: 'https://yz.tongji.edu.cn/' 
-  }
+  { name: '清华大学', tags: ['985', '双一流', '理工类'], major: '计算机科学与技术', timeline: '夏令营:6月上旬 | 预推免:8月底', rankReq: '专业排名前3%', englishReq: 'CET6 520+', officialUrl: 'https://yz.tsinghua.edu.cn/' },
+  { name: '北京航空航天大学', tags: ['985', '双一流', '理工类'], major: '计算机科学与技术', timeline: '夏令营:6月中旬 | 预推免:9月初', rankReq: '专业排名前5%', englishReq: 'CET6 480+', officialUrl: 'http://yzb.buaa.edu.cn/' },
+  { name: '浙江大学', tags: ['985', '双一流', '综合类'], major: '人工智能', timeline: '夏令营:6月中旬 | 预推免:8月下旬', rankReq: '专业排名前5%', englishReq: 'CET6 500+', officialUrl: 'http://grs.zju.edu.cn/yjszs/' },
+  { name: '上海交通大学', tags: ['985', '双一流', '理工类'], major: '软件工程', timeline: '夏令营:7月上旬 | 预推免:9月上旬', rankReq: '专业排名前10%', englishReq: 'CET6 460+', officialUrl: 'https://yzb.sjtu.edu.cn/' },
+  { name: '南京大学', tags: ['985', '双一流', '综合类'], major: '人工智能', timeline: '夏令营:6月底 | 预推免:9月中旬', rankReq: '专业排名前10%', englishReq: 'CET6 460+', officialUrl: 'https://gsec.nju.edu.cn/' },
+  { name: '同济大学', tags: ['985', '双一流', '理工类'], major: '电子信息', timeline: '夏令营:7月中旬 | 预推免:9月初', rankReq: '专业排名前8%', englishReq: 'CET6 425+', officialUrl: 'https://yz.tongji.edu.cn/' }
 ])
 
-// 新增响应式变量，默认选中全部
-const selectedSchoolMajor = ref('全部')
-
 const currentSchoolData = computed(() => {
-  // 拿到大盘传过来的全部 500 条数据
   let data = schoolDataType.value === 'kaoyan' ? hotKaoyanData.value : hotBaoyanData.value;
-  
   const keyword = targetSchoolKeyword.value.trim();
-  // 换用新的变量名
   const major = selectedSchoolMajor.value;
 
-  // 🔍 过滤第一层：按专业筛选
   if (major !== '全部') {
     data = data.filter(s => s.major === major);
   }
 
-  // 🔍 过滤第二层：按学校名称搜索，或默认展示前4个热门
   if (keyword) {
     return data.filter(s => s.name.includes(keyword));
   } else {
@@ -1266,8 +1332,8 @@ const viewSchoolDetail = (school) => {
   }
 }
 
-
 // ================= 下方的各种常驻庞大假数据 =================
+// (由于代码过长，此处为您保留了原有的常量数据结构，以保证其完整性)
 const jobCategories = ref([{name:'互联网/AI',icon:'💻',subCategories:[{name:'后端开发',jobs:[{name:'Java',count:245,hot:true},{name:'Python',count:189,hot:true},{name:'C++',count:156},{name:'Go',count:98},{name:'Node.js',count:76},{name:'.NET',count:45},{name:'C#',count:67},{name:'PHP',count:89},{name:'Golang',count:54},{name:'全栈工程师',count:123,hot:true},{name:'架构师',count:67,hot:true},{name:'后端开发',count:112}]},{name:'前端开发',jobs:[{name:'Vue.js',count:203,hot:true},{name:'React',count:187,hot:true},{name:'JavaScript',count:165},{name:'TypeScript',count:112},{name:'HTML/CSS',count:98},{name:'小程序开发',count:67},{name:'移动端开发',count:78},{name:'鸿蒙开发',count:34,hot:true},{name:'前端架构师',count:56},{name:'跨端开发',count:43},{name:'WebGL',count:23}]},{name:'测试',jobs:[{name:'软件测试',count:134},{name:'自动化测试',count:98},{name:'性能测试',count:56},{name:'测试开发',count:67},{name:'功能测试',count:45},{name:'渗透测试',count:34,hot:true},{name:'游戏测试',count:23},{name:'硬件测试',count:32}]},{name:'运维',jobs:[{name:'运维工程师',count:112},{name:'网络安全',count:78},{name:'DBA',count:45},{name:'系统工程师',count:67},{name:'网络工程师',count:56},{name:'运维开发',count:34},{name:'云计算',count:89,hot:true},{name:'SRE',count:43},{name:'IDC运维',count:28}]},{name:'算法',jobs:[{name:'推荐算法',count:67,hot:true},{name:'大模型算法',count:54,hot:true},{name:'图像算法',count:43},{name:'自然语言处理',count:38,hot:true},{name:'搜索算法',count:29},{name:'语音算法',count:23},{name:'数据挖掘',count:45},{name:'机器学习',count:78,hot:true},{name:'深度学习',count:56,hot:true}]},{name:'产品',jobs:[{name:'产品经理',count:156,hot:true},{name:'产品专员',count:98},{name:'产品总监',count:34},{name:'电商产品',count:45},{name:'AI产品',count:67,hot:true},{name:'B端产品',count:54},{name:'数据产品',count:43},{name:'策略产品',count:32}]},{name:'数据分析',jobs:[{name:'数据分析师',count:134,hot:true},{name:'数据开发',count:78},{name:'数据仓库',count:56},{name:'数据产品',count:34},{name:'数据科学家',count:23},{name:'大数据开发',count:45,hot:true},{name:'ETL工程师',count:32}]},{name:'移动开发',jobs:[{name:'Android',count:89},{name:'iOS',count:76},{name:'Flutter',count:45,hot:true},{name:'React Native',count:38},{name:'鸿蒙',count:29,hot:true}]},{name:'人工智能',jobs:[{name:'计算机视觉',count:67,hot:true},{name:'语音识别',count:34},{name:'NLP',count:56,hot:true},{name:'强化学习',count:23},{name:'AIGC',count:45,hot:true}]},{name:'高端技术',jobs:[{name:'技术总监',count:34},{name:'架构师',count:45,hot:true},{name:'技术专家',count:38},{name:'首席科学家',count:12},{name:'CTO',count:8}]}]},{name:'电子/通信/硬件',icon:'📡',subCategories:[{name:'硬件开发',jobs:[{name:'嵌入式',count:89},{name:'FPGA',count:45},{name:'硬件工程师',count:67},{name:'PCB设计',count:34},{name:'单片机',count:56},{name:'ARM开发',count:43},{name:'电路设计',count:38},{name:'射频工程师',count:29}]},{name:'通信',jobs:[{name:'5G',count:56},{name:'网络优化',count:34},{name:'通信工程师',count:45},{name:'射频工程师',count:23},{name:'光通信',count:18},{name:'基站工程师',count:27}]},{name:'半导体',jobs:[{name:'芯片设计',count:34,hot:true},{name:'集成电路',count:45},{name:'版图设计',count:23},{name:'半导体工艺',count:28},{name:'封测',count:15}]},{name:'自动化',jobs:[{name:'自动化工程师',count:67},{name:'PLC',count:43},{name:'工业控制',count:34},{name:'机器人',count:28,hot:true}]},{name:'仪器仪表',jobs:[{name:'测控',count:34},{name:'仪器开发',count:23},{name:'传感器',count:28}]}]},{name:'金融',icon:'💰',subCategories:[{name:'量化',jobs:[{name:'量化研究员',count:45},{name:'量化开发',count:34},{name:'量化交易',count:23},{name:'高频交易',count:18,hot:true}]},{name:'风控',jobs:[{name:'风控模型',count:56},{name:'反欺诈',count:34},{name:'信用分析',count:45},{name:'风险策略',count:28}]},{name:'金融科技',jobs:[{name:'支付系统',count:34},{name:'区块链',count:23,hot:true},{name:'数字货币',count:12},{name:'FinTech',count:28,hot:true}]},{name:'投资银行',jobs:[{name:'投行分析师',count:34},{name:'并购',count:18},{name:'承销',count:15}]},{name:'证券/基金',jobs:[{name:'行业研究',count:45},{name:'投资顾问',count:28},{name:'基金经理',count:16},{name:'交易员',count:32}]},{name:'保险',jobs:[{name:'精算师',count:12},{name:'保险核保',count:23},{name:'保险理赔',count:28}]}]},{name:'产品/运营/设计',icon:'🎨',subCategories:[{name:'产品',jobs:[{name:'产品经理',count:156,hot:true},{name:'产品专员',count:98},{name:'产品总监',count:34},{name:'电商产品',count:45},{name:'AI产品',count:67,hot:true},{name:'B端产品',count:54},{name:'数据产品',count:43}]},{name:'运营',jobs:[{name:'用户运营',count:87},{name:'内容运营',count:76},{name:'活动运营',count:65},{name:'产品运营',count:78},{name:'新媒体运营',count:92,hot:true},{name:'电商运营',count:67},{name:'社群运营',count:54},{name:'私域运营',count:43}]},{name:'设计',jobs:[{name:'UI设计',count:98},{name:'UX设计',count:67},{name:'平面设计',count:76},{name:'交互设计',count:54},{name:'视觉设计',count:65},{name:'品牌设计',count:43},{name:'包装设计',count:32}]},{name:'UX/UE',jobs:[{name:'用户体验',count:45},{name:'用户研究',count:34},{name:'人机交互',count:23}]},{name:'游戏设计',jobs:[{name:'游戏策划',count:45},{name:'游戏UI',count:32},{name:'游戏原画',count:28},{name:'游戏场景',count:21}]},{name:'视觉/交互',jobs:[{name:'视觉设计',count:56},{name:'交互设计',count:43},{name:'动效设计',count:23}]}]},{name:'市场/销售/商务',icon:'📈',subCategories:[{name:'市场营销',jobs:[{name:'市场营销',count:87},{name:'品牌策划',count:56},{name:'公关',count:34},{name:'市场推广',count:65},{name:'SEO/SEM',count:43},{name:'网络营销',count:54}]},{name:'销售',jobs:[{name:'销售代表',count:156},{name:'销售经理',count:98},{name:'大客户销售',count:76,hot:true},{name:'电话销售',count:87},{name:'渠道销售',count:54},{name:'销售总监',count:23},{name:'区域销售',count:45}]},{name:'商务',jobs:[{name:'商务拓展',count:67},{name:'商务经理',count:45},{name:'渠道合作',count:34},{name:'BD',count:56,hot:true}]},{name:'广告',jobs:[{name:'广告投放',count:43},{name:'广告优化',count:32},{name:'媒介',count:23},{name:'广告策划',count:34}]},{name:'会展/活动',jobs:[{name:'活动策划',count:34},{name:'会展执行',count:23},{name:'会议活动',count:18}]}]},{name:'人事/财务/行政',icon:'📋',subCategories:[{name:'人力资源',jobs:[{name:'HRBP',count:56,hot:true},{name:'招聘',count:78},{name:'培训',count:34},{name:'薪酬绩效',count:43},{name:'员工关系',count:32},{name:'HRD',count:15},{name:'组织发展',count:12}]},{name:'财务',jobs:[{name:'会计',count:89},{name:'出纳',count:54},{name:'财务分析',count:43},{name:'审计',count:38},{name:'税务',count:27},{name:'CFO',count:5},{name:'成本会计',count:34}]},{name:'行政',jobs:[{name:'行政专员',count:67},{name:'行政经理',count:34},{name:'前台',count:28},{name:'后勤',count:23},{name:'行政主管',count:32}]},{name:'法务',jobs:[{name:'法务专员',count:34},{name:'法务经理',count:23},{name:'合规',count:18},{name:'知识产权',count:12}]}]},{name:'生产制造/供应链',icon:'🏭',subCategories:[{name:'生产管理',jobs:[{name:'生产主管',count:45},{name:'生产经理',count:34},{name:'厂长',count:12},{name:'生产计划',count:28},{name:'车间主任',count:23}]},{name:'质量管理',jobs:[{name:'QC',count:56},{name:'QA',count:43},{name:'质量工程师',count:38},{name:'体系工程师',count:23},{name:'SQE',count:19}]},{name:'供应链',jobs:[{name:'采购',count:67},{name:'物流',count:54},{name:'仓储',count:43},{name:'供应链经理',count:23},{name:'报关员',count:15}]},{name:'工艺/制程',jobs:[{name:'工艺工程师',count:45},{name:'IE工程师',count:32},{name:'PE工程师',count:28},{name:'NPI工程师',count:19}]},{name:'设备维护',jobs:[{name:'设备工程师',count:34},{name:'维修工程师',count:23},{name:'自动化维护',count:18}]}]},{name:'零售/生活服务',icon:'🛒',subCategories:[{name:'零售',jobs:[{name:'店员/营业员',count:156},{name:'店长',count:67},{name:'导购',count:98},{name:'收银',count:76},{name:'商品管理',count:34},{name:'品类经理',count:28}]},{name:'餐饮',jobs:[{name:'服务员',count:123},{name:'厨师',count:67},{name:'店长',count:45},{name:'餐饮管理',count:34},{name:'奶茶/水吧',count:56},{name:'西点师',count:23}]},{name:'酒店/旅游',jobs:[{name:'前台',count:67},{name:'客房服务',count:45},{name:'酒店管理',count:34},{name:'导游',count:23},{name:'旅行顾问',count:19}]},{name:'美容/美发',jobs:[{name:'美容师',count:56},{name:'美发师',count:43},{name:'美甲师',count:32},{name:'纹绣师',count:18}]},{name:'运动/健身',jobs:[{name:'健身教练',count:34},{name:'瑜伽老师',count:23},{name:'游泳教练',count:18}]}]},{name:'教育培训',icon:'📚',subCategories:[{name:'教师',jobs:[{name:'语数外教师',count:89},{name:'艺术教师',count:67},{name:'体育教师',count:34},{name:'科学教师',count:45},{name:'音乐教师',count:28},{name:'美术教师',count:32}]},{name:'教务管理',jobs:[{name:'教务专员',count:56},{name:'教务主管',count:34},{name:'班主任',count:67}]},{name:'课程顾问',jobs:[{name:'课程销售',count:78},{name:'课程顾问',count:89,hot:true}]},{name:'培训',jobs:[{name:'培训讲师',count:45},{name:'企业培训',count:34},{name:'技能培训',count:28}]},{name:'留学/语言',jobs:[{name:'留学顾问',count:34},{name:'语言老师',count:45},{name:'雅思/托福',count:28,hot:true}]}]},{name:'房地产/建筑',icon:'🏗️',subCategories:[{name:'工程管理',jobs:[{name:'项目经理',count:45},{name:'施工员',count:67},{name:'资料员',count:34},{name:'材料员',count:23},{name:'安全员',count:38},{name:'质量员',count:28},{name:'监理工程师',count:32},{name:'工程经理',count:27}]},{name:'工程造价',jobs:[{name:'造价工程师',count:56},{name:'预算员',count:43},{name:'成本控制',count:32},{name:'招投标',count:27}]},{name:'装饰装修',jobs:[{name:'室内设计',count:45},{name:'软装设计',count:32},{name:'工长',count:28},{name:'装修监理',count:23},{name:'橱柜设计',count:18}]},{name:'物业管理',jobs:[{name:'物业经理',count:34},{name:'物业管家',count:45},{name:'维修工',count:38},{name:'保安',count:56},{name:'保洁',count:43}]},{name:'建筑设计',jobs:[{name:'建筑设计师',count:34},{name:'结构设计',count:28},{name:'暖通设计',count:19},{name:'电气设计',count:21},{name:'给排水设计',count:16}]},{name:'房地产规划开发',jobs:[{name:'房地产策划',count:23},{name:'土地拓展',count:15},{name:'开发报建',count:18},{name:'投资分析',count:21}]}]},{name:'物流/仓储/司机',icon:'🚚',subCategories:[{name:'物流',jobs:[{name:'物流专员',count:67},{name:'物流经理',count:34},{name:'调度',count:43},{name:'快递员',count:78},{name:'配送员',count:56}]},{name:'仓储',jobs:[{name:'仓管员',count:78},{name:'仓储主管',count:34},{name:'理货员',count:56},{name:'拣货员',count:43},{name:'仓库管理员',count:45}]},{name:'司机',jobs:[{name:'司机',count:89},{name:'货运司机',count:67},{name:'网约车司机',count:78},{name:'班车司机',count:34},{name:'叉车司机',count:45}]}]},{name:'医疗/健康',icon:'⚕️',subCategories:[{name:'医生',jobs:[{name:'内科医生',count:34},{name:'外科医生',count:28},{name:'全科医生',count:23},{name:'儿科医生',count:19},{name:'牙医',count:16}]},{name:'护士',jobs:[{name:'护士',count:56},{name:'护师',count:23},{name:'护理',count:45},{name:'ICU护士',count:18}]},{name:'医药',jobs:[{name:'医药代表',count:67},{name:'药学',count:34},{name:'药品注册',count:12},{name:'临床监查员',count:19},{name:'药理研究员',count:15}]},{name:'医疗器械',jobs:[{name:'医疗器械销售',count:45},{name:'医疗器械维修',count:23},{name:'临床工程师',count:18}]},{name:'健康管理',jobs:[{name:'健康顾问',count:23},{name:'营养师',count:18},{name:'康复治疗师',count:21}]}]},{name:'汽车',icon:'🚗',subCategories:[{name:'汽车研发',jobs:[{name:'汽车设计',count:34},{name:'底盘工程师',count:23},{name:'动力工程师',count:19},{name:'车身工程师',count:21},{name:'三电工程师',count:28,hot:true}]},{name:'汽车销售',jobs:[{name:'汽车销售',count:67},{name:'展厅经理',count:23},{name:'二手车评估',count:18}]},{name:'汽车维修',jobs:[{name:'机修工',count:45},{name:'钣金工',count:32},{name:'喷漆工',count:28},{name:'汽车电工',count:23}]},{name:'新能源汽车',jobs:[{name:'电池工程师',count:34,hot:true},{name:'电控工程师',count:28,hot:true},{name:'充电桩运维',count:19}]}]},{name:'采购/贸易',icon:'📦',subCategories:[{name:'采购',jobs:[{name:'采购专员',count:56},{name:'采购经理',count:34},{name:'供应商开发',count:28},{name:'战略采购',count:19}]},{name:'贸易',jobs:[{name:'外贸专员',count:45},{name:'外贸经理',count:28},{name:'报关员',count:19},{name:'单证员',count:23}]},{name:'跨境电商',jobs:[{name:'亚马逊运营',count:38,hot:true},{name:'速卖通运营',count:27},{name:'TikTok运营',count:23,hot:true}]}]},{name:'直播/影视/传媒',icon:'📺',subCategories:[{name:'直播',jobs:[{name:'主播',count:67,hot:true},{name:'带货主播',count:78,hot:true},{name:'直播运营',count:45},{name:'场控',count:23}]},{name:'影视',jobs:[{name:'编导',count:34},{name:'摄像',count:32},{name:'剪辑',count:45},{name:'后期制作',count:28}]},{name:'传媒',jobs:[{name:'新媒体运营',count:56},{name:'内容运营',count:43},{name:'文案策划',count:38},{name:'媒介专员',count:23}]},{name:'短视频',jobs:[{name:'短视频编导',count:34},{name:'短视频剪辑',count:45},{name:'抖音运营',count:56,hot:true}]}]},{name:'酒店/旅游',icon:'🏨',subCategories:[{name:'酒店',jobs:[{name:'前台接待',count:45},{name:'客房服务',count:38},{name:'酒店管理',count:28},{name:'礼宾',count:19}]},{name:'旅游',jobs:[{name:'导游',count:34},{name:'旅行顾问',count:23},{name:'计调',count:19},{name:'旅游策划',count:16}]},{name:'会展',jobs:[{name:'会展策划',count:23},{name:'会议服务',count:19},{name:'活动执行',count:21}]}]},{name:'设计/创意',icon:'🎯',subCategories:[{name:'平面设计',jobs:[{name:'平面设计',count:67},{name:'品牌设计',count:34},{name:'包装设计',count:28},{name:'画册设计',count:23}]},{name:'UI/UX',jobs:[{name:'UI设计',count:56},{name:'UX设计',count:34},{name:'交互设计',count:28},{name:'产品设计',count:32}]},{name:'工业设计',jobs:[{name:'产品造型',count:23},{name:'结构设计',count:28},{name:'CMF设计',count:16}]},{name:'服装设计',jobs:[{name:'服装设计',count:34},{name:'面料设计',count:15},{name:'配饰设计',count:12}]}]},{name:'能源/化工/环保',icon:'⚡',subCategories:[{name:'能源',jobs:[{name:'新能源',count:45,hot:true},{name:'光伏',count:34},{name:'风电',count:28},{name:'储能',count:23,hot:true}]},{name:'化工',jobs:[{name:'化工工艺',count:34},{name:'化学分析',count:28},{name:'研发工程师',count:23}]},{name:'环保',jobs:[{name:'环境工程',count:34},{name:'环评',count:19},{name:'水处理',count:23}]}]},{name:'咨询/法律/翻译',icon:'⚖️',subCategories:[{name:'咨询',jobs:[{name:'咨询顾问',count:45},{name:'战略咨询',count:28},{name:'管理咨询',count:34},{name:'人力咨询',count:19}]},{name:'法律',jobs:[{name:'律师',count:34},{name:'法务',count:45},{name:'合规',count:23},{name:'知识产权',count:16}]},{name:'翻译',jobs:[{name:'英语翻译',count:34},{name:'日语翻译',count:19},{name:'韩语翻译',count:15},{name:'同声传译',count:8,hot:true}]}]},{name:'高级管理',icon:'👔',subCategories:[{name:'高层管理',jobs:[{name:'CEO',count:5},{name:'COO',count:4},{name:'CFO',count:6},{name:'CTO',count:8},{name:'总经理',count:12}]},{name:'部门管理',jobs:[{name:'部门总监',count:23},{name:'高级经理',count:34},{name:'区域经理',count:28}]},{name:'项目管理',jobs:[{name:'项目经理',count:56},{name:'项目总监',count:23},{name:'PMO',count:15}]}]}])
 
 const jobCards = ref([
@@ -1651,12 +1717,6 @@ const filteredContestArticles = computed(() => {
   });
 })
 
-const getCoverImage = (urls) => {
-  if (!urls) return ''
-  const urlArray = urls.split(',')
-  return urlArray.length > 0 ? urlArray[0] : ''
-}
-
 const getSnippet = (content) => {
   if (!content) return '暂无内容简介'
   return content.replace(/<[^>]+>/g, '').substring(0, 60) + '...'
@@ -1757,7 +1817,6 @@ const goToContestDetail = (contest) => {
   console.log('查看赛事:', contest)
 }
 
-// ================= 竞赛指导数据自动加载 =================
 watch(activeMenu, (newVal) => {
   if (newVal === 'contest') {
     fetchContestArticles()
@@ -1769,6 +1828,7 @@ watch(contestActiveTab, (newVal) => {
     fetchContestArticles()
   }
 })
+
 </script>
 
 <style scoped>
@@ -1844,7 +1904,7 @@ watch(contestActiveTab, (newVal) => {
 .hot-search-footer { padding: 12px 20px; border-top: 1px solid #f1f5f9; text-align: center; color: #4aa3d1; font-size: 13px; cursor: pointer; transition: background 0.2s; }
 .hot-search-footer:hover { background: #f8fafc; }
 
-/* 🌟 新增：全局搜索结果样式 🌟 */
+/* 🌟 全局搜索结果样式 */
 .search-layout { display: flex; flex-direction: column; gap: 20px; }
 .search-keyword-display { font-size: 14px; color: #64748b; margin: 0; }
 .search-keyword-display .highlight { color: #ef4444; font-weight: bold; }
@@ -1888,7 +1948,7 @@ watch(contestActiveTab, (newVal) => {
 .card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
 .card-cover { height: 140px; position: relative; display: flex; justify-content: flex-end; align-items: flex-end; padding: 10px; }
 
-/* 🌟 视频播放按钮魔法样式 🌟 */
+/* 视频播放按钮样式 */
 .play-overlay {
   position: absolute;
   top: 50%;
@@ -1914,7 +1974,7 @@ watch(contestActiveTab, (newVal) => {
 .card-title { margin: 0 0 8px 0; font-size: 15px; color: #1e293b; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 42px; }
 .card-desc { margin: 0; font-size: 13px; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* 产教融合招聘样式 (多级标签) */
+/* 产教融合招聘样式 */
 .recruitment-section { background: white; border-radius: 24px; padding: 24px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); }
 .section-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;}
 .category-tabs { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
@@ -1955,44 +2015,11 @@ watch(contestActiveTab, (newVal) => {
 .contest-section { background: white; border-radius: 24px; padding: 24px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); }
 .contest-header { margin-bottom: 20px; }
 .contest-header h3 { font-size: 20px; font-weight: 600; color: #1e293b; margin: 0 0 4px 0; }
-
-.contest-tabs {
-  display: flex;
-  gap: 24px;
-  margin-top: 15px;
-  border-bottom: 2px solid #f1f5f9;
-}
-.contest-tab {
-  padding: 10px 16px;
-  font-size: 16px;
-  color: #64748b;
-  cursor: pointer;
-  position: relative;
-  transition: all 0.3s;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.contest-tab:hover {
-  color: #4aa3d1;
-  background: #f8fafc;
-  border-radius: 8px 8px 0 0;
-}
-.contest-tab.active {
-  color: #4aa3d1;
-  font-weight: 600;
-}
-.contest-tab.active::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  background: #4aa3d1;
-  border-radius: 3px 3px 0 0;
-}
+.contest-tabs { display: flex; gap: 24px; margin-top: 15px; border-bottom: 2px solid #f1f5f9; }
+.contest-tab { padding: 10px 16px; font-size: 16px; color: #64748b; cursor: pointer; position: relative; transition: all 0.3s; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+.contest-tab:hover { color: #4aa3d1; background: #f8fafc; border-radius: 8px 8px 0 0; }
+.contest-tab.active { color: #4aa3d1; font-weight: 600; }
+.contest-tab.active::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 100%; height: 3px; background: #4aa3d1; border-radius: 3px 3px 0 0; }
 
 .contest-search { margin-bottom: 24px; margin-top: 15px; }
 .search-box { display: flex; align-items: center; background: #f8fafc; border-radius: 40px; padding: 4px 4px 4px 16px; border: 1px solid #e2e8f0; }
@@ -2042,725 +2069,640 @@ watch(contestActiveTab, (newVal) => {
 .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
 
 /* 竞赛指导文章列表样式 */
-.article-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
-  margin-top: 10px;
-}
-.article-card {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.3s;
-  display: flex;
-  flex-direction: column;
-}
-.article-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0,0,0,0.08);
-  border-color: #cbd5e1;
-}
-.article-cover {
-  height: 150px;
-  background: #f8fafc;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-.article-cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.default-cover {
-  background: linear-gradient(135deg, #e0f2fe, #bae6fd);
-  font-size: 40px;
-}
-.card-corner-badge {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  z-index: 2;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-.article-info {
-  padding: 16px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-.article-topic {
-  font-size: 12px;
-  color: #0369a1;
-  background: #e0f2fe;
-  padding: 2px 8px;
-  border-radius: 4px;
-  align-self: flex-start;
-  margin-bottom: 8px;
-}
-.article-title {
-  font-size: 16px;
-  color: #1e293b;
-  margin: 0 0 8px 0;
-  line-height: 1.4;
-  font-weight: 600;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.article-desc {
-  font-size: 13px;
-  color: #64748b;
-  margin: 0 0 12px 0;
-  line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  flex: 1;
-}
-.article-footer {
-  font-size: 12px;
-  color: #94a3b8;
-  border-top: 1px solid #f1f5f9;
-  padding-top: 12px;
-  display: flex;
-  justify-content: flex-end;
-}
+.article-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-top: 10px; }
+.article-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; cursor: pointer; transition: all 0.3s; display: flex; flex-direction: column; }
+.article-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,0.08); border-color: #cbd5e1; }
+.article-cover { height: 150px; background: #f8fafc; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative; }
+.article-cover img { width: 100%; height: 100%; object-fit: cover; }
+.default-cover { background: linear-gradient(135deg, #e0f2fe, #bae6fd); font-size: 40px; }
+.card-corner-badge { position: absolute; top: 10px; left: 10px; z-index: 2; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+.article-info { padding: 16px; flex: 1; display: flex; flex-direction: column; }
+.article-topic { font-size: 12px; color: #0369a1; background: #e0f2fe; padding: 2px 8px; border-radius: 4px; align-self: flex-start; margin-bottom: 8px; }
+.article-title { font-size: 16px; color: #1e293b; margin: 0 0 8px 0; line-height: 1.4; font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.article-desc { font-size: 13px; color: #64748b; margin: 0 0 12px 0; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; flex: 1; }
+.article-footer { font-size: 12px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 12px; display: flex; justify-content: flex-end; }
 
-/* ================= 🌟 内嵌文章详情的专属样式 ================= */
-.article-layout {
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.03);
-  overflow: hidden;
-  min-height: 500px;
-}
-.article-header {
-  height: 60px;
-  background: #f8fafc;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 24px;
-  border-bottom: 1px solid #e2e8f0;
-}
-.back-btn {
-  font-size: 14px;
-  color: #64748b;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: color 0.3s;
-  font-weight: 500;
-}
-.back-btn:hover {
-  color: #4aa3d1;
-}
-.header-actions {
-  display: flex;
-  gap: 12px;
-}
-.action-btn {
-  background: white;
-  border: 1px solid #e2e8f0;
-  padding: 6px 14px;
-  border-radius: 20px;
-  color: #475569;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-.action-btn:hover {
-  background: #f1f5f9;
-  color: #1e293b;
-  border-color: #cbd5e1;
-}
-.article-main {
-  display: flex;
-  padding: 30px;
-  gap: 30px;
-}
-.article-container {
-  flex: 1;
-  min-width: 0; 
-}
-.article-title-area {
-  margin-bottom: 24px;
-  border-bottom: 1px solid #f1f5f9;
-  padding-bottom: 20px;
-}
-.topic-badge {
-  display: inline-block;
-  background: #e0f2fe;
-  color: #0369a1;
-  padding: 4px 12px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
-  margin-bottom: 12px;
-}
-.title {
-  font-size: 26px;
-  color: #1e293b;
-  line-height: 1.4;
-  margin: 0 0 16px 0;
-  font-weight: 700;
-}
-.meta-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #94a3b8;
-  font-size: 13px;
-}
-.dot {
-  font-weight: bold;
-}
-.article-content {
-  font-size: 15px;
-  color: #334155;
-  line-height: 1.8;
-}
-.hero-image {
-  margin-bottom: 24px;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-}
-.hero-image img {
-  width: 100%;
-  max-height: 400px;
-  object-fit: cover;
-  display: block;
-}
-.text-body {
-  white-space: pre-wrap; 
-  text-align: justify;
-  margin-bottom: 30px;
-}
-.image-gallery {
-  background: #f8fafc;
-  padding: 20px;
-  border-radius: 12px;
-  margin-top: 30px;
-  border: 1px solid #f1f5f9;
-}
-.gallery-title {
-  font-size: 15px;
-  color: #1e293b;
-  margin: 0 0 15px 0;
-}
-.gallery-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 12px;
-}
-.gallery-img {
-  width: 100%;
-  height: 120px;
-  object-fit: cover;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: transform 0.3s;
-  border: 1px solid #e2e8f0;
-}
-.gallery-img:hover {
-  transform: scale(1.03);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-.gallery-tip {
-  text-align: center;
-  color: #94a3b8;
-  font-size: 12px;
-  margin: 12px 0 0 0;
-}
-.article-sidebar {
-  width: 280px;
-  flex-shrink: 0;
-}
-.sidebar-box {
-  background: #f8fafc;
-  border-radius: 12px;
-  padding: 20px;
-  border: 1px solid #f1f5f9;
-}
-.box-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #e2e8f0;
-}
-.recommend-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.recommend-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 10px 0;
-  cursor: pointer;
-  border-bottom: 1px dashed #e2e8f0;
-  transition: all 0.2s;
-}
-.recommend-item:hover .rec-title {
-  color: #4aa3d1;
-}
-.rec-dot {
-  width: 6px;
-  height: 6px;
-  background: #cbd5e1;
-  border-radius: 50%;
-  margin-top: 6px;
-}
-.rec-text {
-  flex: 1;
-}
-.rec-title {
-  margin: 0;
-  font-size: 13px;
-  color: #475569;
-  line-height: 1.4;
-}
-.loading-state, .error-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 0;
-  color: #64748b;
-}
-.spinner {
-  width: 36px;
-  height: 36px;
-  border: 3px solid #f1f5f9;
-  border-top-color: #4aa3d1;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 15px;
-}
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-.error-icon {
-  font-size: 50px;
-  margin-bottom: 15px;
-  opacity: 0.5;
-}
-.back-home-btn {
-  margin-top: 15px;
-  background: #4aa3d1;
-  color: white;
-  border: none;
-  padding: 8px 20px;
-  border-radius: 20px;
-  cursor: pointer;
-}
-.image-preview-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.85);
-  z-index: 2000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(5px);
-  cursor: zoom-out;
-}
-.image-preview-overlay img {
-  max-width: 90%;
-  max-height: 90vh;
-  object-fit: contain;
-  border-radius: 8px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-  cursor: default;
-}
-.close-preview {
-  position: absolute;
-  top: 30px;
-  right: 40px;
-  color: white;
-  font-size: 30px;
-  cursor: pointer;
-  opacity: 0.7;
-}
-.close-preview:hover {
-  opacity: 1;
-}
+/* 内嵌文章详情专属样式 */
+.article-layout { background: #fff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); overflow: hidden; min-height: 500px; }
+.article-header { height: 60px; background: #f8fafc; display: flex; justify-content: space-between; align-items: center; padding: 0 24px; border-bottom: 1px solid #e2e8f0; }
+.back-btn { font-size: 14px; color: #64748b; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: color 0.3s; font-weight: 500; }
+.back-btn:hover { color: #4aa3d1; }
+.header-actions { display: flex; gap: 12px; }
+.action-btn { background: white; border: 1px solid #e2e8f0; padding: 6px 14px; border-radius: 20px; color: #475569; font-size: 13px; cursor: pointer; transition: all 0.3s; }
+.action-btn:hover { background: #f1f5f9; color: #1e293b; border-color: #cbd5e1; }
+.article-main { display: flex; padding: 30px; gap: 30px; }
+.article-container { flex: 1; min-width: 0; }
+.article-title-area { margin-bottom: 24px; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px; }
+.topic-badge { display: inline-block; background: #e0f2fe; color: #0369a1; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; margin-bottom: 12px; }
+.title { font-size: 26px; color: #1e293b; line-height: 1.4; margin: 0 0 16px 0; font-weight: 700; }
+.meta-info { display: flex; align-items: center; gap: 10px; color: #94a3b8; font-size: 13px; }
+.dot { font-weight: bold; }
+.article-content { font-size: 15px; color: #334155; line-height: 1.8; }
+.hero-image { margin-bottom: 24px; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+.hero-image img { width: 100%; max-height: 400px; object-fit: cover; display: block; }
+.text-body { white-space: pre-wrap; text-align: justify; margin-bottom: 30px; }
+.image-gallery { background: #f8fafc; padding: 20px; border-radius: 12px; margin-top: 30px; border: 1px solid #f1f5f9; }
+.gallery-title { font-size: 15px; color: #1e293b; margin: 0 0 15px 0; }
+.gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+.gallery-img { width: 100%; height: 120px; object-fit: cover; border-radius: 8px; cursor: pointer; transition: transform 0.3s; border: 1px solid #e2e8f0; }
+.gallery-img:hover { transform: scale(1.03); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+.gallery-tip { text-align: center; color: #94a3b8; font-size: 12px; margin: 12px 0 0 0; }
+.article-sidebar { width: 280px; flex-shrink: 0; }
+.sidebar-box { background: #f8fafc; border-radius: 12px; padding: 20px; border: 1px solid #f1f5f9; }
+.box-title { font-size: 15px; font-weight: 600; color: #1e293b; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #e2e8f0; }
+.recommend-list { list-style: none; padding: 0; margin: 0; }
+.recommend-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; cursor: pointer; border-bottom: 1px dashed #e2e8f0; transition: all 0.2s; }
+.recommend-item:hover .rec-title { color: #4aa3d1; }
+.rec-dot { width: 6px; height: 6px; background: #cbd5e1; border-radius: 50%; margin-top: 6px; }
+.rec-text { flex: 1; }
+.rec-title { margin: 0; font-size: 13px; color: #475569; line-height: 1.4; }
+.loading-state, .error-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 0; color: #64748b; }
+.spinner { width: 36px; height: 36px; border: 3px solid #f1f5f9; border-top-color: #4aa3d1; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.error-icon { font-size: 50px; margin-bottom: 15px; opacity: 0.5; }
+.back-home-btn { margin-top: 15px; background: #4aa3d1; color: white; border: none; padding: 8px 20px; border-radius: 20px; cursor: pointer; }
+.image-preview-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 2000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); cursor: zoom-out; }
+.image-preview-overlay img { max-width: 90%; max-height: 90vh; object-fit: contain; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); cursor: default; }
+.close-preview { position: absolute; top: 30px; right: 40px; color: white; font-size: 30px; cursor: pointer; opacity: 0.7; }
+.close-preview:hover { opacity: 1; }
 
-.community-entry {
-  padding: 20px;
-  border-top: 1px solid #f1f5f9;
-}
+.community-entry { padding: 20px; border-top: 1px solid #f1f5f9; }
+.industry-glow-btn { width: 100%; padding: 14px 0; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 40px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); display: flex; align-items: center; justify-content: center; gap: 8px; position: relative; overflow: hidden; }
+.industry-glow-btn::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent); transition: left 0.6s ease; }
+.industry-glow-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6); }
+.industry-glow-btn:hover::before { left: 100%; }
+.industry-glow-btn:active { transform: translateY(0); }
 
-.industry-glow-btn {
-  width: 100%;
-  padding: 14px 0;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
-  border: none;
-  border-radius: 40px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  position: relative;
-  overflow: hidden;
-}
-
-.industry-glow-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-  transition: left 0.6s ease;
-}
-
-.industry-glow-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
-}
-
-.industry-glow-btn:hover::before {
-  left: 100%;
-}
-
-.industry-glow-btn:active {
-  transform: translateY(0);
-}
-
-.matrix-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.big-data-board {
-  background: white;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
-}
-
-.board-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.title-area h3 {
-  font-size: 22px;
-  color: #1e293b;
-  margin: 0 0 8px 0;
-}
-
-.title-area p {
-  color: #64748b;
-  font-size: 14px;
-  margin: 0;
-}
-
-.school-search-box {
-  display: flex;
-  align-items: center;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 40px;
-  padding: 6px 6px 6px 16px;
-  width: 380px;
-  transition: all 0.3s ease;
-}
-
-.school-search-box:focus-within {
-  border-color: #4aa3d1;
-  box-shadow: 0 0 0 3px rgba(74, 163, 209, 0.1);
-  background: white;
-}
-
-.school-search-box input {
-  flex: 1;
-  border: none;
-  background: transparent;
-  outline: none;
-  font-size: 14px;
-  padding: 8px 0;
-}
-
-.school-search-box .search-btn {
-  background: #4aa3d1;
-  color: white;
-  border: none;
-  padding: 8px 20px;
-  border-radius: 30px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.school-search-box .search-btn:hover {
-  background: #398ebf;
-}
-
-.data-tabs {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
-  border-bottom: 1px solid #e2e8f0;
-  padding-bottom: 10px;
-}
-
-.data-tabs span {
-  font-size: 16px;
-  font-weight: 500;
-  color: #64748b;
-  padding: 8px 16px;
-  cursor: pointer;
-  border-radius: 8px;
-  transition: all 0.2s;
-}
-
-.data-tabs span:hover {
-  background: #f1f5f9;
-}
-
-.data-tabs span.active {
-  color: #4aa3d1;
-  background: #f0f7ff;
-  font-weight: 600;
-}
-
-.table-responsive {
-  overflow-x: auto;
-}
-
-.school-data-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-}
-
-.school-data-table th {
-  padding: 14px 16px;
-  font-size: 14px;
-  color: #475569;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
-  font-weight: 600;
-}
-
-.school-data-table td {
-  padding: 16px;
-  border-bottom: 1px solid #f1f5f9;
-  font-size: 14px;
-  color: #334155;
-  vertical-align: middle;
-}
-
-.school-data-table tbody tr {
-  transition: background 0.2s;
-}
-
-.school-data-table tbody tr:hover {
-  background: #f8fafc;
-}
-
-.school-name {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.s-logo {
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(135deg, #e0f2fe, #bae6fd);
-  color: #0369a1;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  font-weight: bold;
-}
-
-.s-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.s-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1e293b;
-}
-
-.s-tags {
-  font-size: 12px;
-  color: #94a3b8;
-}
-
-.score-trend, .time-node {
-  font-family: 'Courier New', Courier, monospace;
-  font-weight: 600;
-  color: #4aa3d1;
-}
-
-.intensity-badge {
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
+.matrix-layout { display: flex; flex-direction: column; gap: 24px; }
+.big-data-board { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04); }
+.board-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+.title-area h3 { font-size: 22px; color: #1e293b; margin: 0 0 8px 0; }
+.title-area p { color: #64748b; font-size: 14px; margin: 0; }
+.school-search-box { display: flex; align-items: center; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 40px; padding: 6px 6px 6px 16px; width: 380px; transition: all 0.3s ease; }
+.school-search-box:focus-within { border-color: #4aa3d1; box-shadow: 0 0 0 3px rgba(74, 163, 209, 0.1); background: white; }
+.school-search-box input { flex: 1; border: none; background: transparent; outline: none; font-size: 14px; padding: 8px 0; }
+.school-search-box .search-btn { background: #4aa3d1; color: white; border: none; padding: 8px 20px; border-radius: 30px; font-size: 14px; cursor: pointer; transition: 0.2s; }
+.school-search-box .search-btn:hover { background: #398ebf; }
+.data-tabs { display: flex; gap: 12px; margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }
+.data-tabs span { font-size: 16px; font-weight: 500; color: #64748b; padding: 8px 16px; cursor: pointer; border-radius: 8px; transition: all 0.2s; }
+.data-tabs span:hover { background: #f1f5f9; }
+.data-tabs span.active { color: #4aa3d1; background: #f0f7ff; font-weight: 600; }
+.table-responsive { overflow-x: auto; }
+.school-data-table { width: 100%; border-collapse: collapse; text-align: left; }
+.school-data-table th { padding: 14px 16px; font-size: 14px; color: #475569; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-weight: 600; }
+.school-data-table td { padding: 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155; vertical-align: middle; }
+.school-data-table tbody tr { transition: background 0.2s; }
+.school-data-table tbody tr:hover { background: #f8fafc; }
+.school-name { display: flex; align-items: center; gap: 12px; }
+.s-logo { width: 40px; height: 40px; background: linear-gradient(135deg, #e0f2fe, #bae6fd); color: #0369a1; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; }
+.s-info { display: flex; flex-direction: column; gap: 4px; }
+.s-title { font-size: 15px; font-weight: 600; color: #1e293b; }
+.s-tags { font-size: 12px; color: #94a3b8; }
+.score-trend, .time-node { font-family: 'Courier New', Courier, monospace; font-weight: 600; color: #4aa3d1; }
+.intensity-badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
 .intensity-badge.danger { background: #fef2f2; color: #ef4444; }
 .intensity-badge.warning { background: #fff7ed; color: #f97316; }
 .intensity-badge.normal { background: #f0fdf4; color: #10b981; }
+.detail-btn { background: white; border: 1px solid #cbd5e1; color: #475569; padding: 6px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; transition: all 0.2s; }
+.detail-btn:hover { border-color: #4aa3d1; color: #4aa3d1; background: #f0f7ff; }
+.major-select { border: none; background: transparent; outline: none; font-size: 14px; color: #475569; padding: 8px 10px; cursor: pointer; font-weight: 500; }
+.divider-line { color: #e2e8f0; margin: 0 8px; }
+.major-tag { background: #f1f5f9; color: #0369a1; padding: 4px 8px; border-radius: 4px; font-size: 13px; font-weight: 500; }
 
-.detail-btn {
-  background: white;
-  border: 1px solid #cbd5e1;
-  color: #475569;
-  padding: 6px 14px;
-  border-radius: 6px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.detail-btn:hover {
-  border-color: #4aa3d1;
-  color: #4aa3d1;
-  background: #f0f7ff;
-}
-
-/* ================= 🌟 主页内嵌简历中心 样式 ================= */
+/* ================= 🌟 优化后的全新简历中心样式 🌟 ================= */
 .resume-hub-container {
   display: flex;
   flex-direction: column;
-  gap: 30px;
-  padding: 10px 0 40px 0;
+  gap: 32px;
+  padding: 0 0 40px 0;
 }
+
 .rh-module {
   background: white;
-  border-radius: 16px;
-  padding: 30px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-  border: 1px solid #f1f5f9;
+  border-radius: 24px;
+  padding: 28px 32px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  border: 1px solid #f0f2f5;
+  transition: all 0.3s;
 }
-.ai-module { border-top: 4px solid #00aeec; }
 
-.rh-header { margin-bottom: 25px; }
-.rh-title h3 { font-size: 22px; color: #1e293b; margin: 0 0 8px 0; display: flex; align-items: center; gap: 10px; }
-.rh-title p { margin: 0; color: #64748b; font-size: 14px; }
-.badge { font-size: 13px; background: #f1f5f9; padding: 4px 8px; border-radius: 6px; color: #64748b; font-weight: normal; }
-
-/* 步骤与表单 */
-.step-container { margin-bottom: 35px; }
-.step-title { font-size: 16px; font-weight: bold; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; color: #1e293b; }
-.step-num { background: #00aeec; color: white; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; }
-.step-hint { font-weight: normal; font-size: 13px; color: #94a3b8; }
-
-.template-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-.tpl-card { cursor: pointer; border-radius: 12px; transition: 0.3s; }
-.tpl-card:hover { transform: translateY(-4px); }
-.tpl-visual { height: 140px; border-radius: 12px; border: 2px solid #e2e8f0; position: relative; padding: 15px; display: flex; flex-direction: column; gap: 8px; overflow: hidden; transition: 0.3s; }
-.tpl-card.active .tpl-visual { border-color: #00aeec; box-shadow: 0 0 0 4px rgba(0, 174, 236, 0.15); }
-.skeleton-line { background: rgba(255,255,255,0.8); height: 8px; border-radius: 4px; width: 100%; }
-.skeleton-line.title { width: 50%; height: 12px; margin-bottom: 10px; }
-.skeleton-line.short { width: 60%; }
-.active-mask { position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(0, 174, 236, 0.1); display: flex; align-items: center; justify-content: center; }
-.check-icon { background: #00aeec; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,174,236,0.3); }
-.tpl-info { text-align: center; margin-top: 12px; }
-.tpl-name { display: block; font-weight: bold; color: #334155; margin-bottom: 4px; font-size: 15px;}
-.tpl-tag { font-size: 12px; color: #64748b; background: #f1f5f9; padding: 2px 8px; border-radius: 4px; }
-
-.form-wrapper { background: #f8fafc; padding: 24px; border-radius: 12px; border: 1px solid #f1f5f9; display: flex; flex-direction: column; gap: 20px; }
-.form-row.multi-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-.form-group { display: flex; flex-direction: column; gap: 8px; }
-.form-group label { font-size: 14px; font-weight: 600; color: #334155; }
-.form-group .req { color: #ef4444; }
-.form-wrapper input, .form-wrapper textarea { width: 100%; padding: 12px 16px; border: 1px solid #cbd5e1; border-radius: 8px; background: white; font-size: 14px; outline: none; transition: 0.3s; box-sizing: border-box; font-family: inherit;}
-.form-wrapper input:focus, .form-wrapper textarea:focus { border-color: #00aeec; box-shadow: 0 0 0 3px rgba(0, 174, 236, 0.1); }
-.textarea-container { position: relative; }
-.ai-hint-tag { position: absolute; bottom: 12px; right: 12px; background: linear-gradient(135deg, #e0f2fe, #bae6fd); color: #0284c7; padding: 4px 10px; border-radius: 6px; font-size: 12px; pointer-events: none; font-weight: 500; }
-
-.action-footer { text-align: center; margin-top: 30px; }
-.generate-btn { background: linear-gradient(135deg, #00aeec, #0077ff); color: white; border: none; padding: 16px 45px; font-size: 16px; font-weight: bold; border-radius: 30px; cursor: pointer; box-shadow: 0 8px 20px rgba(0, 174, 236, 0.3); transition: 0.3s; }
-.generate-btn:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 12px 25px rgba(0, 174, 236, 0.4); }
-
-/* 🌟 彻底修复悬浮按钮的网格卡片样式 */
-.rh-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-.rh-card { border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; transition: 0.3s; background: white; }
-.rh-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,0.08); border-color: #cbd5e1; }
-
-.card-inner { position: relative; width: 100%; height: 180px; overflow: hidden; }
-.rh-cover { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #94a3b8; background: #f1f5f9; }
-.case-cover { background: #fdf2f8; color: #db2777; }
-
-/* 必须使用 absolute 覆盖在 card-inner 上，且通过 opacity 实现显示/隐藏 */
-.hover-overlay {
-  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.65);
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
-  opacity: 0; transition: opacity 0.3s ease;
-  z-index: 10;
+.ai-module {
+  border-top: 4px solid #4aa3d1;
+  background: linear-gradient(to bottom, #ffffff, #fefefe);
 }
-/* 鼠标悬停时，改变 opacity 让其显示出来 */
-.card-inner:hover .hover-overlay { opacity: 1; }
 
-.overlay-btn { width: 110px; padding: 8px 0; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; transition: 0.2s; border: none; text-align: center; }
-.overlay-btn.primary { background: #00aeec; color: white; }
-.overlay-btn.primary:hover { background: #009ce0; }
-.overlay-btn.outline { background: transparent; border: 2px solid white; color: white; }
-.overlay-btn.outline:hover { background: rgba(255,255,255,0.2); }
+.rh-header {
+  margin-bottom: 28px;
+}
 
-.rh-info { padding: 15px; border-top: 1px solid #f1f5f9; }
-.rh-info h4 { margin: 0 0 6px 0; font-size: 14px; color: #1e293b; }
-.rh-info p { margin: 0; font-size: 12px; color: #64748b; }
+.rh-title h3 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
 
-.major-select {
-  border: none;
-  background: transparent;
-  outline: none;
-  font-size: 14px;
-  color: #475569;
-  padding: 8px 10px;
-  cursor: pointer;
+.title-icon {
+  font-size: 28px;
+}
+
+.hot-badge-new {
+  background: linear-gradient(135deg, #f97316, #ef4444);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
   font-weight: 500;
 }
-.divider-line {
-  color: #e2e8f0;
-  margin: 0 8px;
-}
-.major-tag {
+
+.badge-new {
   background: #f1f5f9;
-  color: #0369a1;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 13px;
+  color: #64748b;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
   font-weight: 500;
+}
+
+.rh-title p {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.step-header-mini {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.step-badge {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #4aa3d1, #2c7da0);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.step-title-new {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.step-count {
+  font-size: 12px;
+  color: #94a3b8;
+  background: #f1f5f9;
+  padding: 2px 10px;
+  border-radius: 20px;
+}
+
+.step-hint-new {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.template-grid-new {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 20px;
+}
+
+.tpl-card-new {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 16px;
+  background: white;
+}
+
+.tpl-card-new:hover {
+  transform: translateY(-4px);
+}
+
+.tpl-preview {
+  height: 150px;
+  border-radius: 16px;
+  position: relative;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+  border: 2px solid #e2e8f0;
+  overflow: hidden;
+}
+
+.tpl-card-new.active .tpl-preview {
+  border-color: #4aa3d1;
+  box-shadow: 0 0 0 3px rgba(74, 163, 209, 0.2);
+}
+
+.preview-content {
+  text-align: center;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.preview-name {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.preview-line {
+  width: 30px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.5);
+  margin: 8px auto;
+}
+
+.preview-desc {
+  font-size: 11px;
+  opacity: 0.9;
+}
+
+.tpl-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  font-size: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.active-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  background: #4aa3d1;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.tpl-info-new {
+  margin-top: 12px;
+  text-align: center;
+}
+
+.tpl-name-new {
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.tpl-tags {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.tpl-tag {
+  font-size: 10px;
+  padding: 2px 8px;
+  background: #f1f5f9;
+  border-radius: 12px;
+  color: #64748b;
+}
+
+.example-card-new {
+  background: linear-gradient(135deg, #fff9e6 0%, #fff4e0 100%);
+  border-radius: 16px;
+  padding: 16px 20px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.example-icon {
+  font-size: 32px;
+}
+
+.example-content {
+  flex: 1;
+}
+
+.example-title {
+  font-weight: 600;
+  color: #b45309;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.example-text {
+  font-size: 13px;
+  color: #78350f;
+  line-height: 1.5;
+}
+
+.use-example-btn {
+  padding: 6px 16px;
+  background: #f59e0b;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.3s;
+}
+
+.use-example-btn:hover {
+  background: #d97706;
+  transform: translateY(-1px);
+}
+
+.input-area-new {
+  background: #f8fafc;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s;
+}
+
+.input-area-new:focus-within {
+  border-color: #4aa3d1;
+  box-shadow: 0 0 0 3px rgba(74, 163, 209, 0.1);
+}
+
+.input-toolbar-new {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.toolbar-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tool-btn {
+  padding: 4px 12px;
+  background: #f1f5f9;
+  border: none;
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #475569;
+}
+
+.tool-btn:hover {
+  background: #4aa3d1;
+  color: white;
+  transform: translateY(-1px);
+}
+
+.toolbar-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.char-count {
+  font-size: 13px;
+  color: #4aa3d1;
+  font-weight: 600;
+}
+
+.char-max {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.clear-btn {
+  padding: 4px 12px;
+  background: #fee2e2;
+  color: #ef4444;
+  border: none;
+  border-radius: 16px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.resume-textarea-new {
+  width: 100%;
+  min-height: 260px;
+  padding: 20px;
+  border: none;
+  font-size: 14px;
+  line-height: 1.6;
+  resize: vertical;
+  font-family: inherit;
+  outline: none;
+  background: #f8fafc;
+}
+
+.resume-textarea-new::placeholder {
+  color: #cbd5e1;
+}
+
+.ai-analysis-new {
+  margin-top: 20px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #e6f7ff 0%, #f0f9ff 100%);
+  border-radius: 16px;
+  border-left: 4px solid #4aa3d1;
+}
+
+.analysis-header-new {
+  font-weight: 600;
+  color: #4aa3d1;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.analysis-content-new {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.analysis-item {
+  font-size: 13px;
+}
+
+.item-label {
+  color: #64748b;
+}
+
+.item-value {
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.item-value.suggestion {
+  color: #f59e0b;
+}
+
+.action-footer-new {
+  text-align: center;
+  margin-top: 32px;
+}
+
+.generate-btn-new {
+  background: linear-gradient(135deg, #4aa3d1, #2c7da0);
+  color: white;
+  border: none;
+  padding: 14px 36px;
+  border-radius: 48px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.3s;
+  box-shadow: 0 6px 20px rgba(74, 163, 209, 0.4);
+}
+
+.generate-btn-new:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(74, 163, 209, 0.5);
+}
+
+.generate-btn-new:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btn-icon {
+  font-size: 20px;
+}
+
+.btn-text {
+  font-size: 16px;
+}
+
+.rh-grid-new {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 24px;
+}
+
+.rh-card-new {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  transition: all 0.3s;
+  border: 1px solid #e2e8f0;
+}
+
+.rh-card-new:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+  border-color: #cbd5e1;
+}
+
+.card-inner-new {
+  position: relative;
+  width: 100%;
+  height: 160px;
+  overflow: hidden;
+}
+
+.rh-cover-new {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #f8fafc;
+}
+
+.cover-icon {
+  font-size: 36px;
+}
+
+.cover-name {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.tpl-cover { background: linear-gradient(135deg, #f1f5f9, #e2e8f0); }
+.case-cover { background: linear-gradient(135deg, #fef3c7, #fde68a); }
+
+.hover-overlay-new {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.card-inner-new:hover .hover-overlay-new {
+  opacity: 1;
+}
+
+.overlay-btn-new {
+  width: 100px;
+  padding: 8px 0;
+  border-radius: 24px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  text-align: center;
+}
+
+.overlay-btn-new.primary { background: #4aa3d1; color: white; }
+.overlay-btn-new.primary:hover { background: #2c7da0; }
+.overlay-btn-new.outline { background: transparent; border: 1px solid white; color: white; }
+.overlay-btn-new.outline:hover { background: rgba(255, 255, 255, 0.2); }
+
+.rh-info-new { padding: 14px; border-top: 1px solid #f1f5f9; }
+.rh-info-new h4 { margin: 0 0 6px 0; font-size: 14px; font-weight: 600; color: #1e293b; }
+.rh-info-new p { margin: 0; font-size: 11px; color: #94a3b8; }
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .rh-module { padding: 20px; }
+  .template-grid-new { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+  .tpl-preview { height: 120px; }
+  .rh-grid-new { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; }
+  .generate-btn-new { padding: 12px 24px; font-size: 14px; }
 }
 </style>

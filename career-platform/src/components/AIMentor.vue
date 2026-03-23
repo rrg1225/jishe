@@ -8,12 +8,14 @@
       @mousedown="startDrag"
       @click="toggleChat"
     >
+      <!-- 修正了 Vite/Vue 标准的静态资源引用路径 -->
       <img 
-        src="/images11/1e8b234e85fde8ca0482f3fdc3a4225e.png" 
+        src="/images11/下载.png" 
         alt="明理导师"
         class="sprite-img"
         draggable="false"
       />
+      <!-- 为新机器人定制的发光眼睛 -->
       <div class="eyes-overlay">
         <div class="eye left-eye"><div class="pupil" :style="leftPupilStyle"></div></div>
         <div class="eye right-eye"><div class="pupil" :style="rightPupilStyle"></div></div>
@@ -121,7 +123,7 @@
       </div>
     </div>
 
-    <!-- 5. 全局悬浮菜单 (增加 isChatOpen 校验，聊天框关闭时强制隐藏) -->
+    <!-- 5. 全局悬浮菜单 -->
     <div 
       v-if="activeDropdownId && isChatOpen" 
       class="session-dropdown" 
@@ -283,7 +285,6 @@ const saveRename = (session) => {
   editingSessionId.value = null;
 };
 
-
 // ==========================================
 // 2. 聊天发送与 AI 对接 (SSE 流式输出)
 // ==========================================
@@ -355,7 +356,6 @@ const handleSend = async () => {
   }
 };
 
-
 // ==========================================
 // 3. 拖拽与 UI 交互逻辑 (动态计算)
 // ==========================================
@@ -368,9 +368,9 @@ const chatWindowStyle = computed(() => {
   const sidebarW = isSidebarOpen.value ? 230 : 0;
   const chatW = 400 + sidebarW; 
   const chatH = 540;
-  const spriteSize = 170;
+  const spriteWidth = 180; 
 
-  let left = position.x + spriteSize + 15;
+  let left = position.x + spriteWidth + 15;
   let top = position.y - 40;
 
   if (left + chatW > window.innerWidth) left = position.x - chatW - 15;
@@ -402,8 +402,8 @@ const onDrag = (e) => {
   const dx = e.clientX - startX, dy = e.clientY - startY;
   if (Math.abs(dx) > 5 || Math.abs(dy) > 5) hasMoved = true;
   if (hasMoved) {
-    position.x = Math.max(0, Math.min(startPosX + dx, window.innerWidth - 170));
-    position.y = Math.max(0, Math.min(startPosY + dy, window.innerHeight - 170));
+    position.x = Math.max(0, Math.min(startPosX + dx, window.innerWidth - 180));
+    position.y = Math.max(0, Math.min(startPosY + dy, window.innerHeight - 200));
   }
 };
 const stopDrag = () => {
@@ -411,7 +411,6 @@ const stopDrag = () => {
   document.removeEventListener('mouseup', stopDrag);
 };
 
-// 【修复点】：开关聊天框、开关侧边栏时强制清除菜单状态
 const closeChat = () => {
   isChatOpen.value = false;
   closeDropdown();
@@ -451,17 +450,55 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* 1. 小精灵图片与眼睛 */
+/* 1. 小精灵图片与专门为新机器人定制的眼睛 */
 .draggable-ai-mentor {
-  position: fixed; width: 170px; height: 170px;
-  cursor: grab; z-index: 9999; filter: drop-shadow(0 8px 15px rgba(0, 0, 0, 0.15));
+  position: fixed; 
+  width: 180px; 
+  height: 200px;
+  cursor: grab; 
+  z-index: 9999; 
+  filter: drop-shadow(0 8px 15px rgba(0, 0, 0, 0.15));
 }
-.sprite-img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
-.eyes-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-.eye { position: absolute; width: 15px; height: 15px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-.left-eye { left: 46%; top: 34%; }
-.right-eye { left: 58%; top: 34%; }
-.pupil { width: 6px; height: 6px; background: #333; border-radius: 50%; transition: transform 0.1s linear; }
+.sprite-img { 
+  width: 100%; 
+  height: 100%; 
+  object-fit: contain; 
+  pointer-events: none; 
+}
+.eyes-overlay { 
+  position: absolute; 
+  top: 0; 
+  left: 0; 
+  width: 100%; 
+  height: 100%; 
+  pointer-events: none; 
+}
+/* 遮挡原护目镜的暗色眼眶 */
+.eye { 
+  position: absolute; 
+  width: 24px; 
+  height: 14px; 
+  background: #0a0a0a; /* 与机器人黑色护目镜融为一体 */
+  border-radius: 50%; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  overflow: hidden; 
+}
+/* 调整坐标，刚好卡在机器人的护目镜中心位置 */
+.left-eye { left: 37%; top: 25%; }
+.right-eye { left: 53.5%; top: 25%; }
+
+/* 青蓝色发光的机器瞳孔 */
+.pupil { 
+  position: absolute;
+  width: 8px; 
+  height: 8px; 
+  background: #00e5ff; /* 科技感青蓝色 */
+  border-radius: 50%; 
+  box-shadow: 0 0 8px #00e5ff, 0 0 12px #00e5ff; /* 发光特效 */
+  transition: transform 0.05s linear; 
+}
 
 /* 2. 对话框外壳 */
 .ai-chat-window {
