@@ -16,4 +16,7 @@ public interface ContentRepository extends JpaRepository<Content, Long> {
 
     // 加上这行代码：根据分类和标题模糊查询
     Page<Content> findByCategoryAndTitleContaining(String category, String title, Pageable pageable);
+
+    // 根据内容类型分页查询（用于专门提取视频做推荐）
+    Page<Content> findByType(String type, Pageable pageable);
 }

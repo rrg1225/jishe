@@ -1,6 +1,5 @@
 <template>
   <div class="video-detail-layout">
-    <!-- 顶部导航 -->
     <header class="top-nav">
       <div class="nav-left">
         <button class="back-btn" @click="router.push('/dashboard')">
@@ -20,9 +19,7 @@
     </header>
 
     <div class="main-container">
-      <!-- 左侧内容区 -->
       <div class="left-col">
-        <!-- 视频信息头 -->
         <div class="video-header">
           <h1 class="video-title">{{ videoTitle }}</h1>
           <div class="video-meta">
@@ -30,15 +27,11 @@
               <span class="meta-icon">▶</span> {{ formatNumber(124.5) }}万播放
             </span>
             <span class="meta-item">
-              <span class="meta-icon">💬</span> {{ commentList.length }} 评论
-            </span>
-            <span class="meta-item">
               <span class="meta-icon">📅</span> {{ videoDate }}
             </span>
           </div>
         </div>
 
-        <!-- 视频播放器 -->
         <div class="player-wrapper">
           <video 
             class="video-player" 
@@ -50,23 +43,23 @@
           </video>
         </div>
 
-        <!-- 视频操作栏 - 简化版 -->
         <div class="video-actions">
           <button class="action-btn" :class="{ active: isLiked }" @click="toggleLike">
             <span class="btn-icon">{{ isLiked ? '❤️' : '🤍' }}</span>
             <span>{{ likeCount }} 点赞</span>
           </button>
+          
           <button class="action-btn" @click="scrollToComments">
             <span class="btn-icon">💬</span>
-            <span>{{ commentList.length }} 评论</span>
+            <span>{{ commentList?.length || 0 }} 评论</span>
           </button>
+          
           <button class="action-btn star-btn">
             <span class="btn-icon">⭐</span>
             <span>收藏</span>
           </button>
         </div>
 
-        <!-- 视频简介 - 作者信息更简洁 -->
         <div class="video-description">
           <div class="author-row">
             <div class="author-avatar">
@@ -83,7 +76,6 @@
           </div>
         </div>
 
-        <!-- 评论区 -->
         <div class="comment-section" id="comment-area">
           <h3 class="comment-title">📝 学员评论</h3>
           
@@ -116,7 +108,7 @@
               </div>
             </div>
             
-            <div v-if="commentList.length === 0" class="empty-comment">
+            <div v-if="!commentList?.length" class="empty-comment">
               <span>💬</span>
               <p>还没有评论，快来分享你的学习心得吧！</p>
             </div>
@@ -124,53 +116,39 @@
         </div>
       </div>
 
-      <!-- 右侧推荐区 - 改成学习推荐风格 -->
       <div class="right-col">
-        <!-- 你可能还想看 -->
         <div class="recommend-section">
           <h3 class="section-title">📖 你可能还想看</h3>
           <div class="recommend-list">
-            <div class="recommend-item" v-for="i in 5" :key="i" @click="goToRecommend">
+            <div 
+              class="recommend-item" 
+              v-for="video in recommendList" 
+              :key="video.id" 
+              @click="goToRecommend(video)"
+            >
               <div class="rec-cover">
-                <img :src="`https://picsum.photos/100/56?random=${i}`" alt="" />
-                <span class="rec-duration">12:34</span>
+                <img :src="video.coverUrl" :alt="video.title" />
+                <span class="rec-duration">{{ video.duration }}</span>
               </div>
               <div class="rec-info">
-                <div class="rec-title">Vue3 + ElementPlus 企业级后台管理系统速成</div>
-                <div class="rec-author">全栈小导师 · {{ 20 + i }}万播放</div>
+                <div class="rec-title">{{ video.title }}</div>
+                <div class="rec-author">{{ video.author }} · {{ formatNumber(video.views) }}播放</div>
               </div>
+            </div>
+            
+            <div v-if="!recommendList?.length" style="text-align: center; color: #94a3b8; padding: 20px 0; font-size: 13px;">
+              暂无推荐视频
             </div>
           </div>
         </div>
 
-        <!-- 大家都在学（替代弹幕） -->
         <div class="hot-topics">
           <h3 class="section-title">🔥 大家都在学</h3>
           <div class="topic-list">
-            <div class="topic-item">
-              <span class="topic-rank">1</span>
-              <span class="topic-name">考研数学全程复习规划</span>
-              <span class="topic-hot">🔥 12.4w人在学</span>
-            </div>
-            <div class="topic-item">
-              <span class="topic-rank">2</span>
-              <span class="topic-name">Java并发编程实战</span>
-              <span class="topic-hot">🔥 8.7w人在学</span>
-            </div>
-            <div class="topic-item">
-              <span class="topic-rank">3</span>
-              <span class="topic-name">Vue3源码解析</span>
-              <span class="topic-hot">🔥 6.2w人在学</span>
-            </div>
-            <div class="topic-item">
-              <span class="topic-rank">4</span>
-              <span class="topic-name">产品经理入门指南</span>
-              <span class="topic-hot">🔥 5.1w人在学</span>
-            </div>
-            <div class="topic-item">
-              <span class="topic-rank">5</span>
-              <span class="topic-name">数据分析师必备技能</span>
-              <span class="topic-hot">🔥 4.3w人在学</span>
+            <div class="topic-item" v-for="(topic, index) in hotTopics" :key="index">
+              <span class="topic-rank">{{ index + 1 }}</span>
+              <span class="topic-name">{{ topic.title }}</span>
+              <span class="topic-hot">🔥 {{ formatNumber(topic.hotValue) }}人在学</span>
             </div>
           </div>
         </div>
@@ -180,7 +158,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import request from '../utils/request'
 
@@ -205,6 +183,99 @@ const isLiked = ref(false)
 const commentList = ref([])
 const newCommentContent = ref('')
 
+// 添加推荐视频和热门话题的响应式数据
+const recommendList = ref([])
+const hotTopics = ref([])
+
+// 获取侧边栏推荐数据
+const fetchRecommendData = async () => {
+  try {
+    const res = await request.get('/api/content/video/recommend')
+    
+    // ✅ 强行数组校验，避免一切由于后端数据结构不对引起的渲染崩溃
+    if (res && res.recommendVideos) {
+      recommendList.value = Array.isArray(res.recommendVideos) ? res.recommendVideos : []
+      hotTopics.value = Array.isArray(res.hotTopics) ? res.hotTopics : []
+    } else {
+      loadMockRecommendData()
+    }
+  } catch (error) {
+    console.error('获取侧边栏数据失败', error)
+    loadMockRecommendData()
+  }
+}
+
+// 提取出模拟数据函数，避免代码污染
+const loadMockRecommendData = () => {
+  recommendList.value = [
+    {
+      id: 'v101',
+      title: 'Vue3 + ElementPlus 企业级后台管理系统速成',
+      author: '全栈小导师',
+      coverUrl: 'https://picsum.photos/100/56?random=11',
+      duration: '12:34',
+      views: 215000,
+      url: 'https://www.w3schools.com/html/mov_bbb.mp4'
+    },
+    {
+      id: 'v102',
+      title: '2026春招前端面试高频手写题全解析',
+      author: '前端大牛',
+      coverUrl: 'https://picsum.photos/100/56?random=12',
+      duration: '45:12',
+      views: 184000,
+      url: 'https://www.w3schools.com/html/mov_bbb.mp4'
+    },
+    {
+      id: 'v103',
+      title: '十分钟搞懂计算机网络 TCP/IP 三次握手',
+      author: '网络极客',
+      coverUrl: 'https://picsum.photos/100/56?random=13',
+      duration: '10:05',
+      views: 350000,
+      url: 'https://www.w3schools.com/html/mov_bbb.mp4'
+    },
+    {
+      id: 'v104',
+      title: 'Spring Boot 3.0 微服务架构实战',
+      author: 'Java架构师',
+      coverUrl: 'https://picsum.photos/100/56?random=14',
+      duration: '58:20',
+      views: 98000,
+      url: 'https://www.w3schools.com/html/mov_bbb.mp4'
+    },
+    {
+      id: 'v105',
+      title: '如何写出一份HR无法拒绝的求职简历？',
+      author: '职场达人',
+      coverUrl: 'https://picsum.photos/100/56?random=15',
+      duration: '18:45',
+      views: 420000,
+      url: 'https://www.w3schools.com/html/mov_bbb.mp4'
+    }
+  ]
+  hotTopics.value = [
+    { title: '考研数学全程复习规划', hotValue: 124000 },
+    { title: 'Java并发编程实战', hotValue: 87000 },
+    { title: 'Vue3源码解析', hotValue: 62000 },
+    { title: '产品经理入门指南', hotValue: 51000 },
+    { title: '数据分析师必备技能', hotValue: 43000 }
+  ]
+}
+
+// 视频跳转逻辑
+const goToRecommend = (video) => {
+  // 按照你的路由配置，确保跳转到 /video 
+  router.push({
+    path: '/video',
+    query: {
+      title: video.title,
+      author: video.author,
+      url: video.url
+    }
+  })
+}
+
 // 辅助函数
 const formatNumber = (num) => {
   if (num >= 10000) return (num / 10000).toFixed(1) + '万'
@@ -218,6 +289,7 @@ onMounted(() => {
   
   fetchLikeStatus()
   fetchComments()
+  fetchRecommendData()
 
   document.documentElement.style.overflow = 'auto'
   document.documentElement.style.height = 'auto'
@@ -225,11 +297,29 @@ onMounted(() => {
   document.body.style.height = 'auto'
 })
 
+// 监听路由参数变化，实现丝滑切换视频
+watch(
+  () => route.query,
+  (newQuery) => {
+    if (newQuery.title) {
+      videoTitle.value = newQuery.title
+      videoAuthor.value = newQuery.author || '全栈小导师'
+      videoUrl.value = newQuery.url
+      
+      fetchLikeStatus()
+      fetchComments()
+      // fetchRecommendData() 可以不加，保持侧边栏推荐列表稳定
+      
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
+)
+
 const fetchLikeStatus = async () => {
   try {
     const res = await request.get(`/api/interaction/like/status?targetId=${videoTitle.value}`)
-    likeCount.value = res.totalLikes
-    isLiked.value = res.isLiked
+    likeCount.value = res.totalLikes || 0
+    isLiked.value = res.isLiked || false
   } catch (error) {
     console.error('获取点赞状态失败', error)
   }
@@ -247,9 +337,15 @@ const toggleLike = async () => {
 const fetchComments = async () => {
   try {
     const res = await request.get(`/api/interaction/comments?targetId=${videoTitle.value}`)
-    commentList.value = res
+    
+    // ✅ 提取真实数据层
+    const rawData = res?.data || res
+    
+    // ✅ 强行数组校验：不管后端报没报错、数据格式怎么变，如果是数组就赋值，不是数组就给 []
+    commentList.value = Array.isArray(rawData) ? rawData : []
   } catch (error) {
     console.error('获取评论失败', error)
+    commentList.value = []
   }
 }
 
@@ -272,10 +368,6 @@ const scrollToComments = () => {
   if (commentArea) {
     commentArea.scrollIntoView({ behavior: 'smooth' })
   }
-}
-
-const goToRecommend = () => {
-  // 推荐视频跳转逻辑
 }
 
 const formatDate = (dateString) => {
