@@ -2,14 +2,12 @@ package com.example.student.university_career_platform.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 
 import java.time.LocalDateTime;
 
-@Setter
-@Getter
 @Entity
+@Data
 @Table(name = "users")
 public class User {
 

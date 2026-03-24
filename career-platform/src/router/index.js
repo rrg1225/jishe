@@ -78,6 +78,11 @@ const routes = [
     name: 'ResumeFinalEdit',
     component: ResumeFinalEdit,
     meta: { requiresAuth: true } // 如果你有登录拦截的话
+  },
+  {
+    path: '/job-detail',
+    name: 'JobDetail',
+    component: () => import('../views/JobDetail.vue')
   }
 ]
 

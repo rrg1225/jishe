@@ -252,7 +252,7 @@
                       <template v-if="schoolDataType === 'kaoyan'">
                         <td class="major-col"><span class="major-tag">{{ school.major || '计算机科学与技术' }}</span></td>
                         <td class="score-trend">{{ school.scoreLine }}</td>
-                        <td>{{ school.reExamRatio }}</td>
+                        <td class="time-node">{{ school.reExamRatio }}</td>
                         <td>
                           <span class="intensity-badge" :class="getIntensityClass(school.intensityLevel)">
                             {{ school.intensityLevel }} ({{ school.applyRatio }})
@@ -358,33 +358,40 @@
             </div>
 
             <div class="job-cards">
-              <div v-for="job in filteredJobCards" :key="job.id" class="job-card" @click="goToJobDetail(job)">
-                <div class="job-card-header">
-                  <div class="company-logo">{{ job.company.charAt(0) }}</div>
-                  <div class="job-info">
-                    <div class="job-title-row">
-                      <h4>{{ job.position }}</h4>
-                      <span v-if="job.hot" class="hot-tag">热门</span>
-                    </div>
-                    <div class="company-name">{{ job.company }}</div>
-                  </div>
-                  <span class="job-salary">{{ job.salary }}</span>
-                </div>
-                
-                <div class="job-tags-list">
-                  <span v-for="tag in job.tags" :key="tag" class="tag">{{ tag }}</span>
-                </div>
-                
-                <div class="job-footer">
-                  <span class="job-location">📍 {{ job.location }}</span>
-                  <span class="job-deadline">⏰ {{ job.deadline }}</span>
-                  <span class="job-arrow">查看详情 →</span>
-                </div>
+              <div v-if="loadingJobs" class="loading-state" style="grid-column: 1 / -1; min-height: 200px;">
+                <div class="spinner"></div>
+                <p>正在努力从数据库拉取最新岗位...</p>
               </div>
+
+              <template v-else-if="filteredJobCards.length > 0">
+                <div v-for="job in filteredJobCards" :key="job.id" class="job-card" @click="goToJobDetail(job)">
+                  <div class="job-card-header">
+                    <div class="company-logo">{{ job.company.charAt(0) }}</div>
+                    <div class="job-info">
+                      <div class="job-title-row">
+                        <h4>{{ job.position }}</h4>
+                        <span v-if="job.hot" class="hot-tag">热门</span>
+                      </div>
+                      <div class="company-name">{{ job.company }}</div>
+                    </div>
+                    <span class="job-salary">{{ job.salary }}</span>
+                  </div>
+                  
+                  <div class="job-tags-list">
+                    <span v-for="tag in job.tags" :key="tag" class="tag">{{ tag }}</span>
+                  </div>
+                  
+                  <div class="job-footer">
+                    <span class="job-location">📍 {{ job.location }}</span>
+                    <span class="job-deadline">⏰ {{ job.deadline }}</span>
+                    <span class="job-arrow">查看详情 →</span>
+                  </div>
+                </div>
+              </template>
               
-              <div v-if="filteredJobCards.length === 0" class="empty-state">
+              <div v-else class="empty-state" style="grid-column: 1 / -1;">
                 <div class="empty-icon">📭</div>
-                <p>暂无相关职位</p>
+                <p>当前分类下暂无相关职位</p>
               </div>
             </div>
           </div>
@@ -616,7 +623,6 @@
           </div>
         </section>
 
-        <!-- 🌟 升级版：AI 简历中心模块 -->
         <section v-if="activeMenu === 'profile'" class="fade-in resume-hub-container">
           
           <div class="rh-module ai-module">
@@ -683,7 +689,6 @@
                 <button class="use-example-btn" @click="useExample">一键填充示例</button>
               </div>
               
-              <!-- 增强输入区域 -->
               <div class="input-area-new">
                 <div class="input-toolbar-new">
                   <div class="toolbar-buttons">
@@ -704,16 +709,15 @@
                   v-model="rawResumeInput"
                   placeholder="在这里粘贴或输入您的经历信息...
                   
-💡 小贴士：
-• 可以随意写，AI会自动整理
-• 支持中英文混合输入
-• 可以粘贴招聘JD，AI会匹配您的经历"
+                    💡 小贴士：
+                    • 可以随意写，AI会自动整理
+                    • 支持中英文混合输入
+                    • 可以粘贴招聘JD，AI会匹配您的经历"
                   class="resume-textarea-new"
                   :class="{ 'has-content': rawResumeInput }"
                 ></textarea>
               </div>
 
-              <!-- AI智能分析卡片 -->
               <div class="ai-analysis-new" v-if="rawResumeInput && rawResumeInput.length > 30">
                 <div class="analysis-header-new">
                   <span class="analysis-icon">🤖</span>
@@ -1009,7 +1013,11 @@ onMounted(() => {
   fetchContestArticles()
   fetchInitialBoardData()
   initWebSocket()
+
+  // ★ 核心：进入页面时，拉取产教融合双选的数据库真实岗位数据
+  fetchJobData()
 })
+
 watch(() => route.query.edit, (newVal) => {
   if (newVal === 'true') {
     activeMenu.value = 'profile' 
@@ -1056,7 +1064,6 @@ const alertMsg = (msg) => {
 }
 
 // ================= 🌟 全新升级：内嵌极简简历中心数据与逻辑 =================
-// 8种简历模板配置
 const aiTemplates = ref([
   { id: 1, name: '极简学术风', tag: '校招 / 考研', tags: ['学术', '考研', '校招'], gradient: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)', previewName: '张 三', previewDesc: '计算机科学与技术 · 硕士' },
   { id: 2, name: '现代科技蓝', tag: '互联网 / IT', tags: ['互联网', 'IT', '科技'], gradient: 'linear-gradient(135deg, #1890ff 0%, #096dd9 100%)', previewName: 'ZHANG SAN', previewDesc: 'Frontend Developer' },
@@ -1072,7 +1079,6 @@ const selectedAiTemplate = ref(aiTemplates.value[0])
 const rawResumeInput = ref('')
 const isGeneratingResume = ref(false)
 
-// AI分析：检测到的信息
 const detectedInfo = computed(() => {
   const info = []
   const text = rawResumeInput.value
@@ -1085,7 +1091,6 @@ const detectedInfo = computed(() => {
   return info.slice(0, 5)
 })
 
-// AI分析：建议补充的信息
 const suggestions = computed(() => {
   const sug = []
   const text = rawResumeInput.value
@@ -1097,7 +1102,6 @@ const suggestions = computed(() => {
   return sug.slice(0, 4)
 })
 
-// 使用示例
 const useExample = () => {
   rawResumeInput.value = `我叫张三，电话 13800000000，邮箱 zhangsan@email.com。2024年毕业于南京工业大学计算机科学与技术专业，GPA 3.8/4.0。
 
@@ -1118,12 +1122,10 @@ const useExample = () => {
 - 校优秀学生干部`
 }
 
-// 清空输入
 const clearInput = () => {
   rawResumeInput.value = ''
 }
 
-// 添加模板片段
 const addTemplate = (type) => {
   const templates = {
     education: '\n\n【教育经历】\n• 学校名称 | 专业 | 学历 | 2020.09 - 2024.06\n• 主修课程：\n• GPA：3.8/4.0\n',
@@ -1256,7 +1258,6 @@ const targetSchoolKeyword = ref('')
 const schoolDataType = ref('kaoyan') 
 const selectedSchoolMajor = ref('全部')
 
-// 实时数据 WebSocket 逻辑
 let ws = null;
 
 const initWebSocket = () => {
@@ -1332,77 +1333,68 @@ const viewSchoolDetail = (school) => {
   }
 }
 
-// ================= 下方的各种常驻庞大假数据 =================
-// (由于代码过长，此处为您保留了原有的常量数据结构，以保证其完整性)
+// ================= ★ 产教融合真实数据获取与过滤逻辑 ★ =================
+// 保留原有的丰富分类结构作为筛选依据
 const jobCategories = ref([{name:'互联网/AI',icon:'💻',subCategories:[{name:'后端开发',jobs:[{name:'Java',count:245,hot:true},{name:'Python',count:189,hot:true},{name:'C++',count:156},{name:'Go',count:98},{name:'Node.js',count:76},{name:'.NET',count:45},{name:'C#',count:67},{name:'PHP',count:89},{name:'Golang',count:54},{name:'全栈工程师',count:123,hot:true},{name:'架构师',count:67,hot:true},{name:'后端开发',count:112}]},{name:'前端开发',jobs:[{name:'Vue.js',count:203,hot:true},{name:'React',count:187,hot:true},{name:'JavaScript',count:165},{name:'TypeScript',count:112},{name:'HTML/CSS',count:98},{name:'小程序开发',count:67},{name:'移动端开发',count:78},{name:'鸿蒙开发',count:34,hot:true},{name:'前端架构师',count:56},{name:'跨端开发',count:43},{name:'WebGL',count:23}]},{name:'测试',jobs:[{name:'软件测试',count:134},{name:'自动化测试',count:98},{name:'性能测试',count:56},{name:'测试开发',count:67},{name:'功能测试',count:45},{name:'渗透测试',count:34,hot:true},{name:'游戏测试',count:23},{name:'硬件测试',count:32}]},{name:'运维',jobs:[{name:'运维工程师',count:112},{name:'网络安全',count:78},{name:'DBA',count:45},{name:'系统工程师',count:67},{name:'网络工程师',count:56},{name:'运维开发',count:34},{name:'云计算',count:89,hot:true},{name:'SRE',count:43},{name:'IDC运维',count:28}]},{name:'算法',jobs:[{name:'推荐算法',count:67,hot:true},{name:'大模型算法',count:54,hot:true},{name:'图像算法',count:43},{name:'自然语言处理',count:38,hot:true},{name:'搜索算法',count:29},{name:'语音算法',count:23},{name:'数据挖掘',count:45},{name:'机器学习',count:78,hot:true},{name:'深度学习',count:56,hot:true}]},{name:'产品',jobs:[{name:'产品经理',count:156,hot:true},{name:'产品专员',count:98},{name:'产品总监',count:34},{name:'电商产品',count:45},{name:'AI产品',count:67,hot:true},{name:'B端产品',count:54},{name:'数据产品',count:43},{name:'策略产品',count:32}]},{name:'数据分析',jobs:[{name:'数据分析师',count:134,hot:true},{name:'数据开发',count:78},{name:'数据仓库',count:56},{name:'数据产品',count:34},{name:'数据科学家',count:23},{name:'大数据开发',count:45,hot:true},{name:'ETL工程师',count:32}]},{name:'移动开发',jobs:[{name:'Android',count:89},{name:'iOS',count:76},{name:'Flutter',count:45,hot:true},{name:'React Native',count:38},{name:'鸿蒙',count:29,hot:true}]},{name:'人工智能',jobs:[{name:'计算机视觉',count:67,hot:true},{name:'语音识别',count:34},{name:'NLP',count:56,hot:true},{name:'强化学习',count:23},{name:'AIGC',count:45,hot:true}]},{name:'高端技术',jobs:[{name:'技术总监',count:34},{name:'架构师',count:45,hot:true},{name:'技术专家',count:38},{name:'首席科学家',count:12},{name:'CTO',count:8}]}]},{name:'电子/通信/硬件',icon:'📡',subCategories:[{name:'硬件开发',jobs:[{name:'嵌入式',count:89},{name:'FPGA',count:45},{name:'硬件工程师',count:67},{name:'PCB设计',count:34},{name:'单片机',count:56},{name:'ARM开发',count:43},{name:'电路设计',count:38},{name:'射频工程师',count:29}]},{name:'通信',jobs:[{name:'5G',count:56},{name:'网络优化',count:34},{name:'通信工程师',count:45},{name:'射频工程师',count:23},{name:'光通信',count:18},{name:'基站工程师',count:27}]},{name:'半导体',jobs:[{name:'芯片设计',count:34,hot:true},{name:'集成电路',count:45},{name:'版图设计',count:23},{name:'半导体工艺',count:28},{name:'封测',count:15}]},{name:'自动化',jobs:[{name:'自动化工程师',count:67},{name:'PLC',count:43},{name:'工业控制',count:34},{name:'机器人',count:28,hot:true}]},{name:'仪器仪表',jobs:[{name:'测控',count:34},{name:'仪器开发',count:23},{name:'传感器',count:28}]}]},{name:'金融',icon:'💰',subCategories:[{name:'量化',jobs:[{name:'量化研究员',count:45},{name:'量化开发',count:34},{name:'量化交易',count:23},{name:'高频交易',count:18,hot:true}]},{name:'风控',jobs:[{name:'风控模型',count:56},{name:'反欺诈',count:34},{name:'信用分析',count:45},{name:'风险策略',count:28}]},{name:'金融科技',jobs:[{name:'支付系统',count:34},{name:'区块链',count:23,hot:true},{name:'数字货币',count:12},{name:'FinTech',count:28,hot:true}]},{name:'投资银行',jobs:[{name:'投行分析师',count:34},{name:'并购',count:18},{name:'承销',count:15}]},{name:'证券/基金',jobs:[{name:'行业研究',count:45},{name:'投资顾问',count:28},{name:'基金经理',count:16},{name:'交易员',count:32}]},{name:'保险',jobs:[{name:'精算师',count:12},{name:'保险核保',count:23},{name:'保险理赔',count:28}]}]},{name:'产品/运营/设计',icon:'🎨',subCategories:[{name:'产品',jobs:[{name:'产品经理',count:156,hot:true},{name:'产品专员',count:98},{name:'产品总监',count:34},{name:'电商产品',count:45},{name:'AI产品',count:67,hot:true},{name:'B端产品',count:54},{name:'数据产品',count:43}]},{name:'运营',jobs:[{name:'用户运营',count:87},{name:'内容运营',count:76},{name:'活动运营',count:65},{name:'产品运营',count:78},{name:'新媒体运营',count:92,hot:true},{name:'电商运营',count:67},{name:'社群运营',count:54},{name:'私域运营',count:43}]},{name:'设计',jobs:[{name:'UI设计',count:98},{name:'UX设计',count:67},{name:'平面设计',count:76},{name:'交互设计',count:54},{name:'视觉设计',count:65},{name:'品牌设计',count:43},{name:'包装设计',count:32}]},{name:'UX/UE',jobs:[{name:'用户体验',count:45},{name:'用户研究',count:34},{name:'人机交互',count:23}]},{name:'游戏设计',jobs:[{name:'游戏策划',count:45},{name:'游戏UI',count:32},{name:'游戏原画',count:28},{name:'游戏场景',count:21}]},{name:'视觉/交互',jobs:[{name:'视觉设计',count:56},{name:'交互设计',count:43},{name:'动效设计',count:23}]}]},{name:'市场/销售/商务',icon:'📈',subCategories:[{name:'市场营销',jobs:[{name:'市场营销',count:87},{name:'品牌策划',count:56},{name:'公关',count:34},{name:'市场推广',count:65},{name:'SEO/SEM',count:43},{name:'网络营销',count:54}]},{name:'销售',jobs:[{name:'销售代表',count:156},{name:'销售经理',count:98},{name:'大客户销售',count:76,hot:true},{name:'电话销售',count:87},{name:'渠道销售',count:54},{name:'销售总监',count:23},{name:'区域销售',count:45}]},{name:'商务',jobs:[{name:'商务拓展',count:67},{name:'商务经理',count:45},{name:'渠道合作',count:34},{name:'BD',count:56,hot:true}]},{name:'广告',jobs:[{name:'广告投放',count:43},{name:'广告优化',count:32},{name:'媒介',count:23},{name:'广告策划',count:34}]},{name:'会展/活动',jobs:[{name:'活动策划',count:34},{name:'会展执行',count:23},{name:'会议活动',count:18}]}]},{name:'人事/财务/行政',icon:'📋',subCategories:[{name:'人力资源',jobs:[{name:'HRBP',count:56,hot:true},{name:'招聘',count:78},{name:'培训',count:34},{name:'薪酬绩效',count:43},{name:'员工关系',count:32},{name:'HRD',count:15},{name:'组织发展',count:12}]},{name:'财务',jobs:[{name:'会计',count:89},{name:'出纳',count:54},{name:'财务分析',count:43},{name:'审计',count:38},{name:'税务',count:27},{name:'CFO',count:5},{name:'成本会计',count:34}]},{name:'行政',jobs:[{name:'行政专员',count:67},{name:'行政经理',count:34},{name:'前台',count:28},{name:'后勤',count:23},{name:'行政主管',count:32}]},{name:'法务',jobs:[{name:'法务专员',count:34},{name:'法务经理',count:23},{name:'合规',count:18},{name:'知识产权',count:12}]}]},{name:'生产制造/供应链',icon:'🏭',subCategories:[{name:'生产管理',jobs:[{name:'生产主管',count:45},{name:'生产经理',count:34},{name:'厂长',count:12},{name:'生产计划',count:28},{name:'车间主任',count:23}]},{name:'质量管理',jobs:[{name:'QC',count:56},{name:'QA',count:43},{name:'质量工程师',count:38},{name:'体系工程师',count:23},{name:'SQE',count:19}]},{name:'供应链',jobs:[{name:'采购',count:67},{name:'物流',count:54},{name:'仓储',count:43},{name:'供应链经理',count:23},{name:'报关员',count:15}]},{name:'工艺/制程',jobs:[{name:'工艺工程师',count:45},{name:'IE工程师',count:32},{name:'PE工程师',count:28},{name:'NPI工程师',count:19}]},{name:'设备维护',jobs:[{name:'设备工程师',count:34},{name:'维修工程师',count:23},{name:'自动化维护',count:18}]}]},{name:'零售/生活服务',icon:'🛒',subCategories:[{name:'零售',jobs:[{name:'店员/营业员',count:156},{name:'店长',count:67},{name:'导购',count:98},{name:'收银',count:76},{name:'商品管理',count:34},{name:'品类经理',count:28}]},{name:'餐饮',jobs:[{name:'服务员',count:123},{name:'厨师',count:67},{name:'店长',count:45},{name:'餐饮管理',count:34},{name:'奶茶/水吧',count:56},{name:'西点师',count:23}]},{name:'酒店/旅游',jobs:[{name:'前台',count:67},{name:'客房服务',count:45},{name:'酒店管理',count:34},{name:'导游',count:23},{name:'旅行顾问',count:19}]},{name:'美容/美发',jobs:[{name:'美容师',count:56},{name:'美发师',count:43},{name:'美甲师',count:32},{name:'纹绣师',count:18}]},{name:'运动/健身',jobs:[{name:'健身教练',count:34},{name:'瑜伽老师',count:23},{name:'游泳教练',count:18}]}]},{name:'教育培训',icon:'📚',subCategories:[{name:'教师',jobs:[{name:'语数外教师',count:89},{name:'艺术教师',count:67},{name:'体育教师',count:34},{name:'科学教师',count:45},{name:'音乐教师',count:28},{name:'美术教师',count:32}]},{name:'教务管理',jobs:[{name:'教务专员',count:56},{name:'教务主管',count:34},{name:'班主任',count:67}]},{name:'课程顾问',jobs:[{name:'课程销售',count:78},{name:'课程顾问',count:89,hot:true}]},{name:'培训',jobs:[{name:'培训讲师',count:45},{name:'企业培训',count:34},{name:'技能培训',count:28}]},{name:'留学/语言',jobs:[{name:'留学顾问',count:34},{name:'语言老师',count:45},{name:'雅思/托福',count:28,hot:true}]}]},{name:'房地产/建筑',icon:'🏗️',subCategories:[{name:'工程管理',jobs:[{name:'项目经理',count:45},{name:'施工员',count:67},{name:'资料员',count:34},{name:'材料员',count:23},{name:'安全员',count:38},{name:'质量员',count:28},{name:'监理工程师',count:32},{name:'工程经理',count:27}]},{name:'工程造价',jobs:[{name:'造价工程师',count:56},{name:'预算员',count:43},{name:'成本控制',count:32},{name:'招投标',count:27}]},{name:'装饰装修',jobs:[{name:'室内设计',count:45},{name:'软装设计',count:32},{name:'工长',count:28},{name:'装修监理',count:23},{name:'橱柜设计',count:18}]},{name:'物业管理',jobs:[{name:'物业经理',count:34},{name:'物业管家',count:45},{name:'维修工',count:38},{name:'保安',count:56},{name:'保洁',count:43}]},{name:'建筑设计',jobs:[{name:'建筑设计师',count:34},{name:'结构设计',count:28},{name:'暖通设计',count:19},{name:'电气设计',count:21},{name:'给排水设计',count:16}]},{name:'房地产规划开发',jobs:[{name:'房地产策划',count:23},{name:'土地拓展',count:15},{name:'开发报建',count:18},{name:'投资分析',count:21}]}]},{name:'物流/仓储/司机',icon:'🚚',subCategories:[{name:'物流',jobs:[{name:'物流专员',count:67},{name:'物流经理',count:34},{name:'调度',count:43},{name:'快递员',count:78},{name:'配送员',count:56}]},{name:'仓储',jobs:[{name:'仓管员',count:78},{name:'仓储主管',count:34},{name:'理货员',count:56},{name:'拣货员',count:43},{name:'仓库管理员',count:45}]},{name:'司机',jobs:[{name:'司机',count:89},{name:'货运司机',count:67},{name:'网约车司机',count:78},{name:'班车司机',count:34},{name:'叉车司机',count:45}]}]},{name:'医疗/健康',icon:'⚕️',subCategories:[{name:'医生',jobs:[{name:'内科医生',count:34},{name:'外科医生',count:28},{name:'全科医生',count:23},{name:'儿科医生',count:19},{name:'牙医',count:16}]},{name:'护士',jobs:[{name:'护士',count:56},{name:'护师',count:23},{name:'护理',count:45},{name:'ICU护士',count:18}]},{name:'医药',jobs:[{name:'医药代表',count:67},{name:'药学',count:34},{name:'药品注册',count:12},{name:'临床监查员',count:19},{name:'药理研究员',count:15}]},{name:'医疗器械',jobs:[{name:'医疗器械销售',count:45},{name:'医疗器械维修',count:23},{name:'临床工程师',count:18}]},{name:'健康管理',jobs:[{name:'健康顾问',count:23},{name:'营养师',count:18},{name:'康复治疗师',count:21}]}]},{name:'汽车',icon:'🚗',subCategories:[{name:'汽车研发',jobs:[{name:'汽车设计',count:34},{name:'底盘工程师',count:23},{name:'动力工程师',count:19},{name:'车身工程师',count:21},{name:'三电工程师',count:28,hot:true}]},{name:'汽车销售',jobs:[{name:'汽车销售',count:67},{name:'展厅经理',count:23},{name:'二手车评估',count:18}]},{name:'汽车维修',jobs:[{name:'机修工',count:45},{name:'钣金工',count:32},{name:'喷漆工',count:28},{name:'汽车电工',count:23}]},{name:'新能源汽车',jobs:[{name:'电池工程师',count:34,hot:true},{name:'电控工程师',count:28,hot:true},{name:'充电桩运维',count:19}]}]},{name:'采购/贸易',icon:'📦',subCategories:[{name:'采购',jobs:[{name:'采购专员',count:56},{name:'采购经理',count:34},{name:'供应商开发',count:28},{name:'战略采购',count:19}]},{name:'贸易',jobs:[{name:'外贸专员',count:45},{name:'外贸经理',count:28},{name:'报关员',count:19},{name:'单证员',count:23}]},{name:'跨境电商',jobs:[{name:'亚马逊运营',count:38,hot:true},{name:'速卖通运营',count:27},{name:'TikTok运营',count:23,hot:true}]}]},{name:'直播/影视/传媒',icon:'📺',subCategories:[{name:'直播',jobs:[{name:'主播',count:67,hot:true},{name:'带货主播',count:78,hot:true},{name:'直播运营',count:45},{name:'场控',count:23}]},{name:'影视',jobs:[{name:'编导',count:34},{name:'摄像',count:32},{name:'剪辑',count:45},{name:'后期制作',count:28}]},{name:'传媒',jobs:[{name:'新媒体运营',count:56},{name:'内容运营',count:43},{name:'文案策划',count:38},{name:'媒介专员',count:23}]},{name:'短视频',jobs:[{name:'短视频编导',count:34},{name:'短视频剪辑',count:45},{name:'抖音运营',count:56,hot:true}]}]},{name:'酒店/旅游',icon:'🏨',subCategories:[{name:'酒店',jobs:[{name:'前台接待',count:45},{name:'客房服务',count:38},{name:'酒店管理',count:28},{name:'礼宾',count:19}]},{name:'旅游',jobs:[{name:'导游',count:34},{name:'旅行顾问',count:23},{name:'计调',count:19},{name:'旅游策划',count:16}]},{name:'会展',jobs:[{name:'会展策划',count:23},{name:'会议服务',count:19},{name:'活动执行',count:21}]}]},{name:'设计/创意',icon:'🎯',subCategories:[{name:'平面设计',jobs:[{name:'平面设计',count:67},{name:'品牌设计',count:34},{name:'包装设计',count:28},{name:'画册设计',count:23}]},{name:'UI/UX',jobs:[{name:'UI设计',count:56},{name:'UX设计',count:34},{name:'交互设计',count:28},{name:'产品设计',count:32}]},{name:'工业设计',jobs:[{name:'产品造型',count:23},{name:'结构设计',count:28},{name:'CMF设计',count:16}]},{name:'服装设计',jobs:[{name:'服装设计',count:34},{name:'面料设计',count:15},{name:'配饰设计',count:12}]}]},{name:'能源/化工/环保',icon:'⚡',subCategories:[{name:'能源',jobs:[{name:'新能源',count:45,hot:true},{name:'光伏',count:34},{name:'风电',count:28},{name:'储能',count:23,hot:true}]},{name:'化工',jobs:[{name:'化工工艺',count:34},{name:'化学分析',count:28},{name:'研发工程师',count:23}]},{name:'环保',jobs:[{name:'环境工程',count:34},{name:'环评',count:19},{name:'水处理',count:23}]}]},{name:'咨询/法律/翻译',icon:'⚖️',subCategories:[{name:'咨询',jobs:[{name:'咨询顾问',count:45},{name:'战略咨询',count:28},{name:'管理咨询',count:34},{name:'人力咨询',count:19}]},{name:'法律',jobs:[{name:'律师',count:34},{name:'法务',count:45},{name:'合规',count:23},{name:'知识产权',count:16}]},{name:'翻译',jobs:[{name:'英语翻译',count:34},{name:'日语翻译',count:19},{name:'韩语翻译',count:15},{name:'同声传译',count:8,hot:true}]}]},{name:'高级管理',icon:'👔',subCategories:[{name:'高层管理',jobs:[{name:'CEO',count:5},{name:'COO',count:4},{name:'CFO',count:6},{name:'CTO',count:8},{name:'总经理',count:12}]},{name:'部门管理',jobs:[{name:'部门总监',count:23},{name:'高级经理',count:34},{name:'区域经理',count:28}]},{name:'项目管理',jobs:[{name:'项目经理',count:56},{name:'项目总监',count:23},{name:'PMO',count:15}]}]}])
 
-const jobCards = ref([
-  { id: 1001, position: 'Java开发工程师', company: '腾讯', salary: '25k-40k', location: '深圳', tags: ['Java', 'Spring Boot', 'MySQL'], deadline: '2026.04.30', hot: true, category: '互联网/AI', subCategory: '后端开发', jobType: 'Java' },
-  { id: 1002, position: 'Java高级工程师', company: '字节跳动', salary: '35k-55k', location: '北京', tags: ['Java', '微服务', '高并发'], deadline: '2026.05.15', hot: true, category: '互联网/AI', subCategory: '后端开发', jobType: 'Java' },
-  { id: 1003, position: 'Java架构师', company: '阿里巴巴', salary: '45k-70k', location: '杭州', tags: ['Java', '架构设计', '分布式'], deadline: '2026.06.01', hot: true, category: '互联网/AI', subCategory: '后端开发', jobType: 'Java' },
-  { id: 1004, position: 'Python后端开发', company: '字节跳动', salary: '28k-45k', location: '上海', tags: ['Python', 'Django', 'Flask'], deadline: '2026.05.20', hot: true, category: '互联网/AI', subCategory: '后端开发', jobType: 'Python' },
-  { id: 1005, position: 'Python开发工程师', company: '美团', salary: '22k-38k', location: '北京', tags: ['Python', 'FastAPI', 'MongoDB'], deadline: '2026.06.10', hot: false, category: '互联网/AI', subCategory: '后端开发', jobType: 'Python' },
-  { id: 1006, position: 'Go开发工程师', company: '字节跳动', salary: '30k-48k', location: '北京', tags: ['Go', '微服务', 'K8s'], deadline: '2026.05.25', hot: true, category: '互联网/AI', subCategory: '后端开发', jobType: 'Go' },
-  { id: 1007, position: 'Go后端开发', company: '哔哩哔哩', salary: '26k-42k', location: '上海', tags: ['Go', 'gin', 'Redis'], deadline: '2026.07.01', hot: false, category: '互联网/AI', subCategory: '后端开发', jobType: 'Go' },
-  { id: 1008, position: 'C++开发工程师', company: '腾讯', salary: '27k-45k', location: '深圳', tags: ['C++', 'Linux', '网络编程'], deadline: '2026.05.10', hot: true, category: '互联网/AI', subCategory: '后端开发', jobType: 'C++' },
-  { id: 1009, position: 'C++后端开发', company: '百度', salary: '24k-40k', location: '北京', tags: ['C++', '搜索引擎', '算法'], deadline: '2026.06.15', hot: false, category: '互联网/AI', subCategory: '后端开发', jobType: 'C++' },
-  { id: 1010, position: 'Node.js开发', company: '阿里巴巴', salary: '22k-38k', location: '杭州', tags: ['Node.js', 'Express', 'MongoDB'], deadline: '2026.07.20', hot: false, category: '互联网/AI', subCategory: '后端开发', jobType: 'Node.js' },
-  { id: 1011, position: '全栈工程师', company: '美团', salary: '28k-45k', location: '北京', tags: ['Vue', 'Node.js', 'MySQL'], deadline: '2026.05.30', hot: true, category: '互联网/AI', subCategory: '后端开发', jobType: '全栈工程师' },
-  { id: 1012, position: '后端架构师', company: '字节跳动', salary: '50k-80k', location: '北京', tags: ['架构', '高并发', '分布式'], deadline: '2026.06.01', hot: true, category: '互联网/AI', subCategory: '后端开发', jobType: '架构师' },
-  { id: 2001, position: 'Vue前端开发', company: '阿里巴巴', salary: '20k-35k', location: '杭州', tags: ['Vue3', 'Element Plus', 'Vite'], deadline: '2026.05.15', hot: true, category: '互联网/AI', subCategory: '前端开发', jobType: 'Vue.js' },
-  { id: 2002, position: '高级前端工程师', company: '腾讯', salary: '30k-50k', location: '深圳', tags: ['Vue', 'React', 'Node.js'], deadline: '2026.04.30', hot: true, category: '互联网/AI', subCategory: '前端开发', jobType: 'Vue.js' },
-  { id: 2003, position: 'React前端开发', company: '字节跳动', salary: '25k-42k', location: '上海', tags: ['React', 'Next.js', 'TypeScript'], deadline: '2026.05.20', hot: true, category: '互联网/AI', subCategory: '前端开发', jobType: 'React' },
-  { id: 2004, position: 'React开发工程师', company: '美团', salary: '23k-38k', location: '北京', tags: ['React', 'Redux', 'Webpack'], deadline: '2026.06.10', hot: false, category: '互联网/AI', subCategory: '前端开发', jobType: 'React' },
-  { id: 2005, position: 'JavaScript开发', company: '百度', salary: '18k-30k', location: '北京', tags: ['JavaScript', 'jQuery', 'Ajax'], deadline: '2026.07.01', hot: false, category: '互联网/AI', subCategory: '前端开发', jobType: 'JavaScript' },
-  { id: 2006, position: 'TypeScript开发', company: '微软', salary: '28k-48k', location: '苏州', tags: ['TypeScript', 'React', 'Node.js'], deadline: '2026.08.01', hot: true, category: '互联网/AI', subCategory: '前端开发', jobType: 'TypeScript' },
-  { id: 2007, position: '小程序开发', company: '京东', salary: '20k-35k', location: '北京', tags: ['微信小程序', 'Vue', 'Taro'], deadline: '2026.06.15', hot: true, category: '互联网/AI', subCategory: '前端开发', jobType: '小程序开发' },
-  { id: 2008, position: '鸿蒙开发工程师', company: '华为', salary: '25k-45k', location: '东莞', tags: ['鸿蒙', 'ArkTS', '鸿蒙应用'], deadline: '2026.09.01', hot: true, category: '互联网/AI', subCategory: '前端开发', jobType: '鸿蒙开发' },
-  { id: 3001, position: '软件测试工程师', company: '京东', salary: '15k-25k', location: '北京', tags: ['功能测试', '性能测试', 'JIRA'], deadline: '2026.06.01', hot: false, category: '互联网/AI', subCategory: '测试', jobType: '软件测试' },
-  { id: 3002, position: '高级测试工程师', company: '腾讯', salary: '22k-38k', location: '深圳', tags: ['自动化测试', '性能测试', 'Python'], deadline: '2026.05.20', hot: true, category: '互联网/AI', subCategory: '测试', jobType: '软件测试' },
-  { id: 3003, position: '自动化测试', company: '字节跳动', salary: '20k-35k', location: '北京', tags: ['Selenium', 'Python', 'CI/CD'], deadline: '2026.06.15', hot: true, category: '互联网/AI', subCategory: '测试', jobType: '自动化测试' },
-  { id: 3004, position: '性能测试工程师', company: '阿里巴巴', salary: '20k-35k', location: '杭州', tags: ['JMeter', 'LoadRunner', '性能分析'], deadline: '2026.07.01', hot: false, category: '互联网/AI', subCategory: '测试', jobType: '性能测试' },
-  { id: 3005, position: '测试开发', company: '美团', salary: '22k-38k', location: '北京', tags: ['Python', '自动化框架', 'CI/CD'], deadline: '2026.06.20', hot: true, category: '互联网/AI', subCategory: '测试', jobType: '测试开发' },
-  { id: 3006, position: '渗透测试工程师', company: '奇安信', salary: '18k-32k', location: '北京', tags: ['网络安全', '渗透测试', '漏洞挖掘'], deadline: '2026.08.01', hot: true, category: '互联网/AI', subCategory: '测试', jobType: '渗透测试' },
-  { id: 4001, position: '推荐算法工程师', company: '字节跳动', salary: '35k-60k', location: '北京', tags: ['推荐系统', 'Python', 'TensorFlow'], deadline: '2026.05.15', hot: true, category: '互联网/AI', subCategory: '算法', jobType: '推荐算法' },
-  { id: 4002, position: '大模型算法工程师', company: '阿里巴巴', salary: '40k-70k', location: '杭州', tags: ['LLM', 'PyTorch', 'NLP'], deadline: '2026.06.01', hot: true, category: '互联网/AI', subCategory: '算法', jobType: '大模型算法' },
-  { id: 4003, position: '计算机视觉算法', company: '商汤科技', salary: '30k-55k', location: '上海', tags: ['CV', '图像识别', 'PyTorch'], deadline: '2026.07.01', hot: true, category: '互联网/AI', subCategory: '算法', jobType: '图像算法' },
-  { id: 4004, position: 'NLP算法工程师', company: '百度', salary: '32k-58k', location: '北京', tags: ['NLP', 'BERT', 'Python'], deadline: '2026.06.15', hot: true, category: '互联网/AI', subCategory: '算法', jobType: '自然语言处理' },
-  { id: 4005, position: '机器学习工程师', company: '腾讯', salary: '28k-50k', location: '深圳', tags: ['机器学习', 'Python', 'Scikit-learn'], deadline: '2026.05.30', hot: true, category: '互联网/AI', subCategory: '算法', jobType: '机器学习' },
-  { id: 5001, position: '产品经理', company: '腾讯', salary: '20k-38k', location: '深圳', tags: ['产品设计', '用户研究', 'Axure'], deadline: '2026.05.10', hot: true, category: '互联网/AI', subCategory: '产品', jobType: '产品经理' },
-  { id: 5002, position: 'AI产品经理', company: '字节跳动', salary: '28k-48k', location: '北京', tags: ['AI产品', '大模型', '产品规划'], deadline: '2026.06.01', hot: true, category: '互联网/AI', subCategory: '产品', jobType: 'AI产品' },
-  { id: 5003, position: '数据产品经理', company: '阿里巴巴', salary: '25k-42k', location: '杭州', tags: ['数据产品', 'BI', '数据分析'], deadline: '2026.07.01', hot: false, category: '互联网/AI', subCategory: '产品', jobType: '数据产品' },
-  { id: 6001, position: '数据分析师', company: '字节跳动', salary: '18k-32k', location: '北京', tags: ['SQL', 'Python', 'Tableau'], deadline: '2026.05.20', hot: true, category: '互联网/AI', subCategory: '数据分析', jobType: '数据分析师' },
-  { id: 6002, position: '数据开发工程师', company: '阿里巴巴', salary: '22k-40k', location: '杭州', tags: ['Spark', 'Hadoop', '数据仓库'], deadline: '2026.06.15', hot: false, category: '互联网/AI', subCategory: '数据分析', jobType: '数据开发' },
-  { id: 7001, position: '嵌入式工程师', company: '华为', salary: '18k-32k', location: '东莞', tags: ['C', 'RTOS', 'Linux'], deadline: '2026.07.01', hot: true, category: '电子/通信/硬件', subCategory: '硬件开发', jobType: '嵌入式' },
-  { id: 7002, position: '嵌入式软件工程师', company: '大疆', salary: '20k-38k', location: '深圳', tags: ['C++', 'ARM', '嵌入式Linux'], deadline: '2026.08.01', hot: true, category: '电子/通信/硬件', subCategory: '硬件开发', jobType: '嵌入式' },
-  { id: 7003, position: '硬件工程师', company: '小米', salary: '16k-30k', location: '北京', tags: ['原理图', 'PCB', 'ARM'], deadline: '2026.06.15', hot: false, category: '电子/通信/硬件', subCategory: '硬件开发', jobType: '硬件工程师' },
-  { id: 7004, position: 'FPGA工程师', company: '中兴', salary: '20k-38k', location: '南京', tags: ['FPGA', 'Verilog', '数字电路'], deadline: '2026.09.01', hot: true, category: '电子/通信/硬件', subCategory: '硬件开发', jobType: 'FPGA' },
-  { id: 7005, position: '5G通信工程师', company: '华为', salary: '18k-32k', location: '上海', tags: ['5G', '通信协议', '网络优化'], deadline: '2026.08.15', hot: true, category: '电子/通信/硬件', subCategory: '通信', jobType: '5G' },
-  { id: 7006, position: '芯片设计工程师', company: '海思', salary: '30k-55k', location: '深圳', tags: ['芯片设计', 'Verilog', 'SoC'], deadline: '2026.10.01', hot: true, category: '电子/通信/硬件', subCategory: '半导体', jobType: '芯片设计' },
-  { id: 8001, position: '量化研究员', company: '幻方量化', salary: '35k-60k', location: '上海', tags: ['Python', '金融数学', '统计'], deadline: '2026.07.01', hot: true, category: '金融', subCategory: '量化', jobType: '量化研究员' },
-  { id: 8002, position: '量化开发', company: '九坤投资', salary: '30k-55k', location: '北京', tags: ['C++', 'Python', '交易系统'], deadline: '2026.08.01', hot: true, category: '金融', subCategory: '量化', jobType: '量化开发' },
-  { id: 8003, position: '风控模型工程师', company: '蚂蚁集团', salary: '25k-45k', location: '杭州', tags: ['风控模型', '机器学习', 'Python'], deadline: '2026.06.15', hot: true, category: '金融', subCategory: '风控', jobType: '风控模型' },
-  { id: 8004, position: '区块链开发', company: '微众银行', salary: '28k-50k', location: '深圳', tags: ['区块链', '智能合约', 'Solidity'], deadline: '2026.09.01', hot: true, category: '金融', subCategory: '金融科技', jobType: '区块链' },
-  { id: 9001, position: '大客户销售', company: '阿里巴巴', salary: '15k-30k+提成', location: '北京', tags: ['大客户', 'SaaS', '解决方案'], deadline: '2026.06.01', hot: true, category: '市场/销售/商务', subCategory: '销售', jobType: '大客户销售' },
-  { id: 9002, position: '销售代表', company: '美团', salary: '10k-20k+提成', location: '上海', tags: ['地推', 'BD', '客户开发'], deadline: '2026.07.01', hot: false, category: '市场/销售/商务', subCategory: '销售', jobType: '销售代表' },
-  { id: 9003, position: '市场营销专员', company: '字节跳动', salary: '12k-22k', location: '北京', tags: ['品牌策划', '活动执行', '市场调研'], deadline: '2026.05.30', hot: false, category: '市场/销售/商务', subCategory: '市场营销', jobType: '市场营销' },
-  { id: 10001, position: 'HRBP', company: '腾讯', salary: '18k-32k', location: '深圳', tags: ['HRBP', '组织发展', '员工关系'], deadline: '2026.06.10', hot: true, category: '人事/财务/行政', subCategory: '人力资源', jobType: 'HRBP' },
-  { id: 10002, position: '会计', company: '阿里巴巴', salary: '12k-22k', location: '杭州', tags: ['总账', '财务报表', '税务'], deadline: '2026.07.01', hot: false, category: '人事/财务/行政', subCategory: '财务', jobType: '会计' },
-  { id: 11001, position: '施工员', company: '中建集团', salary: '8k-15k', location: '全国', tags: ['施工管理', '现场协调', '安全监督'], deadline: '2026.08.01', hot: false, category: '房地产/建筑', subCategory: '工程管理', jobType: '施工员' },
-  { id: 11002, position: '项目经理', company: '万科', salary: '18k-35k', location: '深圳', tags: ['项目管理', '施工管理', '团队协调'], deadline: '2026.09.01', hot: true, category: '房地产/建筑', subCategory: '工程管理', jobType: '项目经理' },
-  { id: 11003, position: '造价工程师', company: '碧桂园', salary: '12k-25k', location: '佛山', tags: ['工程造价', '预算', '成本控制'], deadline: '2026.07.15', hot: false, category: '房地产/建筑', subCategory: '工程造价', jobType: '造价工程师' },
-  { id: 11004, position: '室内设计师', company: '尚层装饰', salary: '10k-22k', location: '北京', tags: ['室内设计', '3D Max', '施工图'], deadline: '2026.08.20', hot: false, category: '房地产/建筑', subCategory: '装饰装修', jobType: '室内设计' },
-  { id: 12001, position: '物流专员', company: '京东物流', salary: '7k-14k', location: '北京', tags: ['物流管理', '仓储', '配送'], deadline: '2026.07.01', hot: false, category: '物流/仓储/司机', subCategory: '物流', jobType: '物流专员' },
-  { id: 12002, position: '仓库管理员', company: '顺丰速运', salary: '6k-12k', location: '上海', tags: ['仓储管理', 'WMS', '盘点'], deadline: '2026.08.01', hot: false, category: '物流/仓储/司机', subCategory: '仓储', jobType: '仓管员' },
-  { id: 13001, position: '英语教师', company: '新东方', salary: '10k-20k', location: '北京', tags: ['英语教学', '雅思', '托福'], deadline: '2026.07.15', hot: true, category: '教育培训', subCategory: '教师', jobType: '语数外教师' },
-  { id: 13002, position: '课程顾问', company: '好未来', salary: '8k-18k+提成', location: '上海', tags: ['课程销售', '客户咨询', '家长沟通'], deadline: '2026.08.01', hot: true, category: '教育培训', subCategory: '课程顾问', jobType: '课程顾问' },
-  { id: 14001, position: '护士', company: '协和医院', salary: '8k-16k', location: '北京', tags: ['护理', '静脉输液', '病房管理'], deadline: '2026.09.01', hot: false, category: '医疗/健康', subCategory: '护士', jobType: '护士' },
-  { id: 14002, position: '医药代表', company: '辉瑞', salary: '12k-25k+提成', location: '上海', tags: ['医药销售', '医院开发', '学术推广'], deadline: '2026.08.15', hot: true, category: '医疗/健康', subCategory: '医药', jobType: '医药代表' },
-  { id: 15001, position: '电池工程师', company: '宁德时代', salary: '15k-30k', location: '宁德', tags: ['锂电池', 'BMS', '电芯'], deadline: '2026.09.01', hot: true, category: '汽车', subCategory: '新能源汽车', jobType: '电池工程师' },
-  { id: 15002, position: '汽车销售顾问', company: '特斯拉', salary: '10k-25k+提成', location: '北京', tags: ['汽车销售', '试驾', '客户服务'], deadline: '2026.08.01', hot: true, category: '汽车', subCategory: '汽车销售', jobType: '汽车销售' },
-  { id: 16001, position: '带货主播', company: '交个朋友', salary: '15k-40k+提成', location: '杭州', tags: ['直播带货', '抖音', '口播'], deadline: '2026.07.01', hot: true, category: '直播/影视/传媒', subCategory: '直播', jobType: '带货主播' },
-  { id: 16002, position: '视频剪辑', company: 'B站', salary: '10k-22k', location: '上海', tags: ['PR', 'AE', '短视频'], deadline: '2026.08.15', hot: false, category: '直播/影视/传媒', subCategory: '影视', jobType: '剪辑' }
-])
+const jobCards = ref([])
+const loadingJobs = ref(false)
+
+// 1. 获取岗位数据的函数（超级兼容模式）
+const fetchJobData = async () => {
+  loadingJobs.value = true
+  try {
+    const res = await request.get('/api/jobs/list')
+    
+    let rawList = []
+    if (res && Array.isArray(res.data)) rawList = res.data
+    else if (Array.isArray(res)) rawList = res
+    else if (res?.data?.records) rawList = res.data.records
+
+    if (!rawList || rawList.length === 0) {
+      jobCards.value = []
+      return
+    }
+
+    console.log("后端返回的原始数据：", rawList)
+
+    // 🔄 精准映射：彻底解决字段不匹配问题
+    jobCards.value = rawList.map(job => {
+      // 安全处理后端 techStack (技术栈) 字符串转前端 tags 数组
+      let parsedTags = []
+      if (job.techStack && typeof job.techStack === 'string') {
+        parsedTags = job.techStack.split(',').filter(t => t.trim() !== '')
+      }
+
+      return {
+        id: job.id,
+        // 核心修正：后端对应的是 jobName 和 companyName
+        position: job.jobName || '未命名岗位', 
+        company: job.companyName || '未知企业',
+        salary: job.salary || '薪资面议',
+        // 核心修正：后端对应的地区是 area
+        location: job.area || '全国',
+        // 核心修正：标签对应后端的 techStack
+        tags: parsedTags,
+        deadline: '长期有效',
+        hot: job.financingStage === '不需要融资', // 可根据实际情况调整热门逻辑
+        
+        // 核心修正：行业大类对应后端的 industry
+        category: job.industry || '互联网/AI', 
+        subCategory: '后端开发', // 后端无此精确字段，可给默认值
+        jobType: '全部',
+        
+        // 把后端的详细描述也传过去，让详情页告别写死的数据
+        jobDescription: job.jobDescription || '暂无岗位职责描述',
+        requirements: job.requirements || '暂无任职要求说明'
+      }
+    })
+  } catch (error) {
+    console.error('获取产教融合岗位数据彻底失败:', error)
+  } finally {
+    loadingJobs.value = false
+  }
+}
 
 const selectedCategory = ref('互联网/AI')
 const selectedSubCategory = ref('后端开发')
@@ -1415,19 +1407,35 @@ const currentJobsList = computed(() => {
   return sub?.jobs || []
 })
 
+// 核心：极其严谨的组合过滤逻辑，容错性极高
 const filteredJobCards = computed(() => {
-  let filtered = jobCards.value.filter(card => 
-    card.category === selectedCategory.value &&
-    card.subCategory === selectedSubCategory.value
-  )
-  if (selectedJob.value !== '全部') {
-    filtered = filtered.filter(card => card.jobType === selectedJob.value)
-  }
-  return filtered
+  // 如果数据库还没加载完成或为空，直接返回空数组
+  if (!jobCards.value || jobCards.value.length === 0) return [];
+  
+  return jobCards.value.filter(card => {
+    // 1. 大类匹配 (容错：使用 includes 模糊匹配以防后端存的字符有细微差别)
+    const matchCategory = !selectedCategory.value || 
+                          (card.category && card.category.includes(selectedCategory.value));
+    
+    // 2. 子类匹配 (因为后端暂时没有子类，你可以暂时跳过此匹配，或者确保它能通过)
+    const matchSubCategory = !selectedSubCategory.value || card.subCategory === selectedSubCategory.value;
+    
+    // 3. 具体工作匹配
+    const matchJob = !selectedJob.value || selectedJob.value === '全部' || card.jobType === selectedJob.value;
+    
+    return matchCategory && matchSubCategory && matchJob;
+  });
 })
 
+// 2. 跳转详情页的函数（加入真正的跳转逻辑）
 const goToJobDetail = (job) => {
-  console.log('查看职位：', job)
+  // 点击卡片后，携带该卡片的数据跳转到刚才新建的 JobDetail.vue 页面
+  router.push({
+    path: '/job-detail',
+    query: {
+      data: encodeURIComponent(JSON.stringify(job))
+    }
+  })
 }
 
 // ================= 竞赛大厅数据 (保留原有分类) =================
