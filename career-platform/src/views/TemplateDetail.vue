@@ -1,114 +1,149 @@
 <template>
-  <div class="min-h-screen bg-gray-50 py-10">
-    <div class="max-w-4xl mx-auto bg-white rounded-2xl shadow-sm p-10 border border-gray-100" v-if="detail">
+  <div class="min-h-screen bg-gray-100 py-12 px-4 flex flex-col items-center">
+    
+    <div class="w-full max-w-4xl">
       
-      <button @click="router.back()" class="mb-6 text-gray-500 hover:text-blue-500 flex items-center gap-2 transition-colors">
-        <span>←</span> 返回模板库
-      </button>
+      <!-- ==================== 顶部工具栏 ==================== -->
+      <div class="mb-10 flex items-center justify-between">
+        <button 
+          @click="router.back()" 
+          class="flex items-center text-gray-500 hover:text-blue-600 font-bold transition-all"
+        >
+          <span class="mr-2 text-2xl">←</span> 返回列表
+        </button>
 
-      <div class="flex flex-col md:flex-row gap-10">
-<div class="w-full md:w-1/2 border rounded-xl overflow-hidden shadow-sm bg-gray-50 flex items-center justify-center">
-  <img 
-    :src="getSafeImageUrl(detail.previewUrl)" 
-    class="w-full h-auto object-cover" 
-    alt="简历预览" 
-    v-if="detail.previewUrl"
-  />
-  <div v-else class="h-96 flex flex-col items-center justify-center text-gray-400">
-    <span class="text-4xl mb-2">📄</span>
-    <span>暂无封面预览图</span>
-  </div>
-</div>
+        <div v-if="detail" class="text-xs font-bold text-gray-400 tracking-widest uppercase">
+          {{ detail.type === 1 ? '精选模板' : '优秀简历' }}
+        </div>
 
-<div class="w-full md:w-1/2 flex flex-col justify-center gap-6">
-  <div class="flex flex-col gap-3 mt-4">
-    <button @click="downloadDoc" class="w-full py-3.5 bg-blue-500 text-white font-medium rounded-xl hover:bg-blue-600 shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2">
-      <span class="text-lg">📥</span> 下载 Word 原件
-    </button>
-    
-    <button @click="previewDocOnline" class="w-full py-3.5 bg-indigo-500 text-white font-medium rounded-xl hover:bg-indigo-600 shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2">
-      <span class="text-lg">👁️</span> 在线预览真实原件
-    </button>
-    
-    <button 
-      v-if="detail.type === 1" 
-      @click="editOnline" 
-      class="w-full py-3.5 bg-green-500 text-white font-medium rounded-xl hover:bg-green-600 shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-    >
-      <span class="text-lg">✏️</span> 去填写内容
-    </button>
-  </div>
-</div>
+        <div class="flex items-center gap-3">
+          <button 
+            @click="downloadDoc" 
+            class="px-6 py-3 bg-gray-900 hover:bg-black text-white font-black rounded-2xl shadow-xl flex items-center gap-2 transition-all"
+          >
+            📥 下载 Word 原件
+          </button>
+          
+          <button 
+            v-if="detail?.type === 1" 
+            @click="editOnline" 
+            class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-2xl shadow-xl flex items-center gap-2 transition-all"
+          >
+            ✏️ 在线编辑填写
+          </button>
+        </div>
       </div>
-    </div>
 
-    <div v-else class="flex flex-col items-center justify-center h-96 text-gray-500 gap-4">
-      <div class="animate-spin rounded-full h-10 w-10 border-4 border-gray-200 border-t-blue-500"></div>
-      <p>正在努力加载模板详情...</p>
+      <!-- ==================== 标题 ==================== -->
+      <div v-if="detail" class="text-center mb-10">
+        <h1 class="text-3xl font-black text-gray-900 mb-3">{{ detail.name }}</h1>
+        <div class="flex items-center justify-center gap-6 text-sm text-gray-400">
+          <span>📅 更新: {{ formatDate(detail.updateTime) }}</span>
+          <span>📄 格式: Word (.docx)</span>
+        </div>
+      </div>
+
+      <!-- ==================== 强制缩小 + 居中预览（关键修复） ==================== -->
+      <div v-if="detail" class="flex justify-center mb-12">
+        <div 
+          class="preview-card"
+          style="width: 380px; max-width: 380px; box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);"
+        >
+          <img 
+            v-if="detail.previewUrl"
+            :src="detail.previewUrl" 
+            class="w-full h-full object-contain bg-white rounded-3xl p-5"
+            @error="handleImgError"
+            alt="简历预览"
+          />
+          <div v-else class="w-full h-full flex flex-col items-center justify-center text-gray-300 bg-white rounded-3xl">
+            <span class="text-7xl mb-4">📄</span>
+            <p class="font-bold text-xl">预览图加载中...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 版权 -->
+      <p v-if="detail" class="text-center text-sm text-gray-400 mt-6">
+        资源版权归 AI 职友平台所有，严禁非法转售
+      </p>
+
+      <!-- 加载 -->
+      <div v-else-if="loading" class="flex flex-col items-center justify-center py-20">
+        <div class="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+
+      <!-- 空状态 -->
+      <div v-else class="text-center py-20">
+        <div class="text-6xl mb-4">🏜️</div>
+        <p class="text-gray-500 font-bold">未能加载资源，请检查链接</p>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import request from '../utils/request';
+import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import request from '../utils/request'
 
-const route = useRoute();
-const router = useRouter();
-const detail = ref(null);
+const route = useRoute()
+const router = useRouter()
+const detail = ref(null)
+const loading = ref(true)
 
 onMounted(async () => {
+  loading.value = true
   try {
-    const res = await request.get(`/api/templates/${route.params.id}`);
-    // 【修改点 1】：后端返回的是 Result 结构，真正的模板数据在 res.data 中
-    // 兼容写法：如果 res.data 存在就用 res.data，否则用 res
-    detail.value = res.data || res;
+    const res = await request.get(`/api/templates/${route.params.id}`)
+    detail.value = (res && res.code === 200) ? res.data : res
   } catch (error) {
-    console.error("获取详情失败", error);
+    console.error("加载详情失败:", error)
+  } finally {
+    setTimeout(() => { loading.value = false }, 400)
   }
-});
+})
 
-// 下载 Word 的方法
+const handleImgError = (e) => {
+  e.target.src = 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800'
+}
+
 const downloadDoc = () => {
-  if (detail.value && detail.value.docUrl) {
-    window.open(detail.value.docUrl, '_blank');
-  } else {
-    alert('暂无下载链接');
-  }
-};
+  if (detail.value?.docUrl) window.open(detail.value.docUrl, '_blank')
+  else alert("下载链接失效")
+}
 
-// 跳转到编辑页的方法
 const editOnline = () => {
-  // 跳转到现有的编辑页，并把 templateId 带过去
-  router.push({ path: '/resume-final-edit', query: { templateId: detail.value.id } });
-};
-
-// 安全图片渲染，防止 docx 链接直接赋给 img 标签导致裂图
-const getSafeImageUrl = (url) => {
-  if (!url) return '';
-  const lowerUrl = String(url).toLowerCase();
-  // 如果后端存的封面其实是 doc/docx 链接，给一张好看的默认骨架屏/占位图
-  if (lowerUrl.includes('.doc') || lowerUrl.includes('.docx')) {
-    return 'https://images.unsplash.com/photo-1612441804231-77a36b284856?w=600';
+  if (detail.value?.id) {
+    router.push({ path: '/resume-final-edit', query: { templateId: detail.value.id } })
   }
-  return url;
-};
+}
 
-// 调用微软官方引擎在线预览真实的 DOCX 原件
-const previewDocOnline = () => {
-  if (detail.value && detail.value.docUrl) {
-    const officeUrl = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(detail.value.docUrl)}`;
-    window.open(officeUrl, '_blank');
-  } else {
-    alert('暂无源文件，无法在线预览');
-  }
-};
-
-// 时间格式化工具
 const formatDate = (dateStr) => {
-  if (!dateStr) return '';
-  const date = new Date(dateStr);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-};
+  if (!dateStr) return '2026-03-26'
+  const d = new Date(dateStr)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 </script>
+
+<style scoped>
+/* 强制覆盖所有老样式 */
+.preview-card {
+  width: 380px !important;
+  max-width: 380px !important;
+  aspect-ratio: 1 / 1.414 !important;
+  background: white !important;
+  border-radius: 24px !important;
+  overflow: hidden !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+/* 确保图片强制缩小 */
+.preview-card img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  padding: 20px !important;
+  background: white !important;
+}
+</style>

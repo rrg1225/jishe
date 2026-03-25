@@ -88,11 +88,6 @@ const routes = [
     path: '/template-detail/:id',
     name: 'TemplateDetail',
     component: () => import('../views/TemplateDetail.vue')
-  },
-  {
-    path: '/template-detail/:id',
-    name: 'TemplateDetail',
-    component: () => import('../views/TemplateDetail.vue')
   }
 ]
 

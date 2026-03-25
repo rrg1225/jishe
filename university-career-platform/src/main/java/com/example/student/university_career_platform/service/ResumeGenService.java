@@ -49,9 +49,9 @@ public class ResumeGenService {
         try {
             String cleanJson = v3JsonOutput.replaceAll("```json", "").replaceAll("```", "").trim();
             Map<String, String> optimizedData = objectMapper.readValue(cleanJson, new TypeReference<Map<String, String>>() {});
-            result.put("educationInfo", optimizedData.getOrDefault("optimizedEducation", education));
-            result.put("projectExperience", optimizedData.getOrDefault("optimizedProject", project));
-            result.put("hrAdvice", r1DraftText);
+            result.put("educationInfo", optimizedData.getOrDefault("optimizedEducation", (String)rawData.get("educationInfo")));
+            result.put("projectExperience", optimizedData.getOrDefault("optimizedProject", (String)rawData.get("projectExperience")));
+            result.put("professionalSkills", optimizedData.getOrDefault("optimizedSkills", (String)rawData.get("professionalSkills")));
         } catch (Exception e) {
             result.put("projectExperience", r1DraftText);
         }

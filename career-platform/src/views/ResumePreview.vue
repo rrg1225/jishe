@@ -156,6 +156,11 @@ const targetJob = ref('全栈开发工程师')
 const fileInput = ref(null)
 const avatarUrl = ref('')
 
+// 1. 定义更多的响应式变量来接收数据
+const eduInfo = ref('')
+const skills = ref('')
+const projects = ref('')
+
 const renderedResume = computed(() => {
   if (!rawMarkdown.value) return '<div class="loading">⏳ 加载中...</div>'
   return marked(rawMarkdown.value)
@@ -170,8 +175,19 @@ watch(rawMarkdown, (newVal) => {
 }, { immediate: true })
 
 onMounted(() => {
-  rawMarkdown.value = localStorage.getItem('generatedResume') || '# 暂无数据\n请返回重新生成'
-  avatarUrl.value = localStorage.getItem('resumeAvatar') || ''
+  // 从本地存储获取完整的数据对象
+  const savedData = JSON.parse(localStorage.getItem('generatedResumeFullData') || '{}')
+  
+  if (savedData.fullName) userName.value = savedData.fullName
+  if (savedData.targetJob) targetJob.value = savedData.targetJob
+  
+  // 🌟 将 AI 优化的分段内容存入变量
+  eduInfo.value = savedData.educationInfo || ''
+  skills.value = savedData.professionalSkills || ''
+  projects.value = savedData.projectExperience || ''
+  
+  // 保持 Markdown 兼容逻辑
+  rawMarkdown.value = localStorage.getItem('generatedResume') || ''
 })
 
 const goBackToEdit = () => {

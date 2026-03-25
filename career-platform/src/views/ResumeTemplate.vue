@@ -215,19 +215,16 @@ const handleGenerate = () => {
   if (!resumeData.projectExperience.trim()) { alert('写一点项目经历吧！'); return; }
 
   isGenerating.value = true
-  const promptData = `
-# ${resumeData.fullName}的简历
-求职意向：${resumeData.targetJob}
-联系电话：${resumeData.contactPhone}
-## 教育背景
-${resumeData.educationInfo}
-## 项目经历
-${resumeData.projectExperience}
-## 专业技能
-${resumeData.professionalSkills}
-  `
+  const initialData = {
+    fullName: resumeData.fullName,
+    contactPhone: resumeData.contactPhone,
+    targetJob: resumeData.targetJob,
+    educationInfo: resumeData.educationInfo,
+    projectExperience: resumeData.projectExperience,
+    professionalSkills: resumeData.professionalSkills
+  }
   sessionStorage.setItem('tempResumePrompt', promptData)
-  sessionStorage.setItem('selectedTemplateId', selectedAiTemplate.value.id)
+
 
   setTimeout(() => {
     isGenerating.value = false

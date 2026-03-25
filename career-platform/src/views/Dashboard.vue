@@ -670,7 +670,7 @@
                   AI 专属简历定制
                   <span class="hot-badge-new">🔥 智能生成</span>
                 </h3>
-                <p>只需两步：选择心仪的排版风格，粘贴所有经历信息，AI 将为您生成专业级描述与排版。</p>
+                <p>只需两步：选择心仪的排版风格，粘贴经历信息，AI 为您生成专业描述与排版。</p>
               </div>
             </div>
 
@@ -691,7 +691,7 @@
                   @mouseleave="hoveredPreviewUrl = null"
                   @click="selectedAiTemplate = tpl"
                 >
-                  <div class="tpl-preview" :style="{ backgroundImage: `url(${tpl.previewUrl})`, backgroundSize: 'cover', backgroundPosition: 'top center', backgroundColor: '#f1f5f9' }">
+                  <div class="tpl-preview" :style="{ backgroundImage: `url(${getSafeImageUrl(tpl.previewUrl)})`, backgroundSize: 'cover', backgroundPosition: 'top center', backgroundColor: '#f1f5f9' }">
                     <div class="tpl-badge">AI 推荐</div>
                     <div class="active-check" v-if="selectedAiTemplate?.id === tpl.id">✓</div>
                   </div>
@@ -717,7 +717,7 @@
                 <div class="example-content">
                   <div class="example-title">📝 输入示例</div>
                   <div class="example-text">
-                    我叫张三，电话 13800000000，邮箱 zhangsan@email.com。南京工业大学计算机专业，GPA 3.8/4.0。曾做过一个校园外卖平台项目...
+                    我叫张三，电话 13800000000，邮箱 zhangsan@email.com。南京工业大学计算机专业...
                   </div>
                 </div>
                 <button class="use-example-btn" @click="useExample">一键填充示例</button>
@@ -738,29 +738,7 @@
                     <button class="clear-btn" @click="clearInput" v-if="rawResumeInput">清空</button>
                   </div>
                 </div>
-                <textarea
-                  v-model="rawResumeInput"
-                  placeholder="在这里粘贴或输入您的经历信息..."
-                  class="resume-textarea-new"
-                  :class="{ 'has-content': rawResumeInput }"
-                ></textarea>
-              </div>
-
-              <div class="ai-analysis-new" v-if="rawResumeInput && rawResumeInput.length > 30">
-                <div class="analysis-header-new">
-                  <span class="analysis-icon">🤖</span>
-                  <span>AI 智能分析</span>
-                </div>
-                <div class="analysis-content-new">
-                  <div class="analysis-item">
-                    <span class="item-label">检测到关键信息：</span>
-                    <span class="item-value">{{ detectedInfo.join('、') || '暂无' }}</span>
-                  </div>
-                  <div class="analysis-item">
-                    <span class="item-label">建议补充：</span>
-                    <span class="item-value suggestion">{{ suggestions.join('、') || '信息较完整' }}</span>
-                  </div>
-                </div>
+                <textarea v-model="rawResumeInput" placeholder="在这里粘贴或输入您的经历信息..." class="resume-textarea-new"></textarea>
               </div>
             </div>
 
@@ -780,7 +758,6 @@
               </div>
               <div class="view-all-btn" @click="router.push('/resume-template')">
                 进入专门页面挑选 <span>→</span>
-              </div>
               </div>
             </div>
             
@@ -803,8 +780,9 @@
                 </div>
               </div>
             </div>
+          </div>
 
-<div class="rh-module">
+          <div class="rh-module">
             <div class="rh-header" style="display: flex; justify-content: space-between; align-items: flex-end;">
               <div class="rh-title">
                 <h3>💡 优秀简历灵感</h3>
@@ -817,12 +795,12 @@
             
             <div class="rh-grid-new">
               <div class="rh-card-new case-card" v-for="item in excellentResumes" :key="'excellent-'+item.id"
-                   @mouseenter="hoveredPreviewUrl = item.previewUrl; hoverId = 'excellent-'+item.id"
-                   @mouseleave="hoveredPreviewUrl = null; hoverId = null">
-                <div class="card-inner-new" :style="{ backgroundImage: `url(${item.previewUrl})` }">
+                  @mouseenter="hoveredPreviewUrl = item.previewUrl; hoverId = 'excellent-'+item.id"
+                  @mouseleave="hoveredPreviewUrl = null; hoverId = null"
+                  @click="goToTemplateDetail(item.id)"> <div class="card-inner-new" :style="{ backgroundImage: `url(${getSafeImageUrl(item.previewUrl)})` }">
                   <transition name="fade">
                     <div class="hover-overlay-new" v-show="hoverId === 'excellent-'+item.id">
-                      <button class="overlay-btn-new primary" @click.stop="previewRealDoc(item.fileUrl)">真实原件预览</button>
+                      <button class="overlay-btn-new primary" @click.stop="previewRealDoc(item.docUrl)">真实原件预览</button>
                       <button class="overlay-btn-new outline" @click.stop="handleDownload(item)">直接下载原件</button>
                     </div>
                   </transition>
