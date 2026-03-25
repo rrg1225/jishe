@@ -83,6 +83,16 @@ const routes = [
     path: '/job-detail',
     name: 'JobDetail',
     component: () => import('../views/JobDetail.vue')
+  },
+  {
+    path: '/template-detail/:id',
+    name: 'TemplateDetail',
+    component: () => import('../views/TemplateDetail.vue')
+  },
+  {
+    path: '/template-detail/:id',
+    name: 'TemplateDetail',
+    component: () => import('../views/TemplateDetail.vue')
   }
 ]
 

@@ -12,9 +12,9 @@
       <div class="nav-right">
         <div class="user-profile" @click="toggleDropdown">
           <span class="role-badge">{{ userRole === 'enterprise' ? '企业 HR' : '学生' }}</span>
-          <div class="avatar">
-            < img :src="userAvatar" alt="头像" />
-          </div>
+            <div class="avatar">
+              <img :src="userAvatar" alt="头像" />
+            </div>
         </div>
       </div>
     </header>
@@ -70,7 +70,7 @@
         <div class="video-description">
           <div class="author-row">
             <div class="author-avatar">
-              < img :src="authorAvatar" alt="作者头像" />
+              <img :src="authorAvatar" alt="作者头像" />
             </div>
             <div class="author-info">
               <span class="author-name">{{ videoAuthor }}</span>
@@ -89,7 +89,7 @@
           
           <div class="comment-input">
             <div class="input-avatar">
-              < img :src="userAvatar" alt="我的头像" />
+              <img :src="userAvatar" alt="我的头像" />
             </div>
             <div class="input-wrapper">
               <textarea 
@@ -104,7 +104,7 @@
           <div class="comment-list">
             <div class="comment-item" v-for="item in commentList" :key="item.id">
               <div class="comment-avatar">
-                < img :src="item.authorAvatar || defaultAvatar" alt="" />
+                <img :src="item.authorAvatar || defaultAvatar" alt="" />
               </div>
               <div class="comment-content">
                 <div class="comment-name">{{ item.authorName }}</div>
@@ -132,7 +132,7 @@
           <div class="recommend-list">
             <div class="recommend-item" v-for="i in 5" :key="i" @click="goToRecommend">
               <div class="rec-cover">
-                < img :src="`https://picsum.photos/100/56?random=${i}`" alt="" />
+                <img :src="`https://picsum.photos/100/56?random=${i}`" alt="" />
                 <span class="rec-duration">12:34</span>
               </div>
               <div class="rec-info">
@@ -422,3 +422,5 @@ html, body {
   width: 320px;
   flex-shrink: 0;
 }
+
+</style>

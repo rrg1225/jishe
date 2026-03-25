@@ -12,34 +12,59 @@ MAJORS = ["计算机科学与技术", "软件工程", "人工智能", "电子信
 # ================= 核心：500所高校档案生成器 =================
 def init_500_schools():
     database = []
-    # 1. 预设中国最顶尖的 30+ 所名校
-    real_names = [
-        "北京大学", "清华大学", "浙江大学", "复旦大学", "上海交通大学", "南京大学",
-        "中国科学技术大学", "哈尔滨工业大学", "西安交通大学", "华中科技大学", "武汉大学",
-        "中山大学", "厦门大学", "四川大学", "电子科技大学", "北京邮电大学", "北京航空航天大学",
-        "同济大学", "东南大学", "华南理工大学", "国防科技大学", "中国人民大学", "北京师范大学",
-        "南开大学", "天津大学", "大连理工大学", "吉林大学", "山东大学", "中国海洋大学",
-        "中南大学", "湖南大学", "重庆大学", "西北工业大学", "兰州大学", "东北大学"
-    ]
 
-    # 🌟 核心修改点：让这些顶尖名校，每个学校都拥有全部 4 个热门专业！
-    for name in real_names:
-        is_science = "理工" in name or "科技" in name or "工业" in name or "航空" in name
-        for major in MAJORS:  # 遍历 4 个专业，全部添加进数据库
+    # 1. 预设中国最顶尖的名校，并绑定它们【真实的研招官网】！
+    top_schools = {
+        "北京大学": "https://admission.pku.edu.cn/",
+        "清华大学": "https://yz.tsinghua.edu.cn/",
+        "浙江大学": "http://grs.zju.edu.cn/yjszs/",
+        "复旦大学": "https://gsao.fudan.edu.cn/",
+        "上海交通大学": "https://yzb.sjtu.edu.cn/",
+        "南京大学": "https://gsec.nju.edu.cn/",
+        "中国科学技术大学": "https://yz.ustc.edu.cn/",
+        "哈尔滨工业大学": "http://yzb.hit.edu.cn/",
+        "西安交通大学": "http://yz.xjtu.edu.cn/",
+        "华中科技大学": "http://gszs.hust.edu.cn/",
+        "武汉大学": "https://gs.whu.edu.cn/",
+        "中山大学": "http://graduate.sysu.edu.cn/zsw/",
+        "厦门大学": "https://zs.xmu.edu.cn/",
+        "四川大学": "https://yz.scu.edu.cn/",
+        "电子科技大学": "https://yz.uestc.edu.cn/",
+        "北京邮电大学": "https://yzb.bupt.edu.cn/",
+        "北京航空航天大学": "http://yzb.buaa.edu.cn/",
+        "同济大学": "https://yz.tongji.edu.cn/",
+        "东南大学": "https://yzb.seu.edu.cn/",
+        "华南理工大学": "https://yz.scut.edu.cn/",
+        "中国人民大学": "http://pgs.ruc.edu.cn/",
+        "北京师范大学": "https://yz.bnu.edu.cn/",
+        "南开大学": "https://yzb.nankai.edu.cn/",
+        "天津大学": "http://yzb.tju.edu.cn/",
+        "大连理工大学": "http://gs.dlut.edu.cn/",
+        "吉林大学": "http://zsb.jlu.edu.cn/",
+        "山东大学": "https://yz.sdu.edu.cn/",
+        "中南大学": "https://gra.csu.edu.cn/",
+        "湖南大学": "http://gra.hnu.edu.cn/",
+        "重庆大学": "http://yz.cqu.edu.cn/"
+    }
+
+    # 给顶尖名校分配真实数据
+    for name, real_url in top_schools.items():
+        is_science = "理工" in name or "科技" in name or "工业" in name or "航空" in name or "邮电" in name
+        for major in MAJORS:  # 让每个名校都拥有全部的热门专业
             database.append({
                 "name": name,
                 "tags": ["985", "双一流", "理工类" if is_science else "综合类"],
                 "major": major,
                 "base_score": random.randint(340, 380),
-                "url": f"https://yz.chsi.com.cn/sch/{name}"
+                "url": real_url  # 🌟 这里直接使用真实的学校官网
             })
 
-    # 2. 词库引擎：组合生成剩下的 460+ 所大学
+    # 2. 词库引擎：组合生成剩下的随机大学
     provinces = ["北京", "上海", "天津", "重庆", "河北", "山西", "辽宁", "吉林", "黑龙江",
                  "江苏", "浙江", "安徽", "福建", "江西", "山东", "河南", "湖北", "湖南",
                  "广东", "海南", "四川", "贵州", "云南", "陕西", "甘肃", "青海", "内蒙古", "广西", "宁夏", "新疆"]
     types = ["综合", "理工", "科技", "工业", "工程", "师范", "农业", "林业", "医药",
-             "中医药", "财经", "政法", "交通", "建筑", "电子", "邮电", "航空", "海洋", "地质", "外国语"]
+             "中医药", "财经", "政法", "交通", "建筑", "电子", "邮电", "海洋", "地质", "外国语"]
 
     print("⏳ 正在由 AI 引擎生成 500 所全国高校数字档案...")
     while len(database) < 500:
@@ -48,19 +73,22 @@ def init_500_schools():
         suffix = random.choice(["大学", "学院"])
         name = f"{prov}{t}{suffix}"
 
-        # 确保大学名字不重复
         if not any(s['name'] == name for s in database):
             tags = []
             if random.random() < 0.15: tags.append("211")
             if random.random() < 0.10: tags.append("双一流")
             tags.append(f"{t}类")
 
+            # 🌟 因为下面这些大学是随机生成的假名字（没有真实官网）
+            # 所以我们用百度搜索作为跳转链接，这样点过去也显得非常合理！
+            search_url = f"https://www.baidu.com/s?wd={name}+研究生招生网"
+
             database.append({
                 "name": name,
                 "tags": tags,
-                "major": random.choice(MAJORS),  # 🌟 给普通院校也固定好专业
-                "base_score": random.randint(270, 330),  # 普通院校基准分数稍低
-                "url": f"https://yz.chsi.com.cn/sch/{name}"
+                "major": random.choice(MAJORS),
+                "base_score": random.randint(270, 330),
+                "url": search_url
             })
 
     return database

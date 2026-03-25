@@ -115,7 +115,8 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import html2pdf from 'html2pdf.js' // 请确保 npm install html2pdf.js
+import html2pdf from 'html2pdf.js'  // 请确保 npm install html2pdf.js
+import request from '../utils/request' 
 
 const router = useRouter()
 
@@ -163,9 +164,29 @@ const handleTextSelection = () => {
   }
 }
 
-const applyAiAction = (actionType) => {
-  alert(`正在调用 AI 进行【${actionType}】，针对文本：\n"${selectedText.value}"`)
-  selectedText.value = '' 
+const applyAiAction = async (actionType) => {
+  if (!selectedText.value) return;
+  
+  const original = selectedText.value;
+  selectedText.value = '正在呼叫 DeepSeek 导师思考中...'; // 简易 Loading 提示
+  
+  try {
+    const res = await request.post('/api/resume/text-polish', {
+      requirements: `请对以下简历选段进行【${actionType}】处理，保持专业性，直接输出结果。`,
+      originalText: original
+    });
+    
+    // 假设后端直接返回字符串
+    const aiResult = res.data || res;
+    
+    // 你可以弹窗让用户确认，或者像 Preview 页面那样直接帮用户替换
+    alert(`DeepSeek 优化结果：\n\n${aiResult}`);
+    
+  } catch (error) {
+    alert('AI 调用失败，请检查网络');
+  } finally {
+    selectedText.value = ''; 
+  }
 }
 
 const updateField = (field, event) => {

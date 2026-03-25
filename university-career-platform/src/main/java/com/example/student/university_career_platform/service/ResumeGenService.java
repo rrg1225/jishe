@@ -1,6 +1,9 @@
 package com.example.student.university_career_platform.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -12,31 +15,46 @@ public class ResumeGenService {
     @Autowired
     private LlmClientService llmClientService;
 
-    // 🌟 在这里补上缺失的模型 ID 常量配置[cite: 4]
-    private static final String MODEL_ID = "qwen2.5-7b-instruct_5fd34c80";
+    // 引入 Spring Boot 自带的 JSON 解析器
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Value("${ai.model.resume-draft}")
+    private String modelR1;
+
+    @Value("${ai.model.resume}")
+    private String modelV3;
 
     public Map<String, Object> optimizeResume(Map<String, Object> rawData) {
-        // 1. 获取用户填写的基础信息
         String education = (String) rawData.getOrDefault("educationInfo", "");
         String project = (String) rawData.getOrDefault("projectExperience", "");
         String templateName = (String) rawData.getOrDefault("templateName", "标准通用模板");
 
-        // 2. 构建 System Prompt (系统角色设定) 和 User Input (用户数据)
-        String systemPrompt = "你是一个资深的 HR 和简历优化专家。现在有一个大学生正在使用【" + templateName + "】求职。\n" +
-                "请将以下草稿内容进行专业润色，要求使用 STAR 法则，突出量化数据，语言精炼专业。\n" +
-                "请直接返回优化后的内容，不要说废话。";
+        // 1. R1 负责深度润色
+        String r1SystemPrompt = "你是一个顶级的资深HR和简历面试辅导专家..."; // (同上文)
+        String r1UserInput = "原始教育经历：\n" + education + "\n\n原始项目经历：\n" + project;
 
-        String userInput = "草稿内容：\n" +
-                "教育经历：" + education + "\n" +
-                "项目经历：" + project + "\n";
+        // 🌟 使用注入的 modelR1 变量
+        String r1DraftText = llmClientService.sendRequest(modelR1, r1SystemPrompt, r1UserInput);
 
-        // 3. 调用项目中真实存在的大模型 API[cite: 4]
-        String aiOptimizedText = llmClientService.sendRequest(MODEL_ID, systemPrompt, userInput);
+        // 2. V3 负责格式化提取
+        String v3SystemPrompt = "你是一个无情的JSON数据格式化提取器..."; // (同上文)
+        String v3UserInput = "HR专家的润色结果如下：\n" + r1DraftText;
 
-        // 4. 将 AI 优化的结果重新封装
+        // 🌟 使用注入的 modelV3 变量
+        String v3JsonOutput = llmClientService.sendRequest(modelV3, v3SystemPrompt, v3UserInput);
+
+        // 3. 解析与合并 (同上文)
         Map<String, Object> result = new HashMap<>(rawData);
-        // 假设我们将 AI 整体优化的一大段话塞回 projectExperience 给前端展示
-        result.put("projectExperience", aiOptimizedText);
+        try {
+            String cleanJson = v3JsonOutput.replaceAll("```json", "").replaceAll("```", "").trim();
+            Map<String, String> optimizedData = objectMapper.readValue(cleanJson, new TypeReference<Map<String, String>>() {});
+            result.put("educationInfo", optimizedData.getOrDefault("optimizedEducation", education));
+            result.put("projectExperience", optimizedData.getOrDefault("optimizedProject", project));
+            result.put("hrAdvice", r1DraftText);
+        } catch (Exception e) {
+            result.put("projectExperience", r1DraftText);
+        }
 
         return result;
     }

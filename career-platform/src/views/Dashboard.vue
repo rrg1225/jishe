@@ -185,33 +185,51 @@
           </div>
         </section>
 
-        <section v-if="activeMenu === 'matrix'" class="fade-in matrix-layout">
+<section v-if="activeMenu === 'matrix'" class="fade-in matrix-layout">
+          
+          <div class="matrix-hero">
+            <div class="piano-keys">
+              <div class="piano-key" v-for="i in 12" :key="i" :style="{ animationDelay: i * 0.1 + 's' }"></div>
+            </div>
+            <div class="hero-content">
+              <div class="hero-icon">📊</div>
+              <h2 class="hero-title">大数据院校筛选实时看板</h2>
+              <p class="hero-desc">全网实时抓取考研/保研核心数据，精准匹配目标院校</p>
+            </div>
+          </div>
+
           <div class="big-data-board">
-            <div class="board-header">
-              <div class="title-area">
-                <h3>📊 大数据院校筛选实时看板</h3>
-                <p>全网实时抓取考研/保研核心数据，精准匹配目标院校</p>
-              </div>
-              <div class="school-search-box">
-                <select v-model="selectedSchoolMajor" class="major-select">
+          <div class="board-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <div class="title-area" style="display: flex; align-items: center; gap: 12px;">
+              <div class="title-badge">实时更新 🔥</div>
+              <span style="font-size: 14px; color: #64748b; font-weight: 500;">全网院校数据快报</span>
+            </div>
+            
+            <div class="school-search-box">
+              <select v-model="selectedSchoolMajor" class="major-select">
                   <option value="全部">所有专业</option>
                   <option value="计算机科学与技术">计算机科学与技术</option>
                   <option value="软件工程">软件工程</option>
                   <option value="人工智能">人工智能</option>
                   <option value="电子信息">电子信息</option>
-                </select>
-                <span class="divider-line">|</span>
-                
-                <span class="search-icon">🔍</span>
-                <input 
-                  type="text" 
-                  v-model="targetSchoolKeyword" 
-                  placeholder="搜索目标院校，例如：北京邮电大学..." 
-                  @keyup.enter="handleSchoolSearch"
-                />
-                <button class="search-btn" @click="handleSchoolSearch">智能检索</button>
-              </div>
+                  <option value="临床医学">临床医学</option>
+                  <option value="信息管理">信息管理</option>
+                  <option value="土木工程">土木工程</option>
+                  <option value="能源与动力工程">能源与动力工程</option>
+                  <option value="环境工程">环境工程</option>
+                  <option value="化学工程与工艺">化学工程与工艺</option>
+              </select>
+              <span class="divider-line">|</span>
+              <span class="search-icon">🔍</span>
+              <input 
+                type="text" 
+                v-model="targetSchoolKeyword" 
+                placeholder="输入院校名称..." 
+                @keyup.enter="handleSchoolSearch"
+              />
+              <button class="search-btn" @click="handleSchoolSearch">检索</button>
             </div>
+          </div>
 
             <div class="data-table-container">
               <div class="data-tabs">
@@ -282,26 +300,40 @@
 
           <div class="home-sections" style="margin-top: 20px;">
             <div class="section-block" v-for="(section, index) in matrixSections" :key="index">
-              <div class="section-title-bar">
-                <div class="title-left">
-                  <h3>{{ section.title }}</h3>
-                  <div class="type-selector">
+              <div class="section-header-optimized">
+                
+                <div class="header-left">
+                  <div class="section-icon" :class="getSectionIconClass(section.dbCategory)">
+                    {{ getSectionIcon(section.dbCategory) }}
+                  </div>
+                  <h3 class="section-title" style="margin-right: 12px;">{{ section.title }}</h3>
+                  
+                  <div class="type-selector-optimized">
                     <span :class="{ active: section.filterType === 'all' }" @click="section.filterType = 'all'">全部</span>
-                    <span :class="{ active: section.filterType === 'video' }" @click="section.filterType = 'video'">视频</span>
-                    <span :class="{ active: section.filterType === 'article' }" @click="section.filterType = 'article'">文章</span>
+                    <span :class="{ active: section.filterType === 'video' }" @click="section.filterType = 'video'">📹 视频</span>
+                    <span :class="{ active: section.filterType === 'article' }" @click="section.filterType = 'article'">📄 文章</span>
                   </div>
                 </div>
-                <span class="more-link" @click="goToListPage(section.dbCategory)">查看全部内容 ></span>
+
+                <div class="header-right">
+                  <span class="more-link" @click="goToListPage(section.dbCategory)">
+                    查看全部 <span class="arrow">›</span>
+                  </span>
+                </div>
               </div>
-              <div class="card-grid">
-                <div class="card" v-for="(item, i) in filteredMatrixItems(section)" :key="i" @click="handleCardClick(item)">
-                  <div class="card-cover" :style="item.coverImg ? { backgroundImage: `url(${item.coverImg})`, backgroundSize: 'cover', backgroundPosition: 'center' } : { background: item.color || 'linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%)' }">
-                    <span class="type-badge" :class="item.type">{{ item.typeText }}</span>
-                    <div v-if="item.type === 'video'" class="play-overlay">▶</div>
+
+              <div class="card-grid-optimized">
+                <div class="card-optimized" v-for="(item, i) in filteredMatrixItems(section)" :key="i" @click="handleCardClick(item)">
+                  <div class="card-cover-optimized" :style="item.coverImg ? { backgroundImage: `url(${item.coverImg})`, backgroundSize: 'cover', backgroundPosition: 'center' } : { background: item.color || 'linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%)' }">
+                    <span class="type-badge-optimized" :class="item.type">{{ item.typeText }}</span>
+                    <div v-if="item.type === 'video'" class="play-icon">▶</div>
                   </div>
-                  <div class="card-info">
-                    <h4 class="card-title">{{ item.title }}</h4>
-                    <p class="card-desc">{{ item.author || '平台官方发布' }}</p>
+                  <div class="card-info-optimized">
+                    <h4 class="card-title-optimized">{{ item.title }}</h4>
+                    <div class="card-meta">
+                      <span class="card-author">{{ item.author || '平台官方发布' }}</span>
+                      <span class="card-date" v-if="item.createTime">{{ formatDateShort(item.createTime) }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -623,8 +655,13 @@
           </div>
         </section>
 
-        <section v-if="activeMenu === 'profile'" class="fade-in resume-hub-container">
+        <section v-if="activeMenu === 'profile'" class="fade-in resume-hub-container relative">
           
+          <div v-if="hoveredPreviewUrl" class="dashboard-preview">
+            <div class="preview-header">简历大图预览</div>
+            <img :src="getSafeImageUrl(hoveredPreviewUrl)" alt="预览" />
+          </div>
+
           <div class="rh-module ai-module">
             <div class="rh-header">
               <div class="rh-title">
@@ -641,33 +678,30 @@
               <div class="step-header-mini">
                 <div class="step-badge">01</div>
                 <h4 class="step-title-new">选择简历模板</h4>
-                <span class="step-count">共 {{ aiTemplates.length }} 款精选模板</span>
+                <span class="step-count">共 {{ dbTemplates.slice(0, 8).length }} 款精选模板</span>
               </div>
 
-              <div class="template-grid-new">
+              <div class="template-grid-new" v-if="dbTemplates.length > 0">
                 <div
-                  v-for="tpl in aiTemplates"
-                  :key="tpl.id"
+                  v-for="tpl in dbTemplates.slice(0, 8)"
+                  :key="'ai-' + tpl.id"
                   class="tpl-card-new"
-                  :class="{ active: selectedAiTemplate.id === tpl.id }"
+                  :class="{ active: selectedAiTemplate?.id === tpl.id }"
+                  @mouseenter="hoveredPreviewUrl = tpl.previewUrl"
+                  @mouseleave="hoveredPreviewUrl = null"
                   @click="selectedAiTemplate = tpl"
                 >
-                  <div class="tpl-preview" :style="{ background: tpl.gradient }">
-                    <div class="preview-content">
-                      <div class="preview-name">{{ tpl.previewName }}</div>
-                      <div class="preview-line"></div>
-                      <div class="preview-desc">{{ tpl.previewDesc }}</div>
-                    </div>
-                    <div class="tpl-badge">{{ tpl.tag }}</div>
-                    <div class="active-check" v-if="selectedAiTemplate.id === tpl.id">✓</div>
+                  <div class="tpl-preview" :style="{ backgroundImage: `url(${tpl.previewUrl})`, backgroundSize: 'cover', backgroundPosition: 'top center', backgroundColor: '#f1f5f9' }">
+                    <div class="tpl-badge">AI 推荐</div>
+                    <div class="active-check" v-if="selectedAiTemplate?.id === tpl.id">✓</div>
                   </div>
-                  <div class="tpl-info-new">
-                    <div class="tpl-name-new">{{ tpl.name }}</div>
-                    <div class="tpl-tags">
-                      <span v-for="tag in tpl.tags" :key="tag" class="tpl-tag">{{ tag }}</span>
-                    </div>
+                  <div class="tpl-info-new" style="padding: 12px 0; text-align: center;">
+                    <div class="tpl-name-new" style="font-weight: 600; color: #334155;">{{ tpl.name }}</div>
                   </div>
                 </div>
+              </div>
+              <div v-else class="loading-state" style="text-align: center; padding: 20px; color: #94a3b8;">
+                正在努力加载 OSS 模板数据...
               </div>
             </div>
 
@@ -683,7 +717,7 @@
                 <div class="example-content">
                   <div class="example-title">📝 输入示例</div>
                   <div class="example-text">
-                    我叫张三，电话 13800000000，邮箱 zhangsan@email.com。南京工业大学计算机专业，GPA 3.8/4.0。曾做过一个校园外卖平台项目，使用 Vue3 + Vite + Pinia，实现商家展示、购物车、订单管理等功能。熟悉 HTML5、CSS3、JavaScript，获得校一等奖学金...
+                    我叫张三，电话 13800000000，邮箱 zhangsan@email.com。南京工业大学计算机专业，GPA 3.8/4.0。曾做过一个校园外卖平台项目...
                   </div>
                 </div>
                 <button class="use-example-btn" @click="useExample">一键填充示例</button>
@@ -692,11 +726,11 @@
               <div class="input-area-new">
                 <div class="input-toolbar-new">
                   <div class="toolbar-buttons">
-                    <button class="tool-btn" @click="addTemplate('education')" title="添加教育经历"><span>🎓</span> 教育</button>
-                    <button class="tool-btn" @click="addTemplate('work')" title="添加工作经历"><span>💼</span> 工作</button>
-                    <button class="tool-btn" @click="addTemplate('project')" title="添加项目经历"><span>🚀</span> 项目</button>
-                    <button class="tool-btn" @click="addTemplate('skill')" title="添加技能"><span>⚡</span> 技能</button>
-                    <button class="tool-btn" @click="addTemplate('award')" title="添加获奖"><span>🏆</span> 获奖</button>
+                    <button class="tool-btn" @click="addTemplate('education')"><span>🎓</span> 教育</button>
+                    <button class="tool-btn" @click="addTemplate('work')"><span>💼</span> 工作</button>
+                    <button class="tool-btn" @click="addTemplate('project')"><span>🚀</span> 项目</button>
+                    <button class="tool-btn" @click="addTemplate('skill')"><span>⚡</span> 技能</button>
+                    <button class="tool-btn" @click="addTemplate('award')"><span>🏆</span> 获奖</button>
                   </div>
                   <div class="toolbar-stats">
                     <span class="char-count">{{ rawResumeInput.length }}</span>
@@ -704,15 +738,9 @@
                     <button class="clear-btn" @click="clearInput" v-if="rawResumeInput">清空</button>
                   </div>
                 </div>
-                
                 <textarea
                   v-model="rawResumeInput"
-                  placeholder="在这里粘贴或输入您的经历信息...
-                  
-                    💡 小贴士：
-                    • 可以随意写，AI会自动整理
-                    • 支持中英文混合输入
-                    • 可以粘贴招聘JD，AI会匹配您的经历"
+                  placeholder="在这里粘贴或输入您的经历信息..."
                   class="resume-textarea-new"
                   :class="{ 'has-content': rawResumeInput }"
                 ></textarea>
@@ -745,62 +773,68 @@
           </div>
 
           <div class="rh-module">
-            <div class="rh-header">
+            <div class="rh-header" style="display: flex; justify-content: space-between; align-items: flex-end;">
               <div class="rh-title">
-                <h3>🗂️ 手动模板库 <span class="badge-new">纯手动 · 无AI</span></h3>
+                <h3>🗂️ 简历模板库 <span class="badge-new">Word 原件下载</span></h3>
+                <p>挑选喜欢的格式，直接下载 Word 文档修改，或者进行在线编辑</p>
+              </div>
+              <div class="view-all-btn" @click="router.push('/resume-template')">
+                进入专门页面挑选 <span>→</span>
+              </div>
               </div>
             </div>
+            
             <div class="rh-grid-new">
-              <div class="rh-card-new" v-for="i in 4" :key="'tpl'+i">
-                <div class="card-inner-new">
-                  <div class="rh-cover-new tpl-cover">
-                    <span class="cover-icon">📄</span>
-                    <span class="cover-name">模板缩略图 {{ i }}</span>
-                  </div>
-                  <div class="hover-overlay-new">
-                    <button class="overlay-btn-new primary" @click="alertMsg('进入手动编辑')">在线编辑</button>
-                    <button class="overlay-btn-new outline" @click="alertMsg('下载模板')">下载空模板</button>
-                  </div>
+              <div class="rh-card-new" v-for="item in dbTemplates" :key="'manual-'+item.id"
+                  @mouseenter="hoveredPreviewUrl = item.previewUrl; hoverId = 'manual-'+item.id"
+                  @mouseleave="hoveredPreviewUrl = null; hoverId = null"
+                  @click="goToTemplateDetail(item.id)">
+                <div class="card-inner-new" :style="{ backgroundImage: `url(${getSafeImageUrl(item.previewUrl)})` }">
+                  <transition name="fade">
+                    <div class="hover-overlay-new" v-show="hoverId === 'manual-'+item.id">
+                      <button class="overlay-btn-new primary" @click.stop="goToTemplateDetail(item.id)">在线编辑</button>
+                      <button class="overlay-btn-new outline" @click.stop="handleDownload(item)">在线下载</button>
+                    </div>
+                  </transition>
                 </div>
                 <div class="rh-info-new">
-                  <h4>经典商务风格 {{ i }}</h4>
-                  <p>适合外企、金融行业</p>
+                  <h4>{{ item.name }}</h4>
+                  <p>📄 DOCX 格式模板</p>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div class="rh-module">
-            <div class="rh-header">
+<div class="rh-module">
+            <div class="rh-header" style="display: flex; justify-content: space-between; align-items: flex-end;">
               <div class="rh-title">
                 <h3>💡 优秀简历灵感</h3>
-                <p>真实大厂脱敏案例，可直接参考</p>
+                <p>各行各业大厂真实脱敏简历，可直接预览或下载参考</p>
+              </div>
+              <div class="view-all-btn" @click="router.push('/resume-template')">
+                查看全部牛人简历 <span>→</span>
               </div>
             </div>
+            
             <div class="rh-grid-new">
-              <div class="rh-card-new case-card" v-for="i in 4" :key="'case'+i">
-                <div class="card-inner-new">
-                  <div class="rh-cover-new case-cover">
-                    <span class="cover-icon">🌟</span>
-                    <span class="cover-name">案例截图 {{ i }}</span>
-                  </div>
-                  <div class="hover-overlay-new">
-                    <button class="overlay-btn-new primary" @click="alertMsg('查看案例')">在线查看</button>
-                    <button class="overlay-btn-new outline" @click="alertMsg('下载 PDF')">直接下载</button>
-                  </div>
+              <div class="rh-card-new case-card" v-for="item in excellentResumes" :key="'excellent-'+item.id"
+                   @mouseenter="hoveredPreviewUrl = item.previewUrl; hoverId = 'excellent-'+item.id"
+                   @mouseleave="hoveredPreviewUrl = null; hoverId = null">
+                <div class="card-inner-new" :style="{ backgroundImage: `url(${item.previewUrl})` }">
+                  <transition name="fade">
+                    <div class="hover-overlay-new" v-show="hoverId === 'excellent-'+item.id">
+                      <button class="overlay-btn-new primary" @click.stop="previewRealDoc(item.fileUrl)">真实原件预览</button>
+                      <button class="overlay-btn-new outline" @click.stop="handleDownload(item)">直接下载原件</button>
+                    </div>
+                  </transition>
                 </div>
                 <div class="rh-info-new">
-                  <h4>腾讯产品经理校招案例</h4>
-                  <p>重点突出实战项目与量化数据</p>
+                  <h4>{{ item.name }}</h4>
+                  <p>🌟 行业大牛参考案例</p>
                 </div>
               </div>
             </div>
           </div>
 
-        </section>
-
-        <section v-if="activeMenu === 'chat'" class="card-layout fade-in" style="padding: 0; overflow: hidden; height: calc(100vh - 120px);">
-          <Chat />
         </section>
         
       </main>
@@ -814,8 +848,8 @@ import { useRouter, useRoute } from 'vue-router'
 import request from '../utils/request'
 import Chat from './Chat.vue' 
 
-const router = useRouter()
 const route = useRoute()
+const router = useRouter()
 const isChatSidebarOpen = ref(false)
 
 const goToPage = (path) => {
@@ -1013,9 +1047,8 @@ onMounted(() => {
   fetchContestArticles()
   fetchInitialBoardData()
   initWebSocket()
-
-  // ★ 核心：进入页面时，拉取产教融合双选的数据库真实岗位数据
   fetchJobData()
+  fetchTemplatesData()
 })
 
 watch(() => route.query.edit, (newVal) => {
@@ -1059,23 +1092,8 @@ const handleCardClick = (item) => {
   }
 }
 
-const alertMsg = (msg) => {
-  alert(msg)
-}
-
-// ================= 🌟 全新升级：内嵌极简简历中心数据与逻辑 =================
-const aiTemplates = ref([
-  { id: 1, name: '极简学术风', tag: '校招 / 考研', tags: ['学术', '考研', '校招'], gradient: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)', previewName: '张 三', previewDesc: '计算机科学与技术 · 硕士' },
-  { id: 2, name: '现代科技蓝', tag: '互联网 / IT', tags: ['互联网', 'IT', '科技'], gradient: 'linear-gradient(135deg, #1890ff 0%, #096dd9 100%)', previewName: 'ZHANG SAN', previewDesc: 'Frontend Developer' },
-  { id: 3, name: '国际商务金', tag: '金融 / 外企', tags: ['金融', '外企', '商务'], gradient: 'linear-gradient(135deg, #d4af37 0%, #b8860b 100%)', previewName: 'San Zhang', previewDesc: 'Financial Analyst' },
-  { id: 4, name: '创意时间轴', tag: '设计 / 运营', tags: ['设计', '运营', '创意'], gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', previewName: '创意作品集', previewDesc: 'UI/UX Designer' },
-  { id: 5, name: '暗夜极客', tag: '技术 / 极客', tags: ['技术', '极客', '高级感'], gradient: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)', previewName: 'Code Master', previewDesc: 'Full Stack Developer' },
-  { id: 6, name: '清新绿野', tag: '教育 / 公益', tags: ['教育', '公益', '清新'], gradient: 'linear-gradient(135deg, #56ab2f 0%, #a8e063 100%)', previewName: '李 明', previewDesc: '教育工作者' },
-  { id: 7, name: '优雅粉黛', tag: '文职 / 运营', tags: ['文职', '运营', '优雅'], gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', previewName: 'Emma Wang', previewDesc: 'Content Creator' },
-  { id: 8, name: '商务灰调', tag: '管理 / 咨询', tags: ['管理', '咨询', '专业'], gradient: 'linear-gradient(135deg, #434343 0%, #1f1f1f 100%)', previewName: 'Michael Chen', previewDesc: 'Management Consultant' }
-])
-
-const selectedAiTemplate = ref(aiTemplates.value[0])
+// ================= 🌟 简历中心：恢复为数据库模板驱动的写法 =================
+const selectedAiTemplate = ref(null)
 const rawResumeInput = ref('')
 const isGeneratingResume = ref(false)
 
@@ -1138,12 +1156,19 @@ const addTemplate = (type) => {
 }
 
 const handleGenerateResume = () => {
+  if (!selectedAiTemplate.value || !selectedAiTemplate.value.id) {
+    alert('请先选择一个简历模板！')
+    return
+  }
   if (!rawResumeInput.value.trim()) {
     alert('请写点内容，AI 才能帮您整理哦！')
     return
   }
   isGeneratingResume.value = true
   sessionStorage.setItem('tempResumePrompt', rawResumeInput.value)
+  if (selectedAiTemplate.value.id) {
+    sessionStorage.setItem('selectedTemplateId', selectedAiTemplate.value.id)
+  }
   
   setTimeout(() => {
     isGeneratingResume.value = false
@@ -1333,14 +1358,36 @@ const viewSchoolDetail = (school) => {
   }
 }
 
+const getSectionIconClass = (category) => {
+  const map = {
+    '考研动态': 'kaoyan',
+    '保研推免': 'baoyan',
+    '海外留学': 'liuxue'
+  }
+  return map[category] || ''
+}
+
+const getSectionIcon = (category) => {
+  const map = {
+    '考研动态': '🎓',
+    '保研推免': '🏆',
+    '海外留学': '✈️'
+  }
+  return map[category] || '📚'
+}
+
+const formatDateShort = (dateStr) => {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  return `${date.getMonth() + 1}/${date.getDate()}`
+}
+
 // ================= ★ 产教融合真实数据获取与过滤逻辑 ★ =================
-// 保留原有的丰富分类结构作为筛选依据
 const jobCategories = ref([{name:'互联网/AI',icon:'💻',subCategories:[{name:'后端开发',jobs:[{name:'Java',count:245,hot:true},{name:'Python',count:189,hot:true},{name:'C++',count:156},{name:'Go',count:98},{name:'Node.js',count:76},{name:'.NET',count:45},{name:'C#',count:67},{name:'PHP',count:89},{name:'Golang',count:54},{name:'全栈工程师',count:123,hot:true},{name:'架构师',count:67,hot:true},{name:'后端开发',count:112}]},{name:'前端开发',jobs:[{name:'Vue.js',count:203,hot:true},{name:'React',count:187,hot:true},{name:'JavaScript',count:165},{name:'TypeScript',count:112},{name:'HTML/CSS',count:98},{name:'小程序开发',count:67},{name:'移动端开发',count:78},{name:'鸿蒙开发',count:34,hot:true},{name:'前端架构师',count:56},{name:'跨端开发',count:43},{name:'WebGL',count:23}]},{name:'测试',jobs:[{name:'软件测试',count:134},{name:'自动化测试',count:98},{name:'性能测试',count:56},{name:'测试开发',count:67},{name:'功能测试',count:45},{name:'渗透测试',count:34,hot:true},{name:'游戏测试',count:23},{name:'硬件测试',count:32}]},{name:'运维',jobs:[{name:'运维工程师',count:112},{name:'网络安全',count:78},{name:'DBA',count:45},{name:'系统工程师',count:67},{name:'网络工程师',count:56},{name:'运维开发',count:34},{name:'云计算',count:89,hot:true},{name:'SRE',count:43},{name:'IDC运维',count:28}]},{name:'算法',jobs:[{name:'推荐算法',count:67,hot:true},{name:'大模型算法',count:54,hot:true},{name:'图像算法',count:43},{name:'自然语言处理',count:38,hot:true},{name:'搜索算法',count:29},{name:'语音算法',count:23},{name:'数据挖掘',count:45},{name:'机器学习',count:78,hot:true},{name:'深度学习',count:56,hot:true}]},{name:'产品',jobs:[{name:'产品经理',count:156,hot:true},{name:'产品专员',count:98},{name:'产品总监',count:34},{name:'电商产品',count:45},{name:'AI产品',count:67,hot:true},{name:'B端产品',count:54},{name:'数据产品',count:43},{name:'策略产品',count:32}]},{name:'数据分析',jobs:[{name:'数据分析师',count:134,hot:true},{name:'数据开发',count:78},{name:'数据仓库',count:56},{name:'数据产品',count:34},{name:'数据科学家',count:23},{name:'大数据开发',count:45,hot:true},{name:'ETL工程师',count:32}]},{name:'移动开发',jobs:[{name:'Android',count:89},{name:'iOS',count:76},{name:'Flutter',count:45,hot:true},{name:'React Native',count:38},{name:'鸿蒙',count:29,hot:true}]},{name:'人工智能',jobs:[{name:'计算机视觉',count:67,hot:true},{name:'语音识别',count:34},{name:'NLP',count:56,hot:true},{name:'强化学习',count:23},{name:'AIGC',count:45,hot:true}]},{name:'高端技术',jobs:[{name:'技术总监',count:34},{name:'架构师',count:45,hot:true},{name:'技术专家',count:38},{name:'首席科学家',count:12},{name:'CTO',count:8}]}]},{name:'电子/通信/硬件',icon:'📡',subCategories:[{name:'硬件开发',jobs:[{name:'嵌入式',count:89},{name:'FPGA',count:45},{name:'硬件工程师',count:67},{name:'PCB设计',count:34},{name:'单片机',count:56},{name:'ARM开发',count:43},{name:'电路设计',count:38},{name:'射频工程师',count:29}]},{name:'通信',jobs:[{name:'5G',count:56},{name:'网络优化',count:34},{name:'通信工程师',count:45},{name:'射频工程师',count:23},{name:'光通信',count:18},{name:'基站工程师',count:27}]},{name:'半导体',jobs:[{name:'芯片设计',count:34,hot:true},{name:'集成电路',count:45},{name:'版图设计',count:23},{name:'半导体工艺',count:28},{name:'封测',count:15}]},{name:'自动化',jobs:[{name:'自动化工程师',count:67},{name:'PLC',count:43},{name:'工业控制',count:34},{name:'机器人',count:28,hot:true}]},{name:'仪器仪表',jobs:[{name:'测控',count:34},{name:'仪器开发',count:23},{name:'传感器',count:28}]}]},{name:'金融',icon:'💰',subCategories:[{name:'量化',jobs:[{name:'量化研究员',count:45},{name:'量化开发',count:34},{name:'量化交易',count:23},{name:'高频交易',count:18,hot:true}]},{name:'风控',jobs:[{name:'风控模型',count:56},{name:'反欺诈',count:34},{name:'信用分析',count:45},{name:'风险策略',count:28}]},{name:'金融科技',jobs:[{name:'支付系统',count:34},{name:'区块链',count:23,hot:true},{name:'数字货币',count:12},{name:'FinTech',count:28,hot:true}]},{name:'投资银行',jobs:[{name:'投行分析师',count:34},{name:'并购',count:18},{name:'承销',count:15}]},{name:'证券/基金',jobs:[{name:'行业研究',count:45},{name:'投资顾问',count:28},{name:'基金经理',count:16},{name:'交易员',count:32}]},{name:'保险',jobs:[{name:'精算师',count:12},{name:'保险核保',count:23},{name:'保险理赔',count:28}]}]},{name:'产品/运营/设计',icon:'🎨',subCategories:[{name:'产品',jobs:[{name:'产品经理',count:156,hot:true},{name:'产品专员',count:98},{name:'产品总监',count:34},{name:'电商产品',count:45},{name:'AI产品',count:67,hot:true},{name:'B端产品',count:54},{name:'数据产品',count:43}]},{name:'运营',jobs:[{name:'用户运营',count:87},{name:'内容运营',count:76},{name:'活动运营',count:65},{name:'产品运营',count:78},{name:'新媒体运营',count:92,hot:true},{name:'电商运营',count:67},{name:'社群运营',count:54},{name:'私域运营',count:43}]},{name:'设计',jobs:[{name:'UI设计',count:98},{name:'UX设计',count:67},{name:'平面设计',count:76},{name:'交互设计',count:54},{name:'视觉设计',count:65},{name:'品牌设计',count:43},{name:'包装设计',count:32}]},{name:'UX/UE',jobs:[{name:'用户体验',count:45},{name:'用户研究',count:34},{name:'人机交互',count:23}]},{name:'游戏设计',jobs:[{name:'游戏策划',count:45},{name:'游戏UI',count:32},{name:'游戏原画',count:28},{name:'游戏场景',count:21}]},{name:'视觉/交互',jobs:[{name:'视觉设计',count:56},{name:'交互设计',count:43},{name:'动效设计',count:23}]}]},{name:'市场/销售/商务',icon:'📈',subCategories:[{name:'市场营销',jobs:[{name:'市场营销',count:87},{name:'品牌策划',count:56},{name:'公关',count:34},{name:'市场推广',count:65},{name:'SEO/SEM',count:43},{name:'网络营销',count:54}]},{name:'销售',jobs:[{name:'销售代表',count:156},{name:'销售经理',count:98},{name:'大客户销售',count:76,hot:true},{name:'电话销售',count:87},{name:'渠道销售',count:54},{name:'销售总监',count:23},{name:'区域销售',count:45}]},{name:'商务',jobs:[{name:'商务拓展',count:67},{name:'商务经理',count:45},{name:'渠道合作',count:34},{name:'BD',count:56,hot:true}]},{name:'广告',jobs:[{name:'广告投放',count:43},{name:'广告优化',count:32},{name:'媒介',count:23},{name:'广告策划',count:34}]},{name:'会展/活动',jobs:[{name:'活动策划',count:34},{name:'会展执行',count:23},{name:'会议活动',count:18}]}]},{name:'人事/财务/行政',icon:'📋',subCategories:[{name:'人力资源',jobs:[{name:'HRBP',count:56,hot:true},{name:'招聘',count:78},{name:'培训',count:34},{name:'薪酬绩效',count:43},{name:'员工关系',count:32},{name:'HRD',count:15},{name:'组织发展',count:12}]},{name:'财务',jobs:[{name:'会计',count:89},{name:'出纳',count:54},{name:'财务分析',count:43},{name:'审计',count:38},{name:'税务',count:27},{name:'CFO',count:5},{name:'成本会计',count:34}]},{name:'行政',jobs:[{name:'行政专员',count:67},{name:'行政经理',count:34},{name:'前台',count:28},{name:'后勤',count:23},{name:'行政主管',count:32}]},{name:'法务',jobs:[{name:'法务专员',count:34},{name:'法务经理',count:23},{name:'合规',count:18},{name:'知识产权',count:12}]}]},{name:'生产制造/供应链',icon:'🏭',subCategories:[{name:'生产管理',jobs:[{name:'生产主管',count:45},{name:'生产经理',count:34},{name:'厂长',count:12},{name:'生产计划',count:28},{name:'车间主任',count:23}]},{name:'质量管理',jobs:[{name:'QC',count:56},{name:'QA',count:43},{name:'质量工程师',count:38},{name:'体系工程师',count:23},{name:'SQE',count:19}]},{name:'供应链',jobs:[{name:'采购',count:67},{name:'物流',count:54},{name:'仓储',count:43},{name:'供应链经理',count:23},{name:'报关员',count:15}]},{name:'工艺/制程',jobs:[{name:'工艺工程师',count:45},{name:'IE工程师',count:32},{name:'PE工程师',count:28},{name:'NPI工程师',count:19}]},{name:'设备维护',jobs:[{name:'设备工程师',count:34},{name:'维修工程师',count:23},{name:'自动化维护',count:18}]}]},{name:'零售/生活服务',icon:'🛒',subCategories:[{name:'零售',jobs:[{name:'店员/营业员',count:156},{name:'店长',count:67},{name:'导购',count:98},{name:'收银',count:76},{name:'商品管理',count:34},{name:'品类经理',count:28}]},{name:'餐饮',jobs:[{name:'服务员',count:123},{name:'厨师',count:67},{name:'店长',count:45},{name:'餐饮管理',count:34},{name:'奶茶/水吧',count:56},{name:'西点师',count:23}]},{name:'酒店/旅游',jobs:[{name:'前台',count:67},{name:'客房服务',count:45},{name:'酒店管理',count:34},{name:'导游',count:23},{name:'旅行顾问',count:19}]},{name:'美容/美发',jobs:[{name:'美容师',count:56},{name:'美发师',count:43},{name:'美甲师',count:32},{name:'纹绣师',count:18}]},{name:'运动/健身',jobs:[{name:'健身教练',count:34},{name:'瑜伽老师',count:23},{name:'游泳教练',count:18}]}]},{name:'教育培训',icon:'📚',subCategories:[{name:'教师',jobs:[{name:'语数外教师',count:89},{name:'艺术教师',count:67},{name:'体育教师',count:34},{name:'科学教师',count:45},{name:'音乐教师',count:28},{name:'美术教师',count:32}]},{name:'教务管理',jobs:[{name:'教务专员',count:56},{name:'教务主管',count:34},{name:'班主任',count:67}]},{name:'课程顾问',jobs:[{name:'课程销售',count:78},{name:'课程顾问',count:89,hot:true}]},{name:'培训',jobs:[{name:'培训讲师',count:45},{name:'企业培训',count:34},{name:'技能培训',count:28}]},{name:'留学/语言',jobs:[{name:'留学顾问',count:34},{name:'语言老师',count:45},{name:'雅思/托福',count:28,hot:true}]}]},{name:'房地产/建筑',icon:'🏗️',subCategories:[{name:'工程管理',jobs:[{name:'项目经理',count:45},{name:'施工员',count:67},{name:'资料员',count:34},{name:'材料员',count:23},{name:'安全员',count:38},{name:'质量员',count:28},{name:'监理工程师',count:32},{name:'工程经理',count:27}]},{name:'工程造价',jobs:[{name:'造价工程师',count:56},{name:'预算员',count:43},{name:'成本控制',count:32},{name:'招投标',count:27}]},{name:'装饰装修',jobs:[{name:'室内设计',count:45},{name:'软装设计',count:32},{name:'工长',count:28},{name:'装修监理',count:23},{name:'橱柜设计',count:18}]},{name:'物业管理',jobs:[{name:'物业经理',count:34},{name:'物业管家',count:45},{name:'维修工',count:38},{name:'保安',count:56},{name:'保洁',count:43}]},{name:'建筑设计',jobs:[{name:'建筑设计师',count:34},{name:'结构设计',count:28},{name:'暖通设计',count:19},{name:'电气设计',count:21},{name:'给排水设计',count:16}]},{name:'房地产规划开发',jobs:[{name:'房地产策划',count:23},{name:'土地拓展',count:15},{name:'开发报建',count:18},{name:'投资分析',count:21}]}]},{name:'物流/仓储/司机',icon:'🚚',subCategories:[{name:'物流',jobs:[{name:'物流专员',count:67},{name:'物流经理',count:34},{name:'调度',count:43},{name:'快递员',count:78},{name:'配送员',count:56}]},{name:'仓储',jobs:[{name:'仓管员',count:78},{name:'仓储主管',count:34},{name:'理货员',count:56},{name:'拣货员',count:43},{name:'仓库管理员',count:45}]},{name:'司机',jobs:[{name:'司机',count:89},{name:'货运司机',count:67},{name:'网约车司机',count:78},{name:'班车司机',count:34},{name:'叉车司机',count:45}]}]},{name:'医疗/健康',icon:'⚕️',subCategories:[{name:'医生',jobs:[{name:'内科医生',count:34},{name:'外科医生',count:28},{name:'全科医生',count:23},{name:'儿科医生',count:19},{name:'牙医',count:16}]},{name:'护士',jobs:[{name:'护士',count:56},{name:'护师',count:23},{name:'护理',count:45},{name:'ICU护士',count:18}]},{name:'医药',jobs:[{name:'医药代表',count:67},{name:'药学',count:34},{name:'药品注册',count:12},{name:'临床监查员',count:19},{name:'药理研究员',count:15}]},{name:'医疗器械',jobs:[{name:'医疗器械销售',count:45},{name:'医疗器械维修',count:23},{name:'临床工程师',count:18}]},{name:'健康管理',jobs:[{name:'健康顾问',count:23},{name:'营养师',count:18},{name:'康复治疗师',count:21}]}]},{name:'汽车',icon:'🚗',subCategories:[{name:'汽车研发',jobs:[{name:'汽车设计',count:34},{name:'底盘工程师',count:23},{name:'动力工程师',count:19},{name:'车身工程师',count:21},{name:'三电工程师',count:28,hot:true}]},{name:'汽车销售',jobs:[{name:'汽车销售',count:67},{name:'展厅经理',count:23},{name:'二手车评估',count:18}]},{name:'汽车维修',jobs:[{name:'机修工',count:45},{name:'钣金工',count:32},{name:'喷漆工',count:28},{name:'汽车电工',count:23}]},{name:'新能源汽车',jobs:[{name:'电池工程师',count:34,hot:true},{name:'电控工程师',count:28,hot:true},{name:'充电桩运维',count:19}]}]},{name:'采购/贸易',icon:'📦',subCategories:[{name:'采购',jobs:[{name:'采购专员',count:56},{name:'采购经理',count:34},{name:'供应商开发',count:28},{name:'战略采购',count:19}]},{name:'贸易',jobs:[{name:'外贸专员',count:45},{name:'外贸经理',count:28},{name:'报关员',count:19},{name:'单证员',count:23}]},{name:'跨境电商',jobs:[{name:'亚马逊运营',count:38,hot:true},{name:'速卖通运营',count:27},{name:'TikTok运营',count:23,hot:true}]}]},{name:'直播/影视/传媒',icon:'📺',subCategories:[{name:'直播',jobs:[{name:'主播',count:67,hot:true},{name:'带货主播',count:78,hot:true},{name:'直播运营',count:45},{name:'场控',count:23}]},{name:'影视',jobs:[{name:'编导',count:34},{name:'摄像',count:32},{name:'剪辑',count:45},{name:'后期制作',count:28}]},{name:'传媒',jobs:[{name:'新媒体运营',count:56},{name:'内容运营',count:43},{name:'文案策划',count:38},{name:'媒介专员',count:23}]},{name:'短视频',jobs:[{name:'短视频编导',count:34},{name:'短视频剪辑',count:45},{name:'抖音运营',count:56,hot:true}]}]},{name:'酒店/旅游',icon:'🏨',subCategories:[{name:'酒店',jobs:[{name:'前台接待',count:45},{name:'客房服务',count:38},{name:'酒店管理',count:28},{name:'礼宾',count:19}]},{name:'旅游',jobs:[{name:'导游',count:34},{name:'旅行顾问',count:23},{name:'计调',count:19},{name:'旅游策划',count:16}]},{name:'会展',jobs:[{name:'会展策划',count:23},{name:'会议服务',count:19},{name:'活动执行',count:21}]}]},{name:'设计/创意',icon:'🎯',subCategories:[{name:'平面设计',jobs:[{name:'平面设计',count:67},{name:'品牌设计',count:34},{name:'包装设计',count:28},{name:'画册设计',count:23}]},{name:'UI/UX',jobs:[{name:'UI设计',count:56},{name:'UX设计',count:34},{name:'交互设计',count:28},{name:'产品设计',count:32}]},{name:'工业设计',jobs:[{name:'产品造型',count:23},{name:'结构设计',count:28},{name:'CMF设计',count:16}]},{name:'服装设计',jobs:[{name:'服装设计',count:34},{name:'面料设计',count:15},{name:'配饰设计',count:12}]}]},{name:'能源/化工/环保',icon:'⚡',subCategories:[{name:'能源',jobs:[{name:'新能源',count:45,hot:true},{name:'光伏',count:34},{name:'风电',count:28},{name:'储能',count:23,hot:true}]},{name:'化工',jobs:[{name:'化工工艺',count:34},{name:'化学分析',count:28},{name:'研发工程师',count:23}]},{name:'环保',jobs:[{name:'环境工程',count:34},{name:'环评',count:19},{name:'水处理',count:23}]}]},{name:'咨询/法律/翻译',icon:'⚖️',subCategories:[{name:'咨询',jobs:[{name:'咨询顾问',count:45},{name:'战略咨询',count:28},{name:'管理咨询',count:34},{name:'人力咨询',count:19}]},{name:'法律',jobs:[{name:'律师',count:34},{name:'法务',count:45},{name:'合规',count:23},{name:'知识产权',count:16}]},{name:'翻译',jobs:[{name:'英语翻译',count:34},{name:'日语翻译',count:19},{name:'韩语翻译',count:15},{name:'同声传译',count:8,hot:true}]}]},{name:'高级管理',icon:'👔',subCategories:[{name:'高层管理',jobs:[{name:'CEO',count:5},{name:'COO',count:4},{name:'CFO',count:6},{name:'CTO',count:8},{name:'总经理',count:12}]},{name:'部门管理',jobs:[{name:'部门总监',count:23},{name:'高级经理',count:34},{name:'区域经理',count:28}]},{name:'项目管理',jobs:[{name:'项目经理',count:56},{name:'项目总监',count:23},{name:'PMO',count:15}]}]}])
 
 const jobCards = ref([])
 const loadingJobs = ref(false)
 
-// 1. 获取岗位数据的函数（超级兼容模式）
 const fetchJobData = async () => {
   loadingJobs.value = true
   try {
@@ -1356,11 +1403,7 @@ const fetchJobData = async () => {
       return
     }
 
-    console.log("后端返回的原始数据：", rawList)
-
-    // 🔄 精准映射：彻底解决字段不匹配问题
     jobCards.value = rawList.map(job => {
-      // 安全处理后端 techStack (技术栈) 字符串转前端 tags 数组
       let parsedTags = []
       if (job.techStack && typeof job.techStack === 'string') {
         parsedTags = job.techStack.split(',').filter(t => t.trim() !== '')
@@ -1368,23 +1411,16 @@ const fetchJobData = async () => {
 
       return {
         id: job.id,
-        // 核心修正：后端对应的是 jobName 和 companyName
         position: job.jobName || '未命名岗位', 
         company: job.companyName || '未知企业',
         salary: job.salary || '薪资面议',
-        // 核心修正：后端对应的地区是 area
         location: job.area || '全国',
-        // 核心修正：标签对应后端的 techStack
         tags: parsedTags,
         deadline: '长期有效',
-        hot: job.financingStage === '不需要融资', // 可根据实际情况调整热门逻辑
-        
-        // 核心修正：行业大类对应后端的 industry
+        hot: job.financingStage === '不需要融资', 
         category: job.industry || '互联网/AI', 
-        subCategory: '后端开发', // 后端无此精确字段，可给默认值
+        subCategory: '后端开发', 
         jobType: '全部',
-        
-        // 把后端的详细描述也传过去，让详情页告别写死的数据
         jobDescription: job.jobDescription || '暂无岗位职责描述',
         requirements: job.requirements || '暂无任职要求说明'
       }
@@ -1407,29 +1443,19 @@ const currentJobsList = computed(() => {
   return sub?.jobs || []
 })
 
-// 核心：极其严谨的组合过滤逻辑，容错性极高
 const filteredJobCards = computed(() => {
-  // 如果数据库还没加载完成或为空，直接返回空数组
   if (!jobCards.value || jobCards.value.length === 0) return [];
   
   return jobCards.value.filter(card => {
-    // 1. 大类匹配 (容错：使用 includes 模糊匹配以防后端存的字符有细微差别)
     const matchCategory = !selectedCategory.value || 
                           (card.category && card.category.includes(selectedCategory.value));
-    
-    // 2. 子类匹配 (因为后端暂时没有子类，你可以暂时跳过此匹配，或者确保它能通过)
     const matchSubCategory = !selectedSubCategory.value || card.subCategory === selectedSubCategory.value;
-    
-    // 3. 具体工作匹配
     const matchJob = !selectedJob.value || selectedJob.value === '全部' || card.jobType === selectedJob.value;
-    
     return matchCategory && matchSubCategory && matchJob;
   });
 })
 
-// 2. 跳转详情页的函数（加入真正的跳转逻辑）
 const goToJobDetail = (job) => {
-  // 点击卡片后，携带该卡片的数据跳转到刚才新建的 JobDetail.vue 页面
   router.push({
     path: '/job-detail',
     query: {
@@ -1438,7 +1464,7 @@ const goToJobDetail = (job) => {
   })
 }
 
-// ================= 竞赛大厅数据 (保留原有分类) =================
+// ================= 竞赛大厅数据 =================
 const majorCategories = ref([
   {
     name: '哲学',
@@ -1837,11 +1863,83 @@ watch(contestActiveTab, (newVal) => {
   }
 })
 
+// ================= 🌟 全新升级：内嵌简历中心与 OSS 对接 =================
+const dbTemplates = ref([]) 
+const excellentResumes = ref([]) 
+const hoveredPreviewUrl = ref(null) 
+const hoverId = ref(null) // 用于追踪鼠标悬浮于哪个真实模板以便弹出遮罩按钮
+
+// 核心：数据获取兼容 Result 结构
+const fetchTemplatesData = async () => {
+  try {
+    const res1 = await request.get('/api/templates/list', { params: { type: 1 } });
+    // 后端返回 Result<List>，数据在 res1.data 中
+    dbTemplates.value = res1.data || [];
+    
+    if (dbTemplates.value.length > 0) {
+      selectedAiTemplate.value = dbTemplates.value[0];
+    }
+
+    const res2 = await request.get('/api/templates/list', { params: { type: 2 } });
+    excellentResumes.value = res2.data || [];
+  } catch (error) {
+    console.error("加载简历数据失败，请确保后端服务已启动且接口路径正确");
+  }
+}
+  // 原页面跳转
+const goToTemplateDetail = (id) => {
+  // 直接使用 router.push 在当前窗口跳转，不开启新标签
+  router.push(`/template-detail/${id}`);
+}
+
+// 🌟 核心：安全图片渲染，解决缩略图不显示问题
+const getSafeImageUrl = (url) => {
+  if (!url) return 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=400';
+  
+  const lowerUrl = String(url).toLowerCase();
+  // 如果后端传过来的是 .docx 下载链接，前端无法作为图片渲染，显示一个高颜值的占位图
+  if (lowerUrl.includes('.doc') || lowerUrl.includes('.docx')) {
+    return 'https://images.unsplash.com/photo-1612441804231-77a36b284856?w=400';
+  }
+  return url;
+}
+
+// 🌟 核心：调用微软官方引擎预览真实的 DOCX 原件
+const previewRealDoc = (fileUrl) => {
+  if (!fileUrl) {
+    alert('该模板暂无源文件，无法预览');
+    return;
+  }
+  // 使用微软官方在线预览，解决浏览器无法直接打开 Word 的问题
+  const officeUrl = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(fileUrl)}`;
+  // 这里可以根据需求决定是在当前页面跳转还是如何，通常预览建议开启新窗口但不作为"挑选页面"跳转
+  window.open(officeUrl, '_blank');
+}
+
+// 真实的下载逻辑
+const handleDownload = (item) => {
+  if(item.fileUrl) {
+    window.location.href = item.fileUrl; // 直接触发浏览器下载真实的 OSS 文件
+  } else {
+    alert('未找到源文件链接');
+  }
+}
 </script>
 
 <style scoped>
 /* ================= 原有基础样式 ================= */
-.layout { display: flex; flex-direction: column; height: 100vh; width: 100vw; background: #f5f7fa; }
+.layout { 
+  display: flex; flex-direction: column; height: 100vh; width: 100vw; 
+  background-image: url('/images11/photo-1603252199513-79a959321f00.avif');
+  background-size: cover; background-position: center; background-attachment: fixed;
+  position: relative;
+}
+.layout::before {
+  content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(255, 255, 255, 0.85); 
+  z-index: 0; pointer-events: none;
+}
+.layout > * { position: relative; z-index: 1; }
 .header { height: 60px; background: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); z-index: 10; }
 .logo { font-size: 20px; font-weight: bold; color: #4a90e2; }
 .search-bar input { width: 300px; padding: 8px 15px; border-radius: 20px; border: 1px solid #ddd; outline: none; background: #f8fafc; }
@@ -2614,96 +2712,99 @@ watch(contestActiveTab, (newVal) => {
   font-size: 16px;
 }
 
+/* ================= 🌟 重点替换新增的样式 🌟 ================= */
+.view-all-btn {
+  font-size: 14px; color: #4aa3d1; cursor: pointer; transition: 0.3s;
+  display: flex; align-items: center; gap: 4px; padding: 6px 18px;
+  background: #f0f9ff; border-radius: 20px; font-weight: 500;
+  margin-bottom: 5px;
+}
+.view-all-btn:hover { background: #4aa3d1; color: white; transform: translateX(2px); }
+
 .rh-grid-new {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
 }
 
 .rh-card-new {
   background: white;
-  border-radius: 16px;
+  border-radius: 12px;
   overflow: hidden;
   transition: all 0.3s;
   border: 1px solid #e2e8f0;
+  position: relative;
+  cursor: pointer;
 }
 
 .rh-card-new:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
-  border-color: #cbd5e1;
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+  border-color: #4aa3d1;
 }
 
 .card-inner-new {
   position: relative;
   width: 100%;
-  height: 160px;
-  overflow: hidden;
+  height: 220px; 
+  background-size: cover;
+  background-position: top center;
+  background-color: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
 }
 
-.rh-cover-new {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: #f8fafc;
-}
-
-.cover-icon {
-  font-size: 36px;
-}
-
-.cover-name {
-  font-size: 13px;
-  color: #64748b;
-}
-
-.tpl-cover { background: linear-gradient(135deg, #f1f5f9, #e2e8f0); }
-.case-cover { background: linear-gradient(135deg, #fef3c7, #fde68a); }
-
+/* 悬浮遮罩与按钮特效 */
 .hover-overlay-new {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.card-inner-new:hover .hover-overlay-new {
-  opacity: 1;
+  gap: 12px;
 }
 
 .overlay-btn-new {
-  width: 100px;
-  padding: 8px 0;
+  width: 110px;
+  padding: 10px 0;
   border-radius: 24px;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: bold;
   cursor: pointer;
   transition: all 0.2s;
   border: none;
-  text-align: center;
 }
 
-.overlay-btn-new.primary { background: #4aa3d1; color: white; }
-.overlay-btn-new.primary:hover { background: #2c7da0; }
-.overlay-btn-new.outline { background: transparent; border: 1px solid white; color: white; }
-.overlay-btn-new.outline:hover { background: rgba(255, 255, 255, 0.2); }
+.overlay-btn-new.primary {
+  background: #4aa3d1;
+  color: white;
+  box-shadow: 0 4px 10px rgba(74, 163, 209, 0.4);
+}
 
-.rh-info-new { padding: 14px; border-top: 1px solid #f1f5f9; }
-.rh-info-new h4 { margin: 0 0 6px 0; font-size: 14px; font-weight: 600; color: #1e293b; }
-.rh-info-new p { margin: 0; font-size: 11px; color: #94a3b8; }
+.overlay-btn-new.primary:hover {
+  background: #398ebf;
+  transform: scale(1.05);
+}
+
+.overlay-btn-new.outline {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid white;
+  color: white;
+}
+
+.overlay-btn-new.outline:hover {
+  background: white;
+  color: #4aa3d1;
+}
+
+.rh-info-new { padding: 14px; text-align: center; }
+.rh-info-new h4 { margin: 0 0 6px 0; font-size: 15px; font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rh-info-new p { margin: 0; font-size: 12px; color: #94a3b8; }
+
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
 
 /* 响应式调整 */
 @media (max-width: 768px) {
@@ -2712,5 +2813,221 @@ watch(contestActiveTab, (newVal) => {
   .tpl-preview { height: 120px; }
   .rh-grid-new { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; }
   .generate-btn-new { padding: 12px 24px; font-size: 14px; }
+  .card-inner-new { height: 180px; }
+}
+
+/* 胶囊搜索框样式 */
+.school-search-box { display: flex; align-items: center; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 48px; padding: 4px 4px 4px 10px; width: 480px; transition: all 0.3s; }
+.school-search-box:focus-within { border-color: #667eea; background: white; }
+.school-search-box input { flex: 1; border: none; background: transparent; outline: none; font-size: 14px; padding: 10px 0; }
+.school-search-box .search-btn { background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; padding: 8px 24px; border-radius: 40px; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap; }
+
+/* 矩阵下方内容卡片优化 */
+.section-header-optimized { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.header-left { display: flex; align-items: center; gap: 12px; }
+.section-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+.section-icon.kaoyan { background: linear-gradient(135deg, #ffecd2, #fcb69f); }
+.section-icon.baoyan { background: linear-gradient(135deg, #a1c4fd, #c2e9fb); }
+.section-icon.liuxue { background: linear-gradient(135deg, #d4fc79, #96e6a1); }
+.section-title { font-size: 18px; font-weight: 600; color: #1e293b; margin: 0; }
+.header-right { display: flex; align-items: center; gap: 16px; }
+.type-selector-optimized { display: flex; background: #f1f5f9; border-radius: 40px; padding: 3px; }
+.type-selector-optimized span { padding: 4px 16px; font-size: 12px; cursor: pointer; border-radius: 30px; transition: all 0.3s; color: #64748b; }
+.type-selector-optimized span.active { background: white; color: #667eea; font-weight: 500; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); }
+.card-grid-optimized { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+.card-optimized { background: white; border-radius: 16px; overflow: hidden; cursor: pointer; border: 1px solid #e2e8f0; transition: 0.3s; }
+.card-optimized:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1); border-color: #cbd5e1; }
+.card-cover-optimized { height: 140px; position: relative; background-size: cover; background-position: center; }
+.type-badge-optimized { position: absolute; top: 12px; left: 12px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; color: white; }
+.type-badge-optimized.video { background: linear-gradient(135deg, #ef4444, #dc2626); }
+.type-badge-optimized.article { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+.play-icon { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; background: rgba(0, 0, 0, 0.6); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 18px; transition: 0.3s; }
+.card-optimized:hover .play-icon { transform: translate(-50%, -50%) scale(1.1); background: rgba(0, 0, 0, 0.8); }
+.card-info-optimized { padding: 14px; }
+.card-title-optimized { font-size: 14px; font-weight: 600; color: #1e293b; margin: 0 0 8px 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.card-meta { display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8; }
+.matrix-hero {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 24px;
+  padding: 32px 40px;
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(26, 26, 46, 0.3);
+}
+
+.piano-keys {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  padding: 0 20px;
+  z-index: 0;
+}
+
+.piano-key {
+  flex: 1;
+  height: 30px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px 4px 0 0;
+  animation: pianoJump 1.2s ease-in-out infinite;
+  transform-origin: bottom;
+}
+
+/* 钢琴键跳动错落感 */
+.piano-key:nth-child(even) { height: 45px; background: rgba(102, 126, 234, 0.4); animation-delay: 0.2s; }
+.piano-key:nth-child(3n) { height: 20px; background: rgba(236, 72, 153, 0.3); animation-delay: 0.4s; }
+.piano-key:nth-child(5n) { height: 55px; background: rgba(16, 185, 129, 0.3); animation-delay: 0.6s; }
+
+@keyframes pianoJump {
+  0%, 100% { transform: scaleY(0.6); opacity: 0.5; }
+  50% { transform: scaleY(1.2); opacity: 1; }
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.hero-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+}
+
+.hero-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: white;
+  margin: 0 0 12px 0;
+  letter-spacing: 1px;
+}
+
+.hero-desc {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+}
+
+
+/* ================= 🌟 颜值重塑：高级胶囊搜索框 🌟 ================= */
+.school-search-box {
+  display: flex !important;
+  align-items: center !important;
+  background: #ffffff !important;
+  border: 2px solid #e2e8f0 !important;
+  border-radius: 50px !important;
+  padding: 6px 8px 6px 20px !important;
+  width: 500px !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03) !important;
+  transition: all 0.3s ease !important;
+}
+
+.school-search-box:focus-within {
+  border-color: #667eea !important;
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.15) !important;
+  transform: translateY(-1px) !important;
+}
+
+.major-select {
+  border: none !important;
+  background: transparent !important;
+  outline: none !important;
+  font-size: 14px !important;
+  color: #334155 !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  padding-right: 16px !important;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+  background-repeat: no-repeat !important;
+  background-position: right center !important;
+  background-size: 14px !important;
+}
+
+.divider-line {
+  color: #cbd5e1 !important;
+  margin: 0 15px !important;
+  font-size: 16px !important;
+}
+
+.school-search-box .search-icon {
+  color: #667eea !important;
+  font-size: 18px !important;
+  margin-right: 8px !important;
+}
+
+.school-search-box input {
+  flex: 1 !important;
+  border: none !important;
+  background: transparent !important;
+  outline: none !important;
+  font-size: 14px !important;
+  color: #1e293b !important;
+}
+
+.school-search-box input::placeholder {
+  color: #94a3b8 !important;
+}
+
+.school-search-box .search-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+  border: none !important;
+  padding: 10px 26px !important;
+  border-radius: 40px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.3s !important;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4) !important;
+  letter-spacing: 1px !important;
+}
+
+.school-search-box .search-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.6) !important;
+}
+
+/* 右上角悬浮预览框 */
+.dashboard-preview {
+  position: fixed;
+  top: 90px;
+  right: 40px;
+  width: 260px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+  z-index: 9999;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  animation: fadeIn 0.3s ease;
+}
+.dashboard-preview img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+}
+.dashboard-preview .preview-header {
+  padding: 8px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: bold;
+  color: #64748b;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 </style>

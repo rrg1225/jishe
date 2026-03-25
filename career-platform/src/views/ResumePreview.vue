@@ -196,7 +196,7 @@ const saveSidebarInfo = (field, event) => {
 }
 const handleBlur = (event) => {} 
 
-// ================= 🌟 AI 重新生成 =================
+// =================  AI 重新生成 =================
 const isRegenerateModalOpen = ref(false)
 const editPrompt = ref('')
 const isGenerating = ref(false)
@@ -210,8 +210,10 @@ const doRegenerate = async () => {
   isGenerating.value = true
   sessionStorage.setItem('tempResumePrompt', editPrompt.value)
   try {
-    const res = await request.post('/api/resume/zhipu/generate', {
-      requirements: editPrompt.value
+    // 将原本的 /api/resume/zhipu/generate 替换为新的接口
+    const res = await request.post('/api/resume/text-polish', {
+      requirements: editPrompt.value,
+      originalText: rawMarkdown.value // 把当前全文传给后端重写
     })
     const content = res.data || res || res.data?.data 
     rawMarkdown.value = content
@@ -225,7 +227,7 @@ const doRegenerate = async () => {
   }
 }
 
-// ================= 🌟 划词唤醒 AI =================
+// ================= 划词唤醒 AI =================
 const showAiFloat = ref(false)
 const floatX = ref(0)
 const floatY = ref(0)
@@ -252,7 +254,7 @@ const handleMouseUp = async () => {
   }
 }
 
-// ================= 🌟 AI 局部润色与替换 =================
+// =================  AI 局部润色与替换 =================
 const isPolishModalOpen = ref(false)
 const polishActionType = ref('polish')
 const aiSuggestedText = ref('')
@@ -276,9 +278,11 @@ const callAiPolish = async () => {
   aiSuggestedText.value = 'AI 正在思考中，请稍候...'
   
   try {
-    const prompt = `请作为资深HR，根据以下要求优化这段简历经历：\n要求：${polishActionName.value}\n原段落：${selectedText.value}\n请直接返回优化后的文本，不要加多余的寒暄。`
-    const res = await request.post('/api/resume/zhipu/generate', { 
-      requirements: prompt 
+    const prompt = `请作为资深HR，根据以下要求优化这段简历经历：\n要求：${polishActionName.value}\n请直接返回优化后的文本，不要加多余的寒暄。`
+    // 替换为新的接口
+    const res = await request.post('/api/resume/text-polish', { 
+      requirements: prompt,
+      originalText: selectedText.value
     })
     aiSuggestedText.value = res.data || res || res.data?.data || '优化结果返回异常'
   } catch (error) {
@@ -289,7 +293,7 @@ const callAiPolish = async () => {
   }
 }
 
-// 🌟🌟 核心魔法：终极暴力强制替换策略 🌟🌟
+// 暴力强制替换策略
 const applyPolishedText = () => {
   if (!aiSuggestedText.value) return;
 
@@ -304,7 +308,7 @@ const applyPolishedText = () => {
     return;
   }
 
-  // 2. 🌟 “透视眼”暴力匹配：无视一切 Markdown 符号、空格、标点，直接锁定并覆写整行
+  // 2.  “透视眼”暴力匹配：无视一切 Markdown 符号、空格、标点，直接锁定并覆写整行
   // 专门过滤掉 Markdown 控制符以及常见中英文标点，只留纯文字内核进行比对
   const getCoreText = (str) => str.replace(/[\s\n\r*+\-#>:,.!?()[\]{}`~_：，。！？（）【】；;、“”''""]/g, '');
   
@@ -444,7 +448,7 @@ const exportPDF = () => {
 .markdown-theme-blue :deep(p) { margin: 0 0 10px 0; color: #444; }
 
 /* =========================================
-   ✨ 划词唤醒 AI 悬浮菜单
+   划词唤醒 AI 悬浮菜单
 ========================================= */
 .ai-float-menu {
   position: absolute; z-index: 1000; background: #fff; padding: 6px;

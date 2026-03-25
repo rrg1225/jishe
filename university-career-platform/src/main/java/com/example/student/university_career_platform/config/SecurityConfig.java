@@ -59,11 +59,12 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/login",
                                 "/api/auth/register",
-                                "/api/chat/**",  // 🌟 核心修复 2：加上 /api 前缀，修正拦截路径
+                                "/api/chat/**",  // 加上 /api 前缀，修正拦截路径
                                 "/chat/**",      // 保留原来的，用于放行 WebSocket
                                 "/error",
                                 "/api/content/**",
-                                "/api/university/**"
+                                "/api/university/**",
+                                "/api/templates/**" // 放行简历模板接口！
                         ).permitAll()
                         .anyRequest().authenticated()
                 );
