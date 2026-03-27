@@ -1585,73 +1585,85 @@ const majorCategories = ref([
   }
 ])
 
-const generateContestCards = () => {
-  const cards = []
-  let id = 1
-  const levels = ['国家级', '省级', '国家级', '省级', '省级']
-  const statuses = ['报名中', '即将开始', '备赛中', '预报名']
-  const statusColors = {
-    '报名中': '#10b981', '即将开始': '#f97316', '备赛中': '#8b5cf6', '预报名': '#3b82f6'
+// 🌟 核心修改 1：定义竞赛容器和定时器
+const contestCards = ref([])
+const loadingContests = ref(false)
+let contestPollTimer = null // 新增：用于存储定时器
+
+// 🌟 核心修改 2：向后端内存中转站获取实时比赛数据
+const fetchRealContests = async () => {
+  // 如果是定时器后台刷新，就不显示 loading，避免页面一直闪烁
+  if (contestCards.value.length === 0) {
+    loadingContests.value = true
   }
   
-  majorCategories.value.forEach(major => {
-    major.directions.forEach(direction => {
-      direction.skills.forEach(skill => {
-        const cardCount = 2 + Math.floor(Math.random() * 2)
-        for (let i = 0; i < cardCount; i++) {
-          const level = levels[Math.floor(Math.random() * levels.length)]
-          const status = statuses[Math.floor(Math.random() * statuses.length)]
-          const year = 2026
-          const month = 3 + Math.floor(Math.random() * 8) 
-          const day = 1 + Math.floor(Math.random() * 25)  
-          const duration = 30 + Math.floor(Math.random() * 60)
-          
-          const startDate = new Date(year, month-1, day)
-          const endDate = new Date(startDate)
-          endDate.setDate(startDate.getDate() + duration)
-          
-          const nameTemplates = [
-            `全国大学生${skill.name}${['大赛','竞赛','挑战赛','邀请赛'][Math.floor(Math.random()*4)]}`,
-            `${['华东','华南','华北','华中','西南'][Math.floor(Math.random()*5)]}地区${skill.name}邀请赛`,
-            `第${15+Math.floor(Math.random()*10)}届${['挑战杯','互联网+','计算机设计大赛'][Math.floor(Math.random()*3)]}·${skill.name}专项赛`,
-            `${major.name}${direction.name}${skill.name}创新实践大赛`,
-            `2026年${skill.name}应用技能大赛`
-          ]
-          
-          const organizers = [
-            '教育部高等学校教学指导委员会', '中国高等教育学会', '中国计算机学会', '中国电子学会',
-            '中国自动化学会', '中国人工智能学会', '中国机械工程学会', '中国化工学会', '中国环境科学学会',
-            '中国农学会', '中国药学会', '中华医学会', '中国艺术教育促进会'
-          ]
-          
-          cards.push({
-            id: id++,
-            name: nameTemplates[Math.floor(Math.random() * nameTemplates.length)],
-            level: level,
-            status: status,
-            statusColor: statusColors[status],
-            organize: organizers[Math.floor(Math.random() * organizers.length)],
-            startDate: `${year}-${month.toString().padStart(2,'0')}-${day.toString().padStart(2,'0')}`,
-            endDate: `${endDate.getFullYear()}-${(endDate.getMonth()+1).toString().padStart(2,'0')}-${endDate.getDate().toString().padStart(2,'0')}`,
-            tags: [major.name, direction.name, skill.name].slice(0, 2),
-            skills: [
-              `${skill.name}基础`,
-              `${skill.name}应用`,
-              ['创新设计','实践操作','案例分析','团队协作'][Math.floor(Math.random()*4)]
-            ],
-            major: major.name,
-            direction: direction.name,
-            skill: skill.name
-          })
-        }
-      })
+  try {
+    // 请求 ContentController 里的 /api/content/list
+    const res = await request.get('/api/content/list', {
+      params: { 
+        category: '竞赛信息大厅'
+      }
     })
-  })
-  
-  return cards
+    
+    // 兼容后端 Result 的返回结构
+    let rawList = []
+    if (res && res.data && res.data.content) {
+      rawList = res.data.content
+    } else if (res && res.data) {
+      rawList = res.data
+    } else if (Array.isArray(res)) {
+      rawList = res
+    }
+
+    // 🌟 核心映射：直接读取 Python 传来的精细化字段
+    contestCards.value = rawList.map(item => {
+      // 动态判断状态颜色
+      const colorMap = { '报名中': '#10b981', '即将开始': '#f97316', '备赛中': '#8b5cf6', '预报名': '#3b82f6' }
+      
+      return {
+        id: item.title + Math.random(), // 随机ID，防止重复
+        name: item.title || '未命名赛事', 
+        officialUrl: item.officialUrl || '', // 接收真实官网链接或百度兜底链接
+        level: item.level || '国家级', 
+        status: item.status || '报名中',
+        statusColor: colorMap[item.status] || '#10b981',
+        organize: item.authorName || '官方组委会', 
+        startDate: '2026-05-01',
+        endDate: '2026-06-01',
+        tags: [item.major, item.direction].filter(Boolean),
+        skills: ['基础理论', '实践操作'],
+        
+        // 🚨 完美匹配：直接使用 Python 生成的分类，前端筛选器会自动识别！
+        major: item.major,
+        direction: item.direction,
+        skill: item.skill 
+      }
+    })
+    
+  } catch (error) {
+    console.error('获取实时竞赛数据失败:', error)
+  } finally {
+    loadingContests.value = false
+  }
 }
 
-const contestCards = ref(generateContestCards())
+// 🌟 核心修改 3：页面加载时启动自动刷新
+onMounted(() => {
+  fetchRealContests()
+  
+  // 每 8 秒从后端内存拉取一次最新数据（和 Python 频率保持一致）
+  contestPollTimer = setInterval(() => {
+    fetchRealContests()
+  }, 8000)
+})
+
+// 🌟 离开页面时记得销毁定时器，节省性能
+onUnmounted(() => {
+  if (contestPollTimer) {
+    clearInterval(contestPollTimer)
+  }
+})
+
 const selectedMajor = ref('工学')
 const selectedDirection = ref('计算机类')
 const selectedSkill = ref('全部')
@@ -1667,8 +1679,12 @@ const fetchContestArticles = async () => {
   try {
     const contentRes = await fetchContentPage(CATEGORY_MAP.CONTEST, 0, 50)
     let videoList = []
-    if (contentRes && contentRes.list) {
-      videoList = contentRes.list.map(item => {
+    
+    // 兼容 Result 结构解析列表
+    const actualList = (contentRes && contentRes.list) ? contentRes.list : []
+    
+    if (actualList.length > 0) {
+      videoList = actualList.map(item => {
         let coverUrl = '';
         if (item.type === 'video' && item.videoUrl && item.videoUrl.includes('aliyuncs.com')) {
            coverUrl = `${item.videoUrl}?x-oss-process=video/snapshot,t_3000,f_jpg,w_600,h_400,m_fast`;
@@ -1685,7 +1701,7 @@ const fetchContestArticles = async () => {
         }
       })
     }
-
+    
     const articleRes = await request.get('/api/articles')
     let articleList = []
     let rawArticles = []
@@ -1713,7 +1729,7 @@ const fetchContestArticles = async () => {
     contestArticles.value = [...videoList, ...articleList]
 
   } catch (error) {
-    console.error('获取竞赛数据失败:', error)
+    console.error('获取竞赛指导数据失败:', error)
   } finally {
     loadingArticles.value = false
   }
@@ -1826,7 +1842,13 @@ const handleSearch = () => {
 }
 
 const goToContestDetail = (contest) => {
-  console.log('查看赛事:', contest)
+  const url = contest.officialUrl;
+  if (url) {
+    window.open(url, '_blank');
+  } else {
+    const searchUrl = 'https://www.baidu.com/s?wd=' + encodeURIComponent(contest.name);
+    window.open(searchUrl, '_blank');
+  }
 }
 
 watch(activeMenu, (newVal) => {

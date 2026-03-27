@@ -26,33 +26,58 @@ public class ResumeGenService {
     private String modelV3;
 
     public Map<String, Object> optimizeResume(Map<String, Object> rawData) {
-        String education = (String) rawData.getOrDefault("educationInfo", "");
-        String project = (String) rawData.getOrDefault("projectExperience", "");
+        // 1. 全面提取前端传来的用户真实数据 (解决千篇一律的核心)
+        String fullName = (String) rawData.getOrDefault("fullName", "未提供姓名");
+        String contactPhone = (String) rawData.getOrDefault("contactPhone", "未提供电话");
+        String targetJob = (String) rawData.getOrDefault("targetJob", "未明确求职岗位");
+        String education = (String) rawData.getOrDefault("educationInfo", "未提供");
+        String project = (String) rawData.getOrDefault("projectExperience", "未提供");
+        String skills = (String) rawData.getOrDefault("professionalSkills", "未提供");
         String templateName = (String) rawData.getOrDefault("templateName", "标准通用模板");
 
-        // 1. R1 负责深度润色
-        String r1SystemPrompt = "你是一个顶级的资深HR和简历面试辅导专家..."; // (同上文)
-        String r1UserInput = "原始教育经历：\n" + education + "\n\n原始项目经历：\n" + project;
+        // 2. R1 负责深度润色（必须把用户的个人信息喂给大模型）
+        String r1SystemPrompt = "你是一个顶级的资深HR和简历面试辅导专家。请根据求职者的基本信息、教育经历、项目经历和技能，为其量身定制和深度润色简历内容。请使用专业的HR术语，并采用STAR法则优化项目经历，切勿自行捏造虚假姓名或经历。";
 
-        // 🌟 使用注入的 modelR1 变量
+        // 动态拼接真实数据
+        String r1UserInput = String.format(
+                "【求职者基本信息】\n姓名：%s\n联系电话：%s\n求职意向：%s\n目标简历风格：%s\n\n" +
+                        "【需要优化的原始内容】\n原始教育经历：\n%s\n\n原始项目经历：\n%s\n\n原始专业技能：\n%s\n\n" +
+                        "请进行深度润色，提升专业度和吸引力。",
+                fullName, contactPhone, targetJob, templateName, education, project, skills
+        );
+
+        // 调用 R1 进行深度思考和润色
         String r1DraftText = llmClientService.sendRequest(modelR1, r1SystemPrompt, r1UserInput);
 
-        // 2. V3 负责格式化提取
-        String v3SystemPrompt = "你是一个无情的JSON数据格式化提取器..."; // (同上文)
-        String v3UserInput = "HR专家的润色结果如下：\n" + r1DraftText;
+        // 3. V3 负责格式化提取 JSON，确保前端能精准渲染到各个模块
+        String v3SystemPrompt = "你是一个无情的JSON数据格式化提取器。请将HR专家润色后的简历文本，严格按照要求的JSON格式提取出来。不要输出任何除了合法JSON以外的废话，也不要包含 Markdown 的 ```json 标签。";
 
-        // 🌟 使用注入的 modelV3 变量
+        String v3UserInput = "HR专家的润色结果如下：\n" + r1DraftText +
+                "\n\n请提取并严格返回如下JSON格式（必须仅包含这三个key）：\n" +
+                "{\n" +
+                "  \"optimizedEducation\": \"润色后的教育经历文本\",\n" +
+                "  \"optimizedProject\": \"润色后的项目经历文本\",\n" +
+                "  \"optimizedSkills\": \"润色后的专业技能文本\"\n" +
+                "}";
+
+        // 调用 V3/其他模型提取 JSON
         String v3JsonOutput = llmClientService.sendRequest(modelV3, v3SystemPrompt, v3UserInput);
 
-        // 3. 解析与合并 (同上文)
+        // 4. 解析与合并 (保留前端传来的基础字段如 fullName，更新被 AI 优化过的字段)
         Map<String, Object> result = new HashMap<>(rawData);
         try {
+            // 清理大模型可能不听话返回的 markdown 标记
             String cleanJson = v3JsonOutput.replaceAll("```json", "").replaceAll("```", "").trim();
+            // 反序列化为 Map
             Map<String, String> optimizedData = objectMapper.readValue(cleanJson, new TypeReference<Map<String, String>>() {});
-            result.put("educationInfo", optimizedData.getOrDefault("optimizedEducation", (String)rawData.get("educationInfo")));
-            result.put("projectExperience", optimizedData.getOrDefault("optimizedProject", (String)rawData.get("projectExperience")));
-            result.put("professionalSkills", optimizedData.getOrDefault("optimizedSkills", (String)rawData.get("professionalSkills")));
+
+            // 将 AI 润色后的核心经历覆盖回结果中
+            result.put("educationInfo", optimizedData.getOrDefault("optimizedEducation", education));
+            result.put("projectExperience", optimizedData.getOrDefault("optimizedProject", project));
+            result.put("professionalSkills", optimizedData.getOrDefault("optimizedSkills", skills));
         } catch (Exception e) {
+            System.err.println("JSON 解析失败，触发降级策略。AI 返回的原始内容为：" + v3JsonOutput);
+            // 降级策略：如果提取 JSON 彻底失败，把 R1 生成的全部优质文本塞进项目经历里，防止前端页面变成白板
             result.put("projectExperience", r1DraftText);
         }
 

@@ -141,7 +141,7 @@ const resumeData = ref({
   targetCity: ''
 })
 
-// 🌟 核心：模块化数据
+//  核心：模块化数据
 const resumeModules = ref([])
 
 onMounted(() => {
@@ -203,7 +203,7 @@ const applyAiAction = async (actionType) => {
     
     const aiResult = res.data || res;
     
-    // 🌟 修正点：不再只是 alert，而是直接替换当前页面中的文本
+    // 不再只是 alert，而是直接替换当前页面中的文本
     resumeModules.value.forEach(mod => {
       if (mod.content.includes(original)) {
         mod.content = mod.content.replace(original, aiResult)
