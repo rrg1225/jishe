@@ -26,6 +26,9 @@ public class Resume {
     private String contactPhone;
     private String email;
     private String targetCity;
+    // 在 Resume.java 中增加两个字段
+    private String eduStatus; // 学历届数 (如 2028级)
+    private String avatarUrl; // 存储 OSS 上的头像链接
 
     // ================== 2. 复杂列表 (存为 JSON 字符串) ==================
 

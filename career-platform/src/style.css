@@ -1,11 +1,33 @@
-html, body, #app {
+/* 全局盒模型 */
+* {
+  box-sizing: border-box;
+}
+
+/*
+ * 长页面（如模板详情）需要由窗口右侧滚动条滚动。
+ * 原先 height:100% + overflow:hidden 会把 #app 钉死在视口高度并裁切超出的内容。
+ * Dashboard 等仍用内部 100vh + 分区滚动，不依赖 body 锁死。
+ */
+html {
   margin: 0;
   padding: 0;
   width: 100%;
-  height: 100%;
-  overflow: hidden; /* 隐藏浏览器自带的外部滚动条 */
+  min-height: 100%;
 }
 
-* {
-  box-sizing: border-box;
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+#app,
+#app-container {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
 }

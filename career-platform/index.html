@@ -5,6 +5,20 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>career-platform</title>
+    <style>
+      /* 打印/PDF：避免整页被 viewport 裁切，允许多页完整输出 */
+      @media print {
+        html, body {
+          height: auto !important;
+          overflow: visible !important;
+          background: #fff !important;
+        }
+        #app {
+          height: auto !important;
+          overflow: visible !important;
+        }
+      }
+    </style>
   </head>
   <body>
     <div id="app"></div>

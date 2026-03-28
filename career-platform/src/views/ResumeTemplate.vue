@@ -209,7 +209,19 @@ const getSafeImageUrl = (url) => {
   return url;
 }
 
-const handleGenerate = () => {
+function buildResumeMarkdown(data) {
+  const name = (data.fullName || '求职者').trim()
+  const job = (data.targetJob || '求职意向').trim()
+  let md = `# ${name} - ${job}\n\n`
+  const phone = (data.contactPhone || '').trim()
+  if (phone) md += `📞 ${phone}\n\n`
+  if (data.educationInfo) md += `## 教育经历\n\n${data.educationInfo}\n\n`
+  if (data.projectExperience) md += `## 项目与经历\n\n${data.projectExperience}\n\n`
+  if (data.professionalSkills) md += `## 专业技能\n\n${data.professionalSkills}\n\n`
+  return md.trim()
+}
+
+const handleGenerate = async () => {
   if (!selectedAiTemplate.value) { alert('请先选择一个简历模板！'); return; }
   if (!resumeData.fullName.trim()) { alert('请至少填写您的真实姓名哦！'); return; }
   if (!resumeData.projectExperience.trim()) { alert('写一点项目经历吧！'); return; }
@@ -221,15 +233,43 @@ const handleGenerate = () => {
     targetJob: resumeData.targetJob,
     educationInfo: resumeData.educationInfo,
     projectExperience: resumeData.projectExperience,
-    professionalSkills: resumeData.professionalSkills
+    professionalSkills: resumeData.professionalSkills,
+    templateName: selectedAiTemplate.value.name
   }
-  sessionStorage.setItem('tempResumePrompt', promptData)
 
+  try {
+    // 真正调用后端的 AI 接口
+    const res = await request.post('/api/resume/ai-generate', initialData);
+    
+    // 假设后端拦截器返回的数据在 res 或 res.data 里
+    const finalData = res.data || res;
+    
+    const dataToSave = { ...initialData, ...finalData };
+    localStorage.setItem('generatedResumeFullData', JSON.stringify(dataToSave));
 
-  setTimeout(() => {
-    isGenerating.value = false
-    router.push({ path: '/resume-preview' })
-  }, 1500)
+    const md = buildResumeMarkdown(dataToSave);
+    localStorage.setItem('generatedResume', md);
+    const tid = selectedAiTemplate.value?.id;
+    if (tid) {
+      try {
+        localStorage.setItem(`resumeDraft_template_${tid}`, md);
+      } catch {
+        /* ignore */
+      }
+    }
+    if (selectedAiTemplate.value?.id) {
+      sessionStorage.setItem('selectedTemplateId', String(selectedAiTemplate.value.id));
+    }
+    router.push({
+      path: `/template-detail/${selectedAiTemplate.value.id}`,
+      query: { edit: '1' }
+    });
+  } catch (error) {
+    console.error("AI 生成失败:", error);
+    alert('AI 生成失败，请检查后端服务是否正常！');
+  } finally {
+    isGenerating.value = false;
+  }
 }
 </script>
 

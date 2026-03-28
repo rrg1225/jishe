@@ -1133,7 +1133,33 @@ const addTemplate = (type) => {
   rawResumeInput.value += templates[type] || ''
 }
 
-const handleGenerateResume = () => {
+// ================= 🌟 简历生成核心逻辑 🌟 =================
+
+/** 把 AI 返回的字段拼成预览页用的 Markdown */
+function buildResumeMarkdownFromAi(data) {
+  const name = (data.fullName || '求职者').trim()
+  const job = (data.targetJob || '求职意向').trim()
+  let md = `# ${name} - ${job}\n\n`
+  
+  if (data.educationInfo) {
+    md += `## 教育经历\n\n${data.educationInfo}\n\n`
+  }
+  if (data.projectExperience) {
+    md += `## 项目与经历\n\n${data.projectExperience}\n\n`
+  }
+  if (data.professionalSkills) {
+    md += `## 专业技能\n\n${data.professionalSkills}\n\n`
+  }
+  return md.trim()
+}
+
+/** 从大白话里粗提姓名 */
+function guessNameFromRaw(text) {
+  const m = text.match(/我是\s*([^\s，,。]{2,20})/)
+  return m ? m[1].trim() : ''
+}
+
+const handleGenerateResume = async () => {
   if (!selectedAiTemplate.value || !selectedAiTemplate.value.id) {
     alert('请先选择一个简历模板！')
     return
@@ -1142,16 +1168,61 @@ const handleGenerateResume = () => {
     alert('请写点内容，AI 才能帮您整理哦！')
     return
   }
-  isGeneratingResume.value = true
-  sessionStorage.setItem('tempResumePrompt', rawResumeInput.value)
-  if (selectedAiTemplate.value.id) {
-    sessionStorage.setItem('selectedTemplateId', selectedAiTemplate.value.id)
+  
+  const raw = rawResumeInput.value.trim()
+  const guessedName = guessNameFromRaw(raw)
+  
+  const payload = {
+    fullName: guessedName || '求职者',
+    contactPhone: '',
+    targetJob: '综合求职意向',
+    educationInfo: '',
+    projectExperience: raw,
+    professionalSkills: '',
+    templateName: selectedAiTemplate.value.name || '标准通用模板'
   }
   
-  setTimeout(() => {
-    isGeneratingResume.value = false
+  isGeneratingResume.value = true
+  sessionStorage.setItem('tempResumePrompt', raw)
+  sessionStorage.setItem('selectedTemplateId', String(selectedAiTemplate.value.id))
+  
+  try {
+    // 🌟 核心修改点：单独为这个极耗时的接口设置 180 秒（180000 毫秒）的超长超时
+    const res = await request.post('/api/resume/ai-generate', payload, {
+      timeout: 180000 
+    })
+    
+    // 兼容后端直接返回 Map 的情况
+    const finalData = res && typeof res === 'object' && !Array.isArray(res) ? res : {}
+    const merged = { ...payload, ...finalData }
+    
+    const md = buildResumeMarkdownFromAi(merged)
+    
+    // 写入 localStorage 供预览页读取
+    localStorage.setItem('generatedResume', md)
+    localStorage.setItem('generatedResumeFullData', JSON.stringify(merged))
+    const tid = selectedAiTemplate.value?.id
+    if (tid) {
+      try {
+        localStorage.setItem(`resumeDraft_template_${tid}`, md)
+      } catch {
+        /* ignore */
+      }
+    }
+
+    sessionStorage.setItem('resumePreviewLockLayoutToTemplate', '1')
     router.push({ path: '/resume-preview' })
-  }, 1500)
+  } catch (e) {
+    console.error('简历生成失败:', e)
+    // 针对超时的专门提示
+    if (e.message && e.message.includes('timeout')) {
+      alert('AI 大模型思考时间过长，已超时，请精简经历内容或稍后重试！')
+    } else {
+      alert('AI 生成失败，请检查后端与网络，或稍后重试')
+    }
+  } finally {
+    isGeneratingResume.value = false
+  }
 }
 
 // ================= 全局搜索逻辑 =================

@@ -55,34 +55,26 @@ public class ResumeController {
     @PostMapping("/save")
     public ResponseEntity<?> saveResume(@RequestBody Resume requestResume) {
         String currentPhone = getCurrentUserPhone();
-        if (currentPhone == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("登录状态已失效，请重新登录");
-        }
+        if (currentPhone == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("请登录");
 
-        // 去数据库查一下，这人是不是已经存过简历了？
         Optional<Resume> existingResumeOpt = resumeRepository.findByUserPhone(currentPhone);
+        Resume resumeToSave = existingResumeOpt.orElse(new Resume());
 
-        Resume resumeToSave;
+        // 覆盖所有字段
+        resumeToSave.setUserPhone(currentPhone);
+        resumeToSave.setTemplateName(requestResume.getTemplateName());
+        resumeToSave.setFullName(requestResume.getFullName());
+        resumeToSave.setContactPhone(requestResume.getContactPhone());
+        resumeToSave.setEmail(requestResume.getEmail());
+        resumeToSave.setTargetCity(requestResume.getTargetCity());
+        resumeToSave.setEduStatus(requestResume.getEduStatus()); // 🌟 新增
+        resumeToSave.setAvatarUrl(requestResume.getAvatarUrl()); // 🌟 新增
+        resumeToSave.setEducationInfo(requestResume.getEducationInfo());
+        resumeToSave.setProjectExperience(requestResume.getProjectExperience());
+        resumeToSave.setProfessionalSkills(requestResume.getProfessionalSkills());
 
-        if (existingResumeOpt.isPresent()) {
-            // 【老用户修改】：不能直接覆盖，需要把前端传来的新内容，一个个赋给数据库里的老对象
-            resumeToSave = existingResumeOpt.get();
-            resumeToSave.setTemplateName(requestResume.getTemplateName());
-            resumeToSave.setFullName(requestResume.getFullName());
-            resumeToSave.setContactPhone(requestResume.getContactPhone());
-            resumeToSave.setEmail(requestResume.getEmail());
-            resumeToSave.setTargetCity(requestResume.getTargetCity());
-            resumeToSave.setEducationInfo(requestResume.getEducationInfo());
-            resumeToSave.setProjectExperience(requestResume.getProjectExperience());
-            resumeToSave.setProfessionalSkills(requestResume.getProfessionalSkills());
-        } else {
-            // 【新用户第一次保存】：直接使用前端传来的对象，并死死绑定他的手机号！
-            resumeToSave = requestResume;
-            resumeToSave.setUserPhone(currentPhone);
-        }
-
-        // 统一执行保存（JPA 会自动识别是 INSERT 还是 UPDATE）
         resumeRepository.save(resumeToSave);
-        return ResponseEntity.ok("简历保存成功！");
+        return ResponseEntity.ok("简历已永久保存到云端！");
     }
+
 }

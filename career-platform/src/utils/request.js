@@ -3,7 +3,8 @@ import axios from 'axios'
 // 1. 创建 axios 实例
 const request = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080', 
-  timeout: 60000 
+  // 🌟 修改点：从 60000 改为 120000 (120秒)，适应一般的大模型请求
+  timeout: 120000 
 })
 
 // 2. 请求拦截器 (Request Interceptor)

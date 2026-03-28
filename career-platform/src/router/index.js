@@ -6,8 +6,6 @@ import ForgotPassword from '../views/ForgotPassword.vue'
 import ProfileSetup from '../views/ProfileSetup.vue' 
 import UserProfile from '../views/UserProfile.vue' 
 import Chat from '../views/Chat.vue'
-import ResumeFinalEdit from '../views/ResumeFinalEdit.vue'
-
 const routes = [
   { path: '/', redirect: '/login' },
   { 
@@ -75,9 +73,7 @@ const routes = [
   },
   {
     path: '/resume-final-edit',
-    name: 'ResumeFinalEdit',
-    component: ResumeFinalEdit,
-    meta: { requiresAuth: true } // 如果你有登录拦截的话
+    redirect: { path: '/resume-preview' }
   },
   {
     path: '/job-detail',
