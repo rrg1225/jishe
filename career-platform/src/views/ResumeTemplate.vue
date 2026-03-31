@@ -150,7 +150,8 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import request from '@/utils/request'
+import request from '../utils/request'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const isGenerating = ref(false)
@@ -238,36 +239,26 @@ const handleGenerate = async () => {
   }
 
   try {
-    // 真正调用后端的 AI 接口
-    const res = await request.post('/api/resume/ai-generate', initialData);
+    // 将数据发给后端，后端使用 @Async 异步处理后立刻返回 200
+    await request.post('/api/resume/ai-generate', initialData);
     
-    // 假设后端拦截器返回的数据在 res 或 res.data 里
-    const finalData = res.data || res;
-    
-    const dataToSave = { ...initialData, ...finalData };
-    localStorage.setItem('generatedResumeFullData', JSON.stringify(dataToSave));
-
-    const md = buildResumeMarkdown(dataToSave);
-    localStorage.setItem('generatedResume', md);
-    const tid = selectedAiTemplate.value?.id;
-    if (tid) {
-      try {
-        localStorage.setItem(`resumeDraft_template_${tid}`, md);
-      } catch {
-        /* ignore */
-      }
-    }
+    // 记录用户选的模板 ID，等全局 WebSocket 通知收到结果后，跳转用得到
     if (selectedAiTemplate.value?.id) {
       sessionStorage.setItem('selectedTemplateId', String(selectedAiTemplate.value.id));
     }
-    router.push({
-      path: `/template-detail/${selectedAiTemplate.value.id}`,
-      query: { edit: '1' }
+
+    // 优雅的提示，解放用户
+    ElMessage({
+      message: '✨ 简历制作任务已提交！请自由浏览网站其他内容，制作完成时系统将自动呼叫您。',
+      type: 'success',
+      duration: 5000
     });
+
   } catch (error) {
-    console.error("AI 生成失败:", error);
-    alert('AI 生成失败，请检查后端服务是否正常！');
+    console.error("AI 任务提交失败:", error);
+    ElMessage.error('提交失败，请检查后端服务是否正常。');
   } finally {
+    // 释放按钮
     isGenerating.value = false;
   }
 }

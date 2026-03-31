@@ -1,9 +1,15 @@
 import axios from 'axios'
 
+// 开发环境建议留空，走 Vite 代理；生产环境可配置为 https://api.your-domain.com
+const apiBase =
+  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.VITE_API_BASE_URl ||
+  ''
+
 // 1. 创建 axios 实例
 const request = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080', 
-  // 🌟 修改点：从 60000 改为 120000 (120秒)，适应一般的大模型请求
+  baseURL: apiBase,
+  // 从 60000 改为 120000 (120秒)，适应一般的大模型请求
   timeout: 120000 
 })
 

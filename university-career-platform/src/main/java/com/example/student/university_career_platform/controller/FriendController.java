@@ -20,15 +20,11 @@ public class FriendController {
 
     @Autowired
     private UserFriendRepository userFriendRepository;
-
     @Autowired
     private FriendRequestRepository friendRequestRepository;
-
-    // 新增注入聊天记录 Repository
     @Autowired
     private ChatMessageRepository chatMessageRepository;
 
-    // 1. 获取我的好友列表 (保持不变)
     @GetMapping("/list")
     public Map<String, Object> getFriendList(@RequestParam String userId) {
         Map<String, Object> result = new HashMap<>();
@@ -46,49 +42,38 @@ public class FriendController {
         return result;
     }
 
-    // 🌟 2. 发送好友请求 (替代原来的直接添加)
+    // 🌟 已净化：去掉 try-catch
     @PostMapping("/request")
     public Map<String, Object> sendRequest(@RequestParam String senderId, @RequestParam String receiverId) {
-        Map<String, Object> result = new HashMap<>();
-        try {
-            FriendRequest request = new FriendRequest();
-            request.setSenderId(senderId);
-            request.setReceiverId(receiverId);
-            request.setStatus("PENDING");
-            friendRequestRepository.save(request);
+        FriendRequest request = new FriendRequest();
+        request.setSenderId(senderId);
+        request.setReceiverId(receiverId);
+        request.setStatus("PENDING");
+        friendRequestRepository.save(request);
 
-            result.put("code", 200);
-            result.put("msg", "好友请求已发送，等待对方通过");
-        } catch (Exception e) {
-            result.put("code", 500);
-            result.put("msg", "请勿重复发送请求！");
-        }
+        Map<String, Object> result = new HashMap<>();
+        result.put("code", 200);
+        result.put("msg", "好友请求已发送，等待对方通过");
         return result;
     }
 
-    // 🌟 3. 获取别人发给我的“待处理”请求
     @GetMapping("/pending-requests")
     public Map<String, Object> getPendingRequests(@RequestParam String userId) {
         Map<String, Object> result = new HashMap<>();
-        // 查出我是 receiver，且状态是 PENDING 的所有记录
         List<FriendRequest> requests = friendRequestRepository.findByReceiverIdAndStatus(userId, "PENDING");
         result.put("code", 200);
         result.put("data", requests);
         return result;
     }
 
-    // 🌟 4. 同意好友请求
     @PostMapping("/accept")
     public Map<String, Object> acceptRequest(@RequestParam Long requestId) {
         Map<String, Object> result = new HashMap<>();
-        // 找到这条请求
         FriendRequest request = friendRequestRepository.findById(requestId).orElse(null);
         if (request != null && "PENDING".equals(request.getStatus())) {
-            // 将状态改为已同意
             request.setStatus("ACCEPTED");
             friendRequestRepository.save(request);
 
-            // 正式写入好友表 (双向添加)
             UserFriend f1 = new UserFriend();
             f1.setUserId(request.getSenderId());
             f1.setFriendId(request.getReceiverId());
@@ -108,26 +93,17 @@ public class FriendController {
         return result;
     }
 
-    // 粘贴这个新的删除接口
+    // 🌟 已净化：去掉 try-catch
     @PostMapping("/delete")
-    @Transactional // 保证事务，要么都删成功，要么都不删
+    @Transactional
     public Map<String, Object> deleteFriend(@RequestParam String userId, @RequestParam String friendId) {
+        userFriendRepository.deleteByUserIdAndFriendId(userId, friendId);
+        userFriendRepository.deleteByUserIdAndFriendId(friendId, userId);
+        chatMessageRepository.deleteChatHistoryBetween(userId, friendId);
+
         Map<String, Object> result = new HashMap<>();
-        try {
-            // 1. 删除好友关系（因为是双向的，所以要删两条记录）
-            userFriendRepository.deleteByUserIdAndFriendId(userId, friendId);
-            userFriendRepository.deleteByUserIdAndFriendId(friendId, userId);
-
-            // 2. 清空聊天记录
-            chatMessageRepository.deleteChatHistoryBetween(userId, friendId);
-
-            result.put("code", 200);
-            result.put("msg", "删除成功");
-        } catch (Exception e) {
-            e.printStackTrace();
-            result.put("code", 500);
-            result.put("msg", "删除失败: " + e.getMessage());
-        }
+        result.put("code", 200);
+        result.put("msg", "删除成功");
         return result;
     }
 }

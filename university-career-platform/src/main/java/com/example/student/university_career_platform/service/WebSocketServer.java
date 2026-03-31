@@ -2,6 +2,7 @@ package com.example.student.university_career_platform.service;
 
 import com.example.student.university_career_platform.model.ChatMessage;
 import com.example.student.university_career_platform.repository.ChatMessageRepository;
+import com.example.student.university_career_platform.utils.DFAFilterUtil; // 🌟 引入新写的算法
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.websocket.*;
@@ -30,59 +31,50 @@ public class WebSocketServer {
         WebSocketServer.chatMessageRepository = chatMessageRepository;
     }
 
-    /**
-     * 连接建立成功调用的方法
-     */
     @OnOpen
     public void onOpen(Session session, @PathParam("userId") String userId) {
         sessionPool.put(userId, session);
         System.out.println("用户 [" + userId + "] 加入聊天！当前在线人数为: " + sessionPool.size());
     }
 
-    /**
-     * 连接关闭调用的方法
-     */
     @OnClose
     public void onClose(@PathParam("userId") String userId) {
         sessionPool.remove(userId);
         System.out.println("用户 [" + userId + "] 断开连接！当前在线人数为: " + sessionPool.size());
     }
 
-    /**
-     * 收到客户端消息后调用的方法
-     */
     @OnMessage
     public void onMessage(String message, @PathParam("userId") String userId) {
         System.out.println("收到来自用户 [" + userId + "] 的消息: " + message);
 
         try {
-            // 1. 解析前端传来的企业级结构化 JSON
+            // 1. 解析前端传来的结构化 JSON
             JsonNode jsonNode = objectMapper.readTree(message);
             String messageType = jsonNode.has("messageType") ? jsonNode.get("messageType").asText() : "TEXT";
             String toUserId = jsonNode.get("toUserId").asText();
             String content = jsonNode.get("content").asText();
 
-            String fileName = jsonNode.has("fileName") ? jsonNode.get("fileName").asText() : null;
-            Long fileSize = jsonNode.has("fileSize") ? jsonNode.get("fileSize").asLong() : null;
+            // ==========================================
+            // 🌟 杀手锏接入：DFA 毫秒级敏感词过滤！
+            // 无论用户发送什么长篇大论，只要包含违法词，瞬间被替换为星号 ***
+            // ==========================================
+            content = DFAFilterUtil.replaceSensitiveWord(content);
 
-            // 2. 存入 MySQL 数据库
+            // 2. 存入 MySQL 数据库 (删除了原有的 fileName 和 fileSize，完美适配你的实体类)
             ChatMessage chatMessage = new ChatMessage();
             chatMessage.setSenderId(userId);
             chatMessage.setReceiverId(toUserId);
-            chatMessage.setMessageType(messageType); // 记录类型
-            chatMessage.setContent(content);
-            chatMessage.setIsRead(0); // 默认未读
-            chatMessage.setFileName(fileName);       //  记录文件名
-            chatMessage.setFileSize(fileSize);       //  记录文件大小
-            // 注意：因为用了 JPA 的 @PrePersist，这里不需要手动 set 时间！
+            chatMessage.setMessageType(messageType);
+            chatMessage.setContent(content); // 🚨 注意：存入数据库的已经是清洗过的内容，保障平台安全
+            chatMessage.setIsRead(0);
 
             chatMessageRepository.save(chatMessage);
-            System.out.println("消息已成功保存至数据库！");
+            System.out.println("消息已清洗并成功保存至数据库！");
 
             // 3. 转发给目标用户 (如果他在线)
             Session toSession = sessionPool.get(toUserId);
             if (toSession != null && toSession.isOpen()) {
-                toSession.getBasicRemote().sendText(content);
+                toSession.getBasicRemote().sendText(content); // 推送的也是安全内容
                 System.out.println("已将消息实时推送给目标用户 [" + toUserId + "]");
             } else {
                 System.out.println("目标用户 [" + toUserId + "] 不在线，已作为离线消息存储。");
@@ -94,18 +86,12 @@ public class WebSocketServer {
         }
     }
 
-    /**
-     * 发生错误时调用
-     */
     @OnError
     public void onError(Session session, Throwable error) {
         System.err.println("WebSocket 发生错误！");
         error.printStackTrace();
     }
 
-    /**
-     * 广播消息给所有在线用户（看板实时更新专用）
-     */
     public void sendAllMessage(String message) {
         for (Session session : sessionPool.values()) {
             try {
@@ -118,4 +104,21 @@ public class WebSocketServer {
         }
     }
 
+    /**
+     * 🌟 保留原有优化：后端主动向指定用户推送消息（专供 AI 简历生成等后台任务调用）
+     */
+    public void sendMessageToUser(String userId, String message) {
+        Session session = sessionPool.get(userId);
+        if (session != null && session.isOpen()) {
+            try {
+                session.getBasicRemote().sendText(message);
+                System.out.println("后台已成功向用户 [" + userId + "] 推送系统通知！");
+            } catch (Exception e) {
+                System.err.println("推送系统通知失败：" + e.getMessage());
+                e.printStackTrace();
+            }
+        } else {
+            System.out.println("推送通知失败：用户 [" + userId + "] 当前未连接全局通知。");
+        }
+    }
 }

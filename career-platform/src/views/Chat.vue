@@ -47,7 +47,7 @@ import ChatMessageBoard from '../components/chat/ChatMessageBoard.vue'; // 🌟 
 import { useWebSocket } from '../composables/useWebSocket';
 
 const myUserId = localStorage.getItem('userId') || "1001"; 
-const wsBaseUrl = import.meta.env.VITE_WS_BASE_URL || 'ws://localhost:8080';
+const wsBaseUrl = import.meta.env.VITE_WS_BASE_URL || 'ws://120.27.205.204:8080';
 const wsUrl = `${wsBaseUrl}/chat/${myUserId}`;
 
 // 当前选中的聊天对象

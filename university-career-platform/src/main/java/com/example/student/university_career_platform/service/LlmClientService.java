@@ -1,10 +1,6 @@
 package com.example.student.university_career_platform.service;
 
-import com.alibaba.dashscope.aigc.generation.Generation;
-import com.alibaba.dashscope.aigc.generation.GenerationParam;
 import com.alibaba.dashscope.aigc.generation.GenerationResult;
-import com.alibaba.dashscope.common.Message;
-import com.alibaba.dashscope.common.Role;
 import com.example.student.university_career_platform.model.ChatMessage;
 import com.example.student.university_career_platform.repository.ChatMessageRepository;
 import io.reactivex.Flowable;
@@ -12,95 +8,68 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
+import java.util.Map;
 
 @Service
 public class LlmClientService {
 
-    @Value("${ai.aliyun.api-key}")
-    private String apiKey;
+    @Autowired
+    private Map<String, LlmStrategy> llmStrategyMap;
 
-    @Value("${ai.mentor.model-id}")
+    @Value("${ai.engine.active:aliyunLlmStrategy}")
+    private String activeEngine;
+
+    @Value("${ai.mentor.model-id:qwen-max}")
     private String mentorModelId;
 
-    @Value("${ai.mentor.system-prompt}")
+    @Value("${ai.mentor.system-prompt:你是一个专业的职业规划导师}")
     private String mentorSystemPrompt;
 
     @Autowired
     private ChatMessageRepository chatMessageRepository;
 
+    private LlmStrategy getActiveStrategy() {
+        LlmStrategy strategy = llmStrategyMap.get(activeEngine);
+        if (strategy == null) {
+            return llmStrategyMap.get("aliyunLlmStrategy"); // 找不到配置就强行走阿里
+        }
+        return strategy;
+    }
+
     /**
-     * 🚀 企业级真流式接口（专门给聊天用）
-     * 返回 RxJava 的 Flowable 数据流，大模型每憋出一个字，流里就多一个字
+     * 🚀 修复点：这里的调用必须传入 3 个参数，不能只传 1 个！
      */
     public Flowable<GenerationResult> streamChat(String modelId, String systemPrompt, String userInput) {
-        try {
-            Generation gen = new Generation();
-            Message systemMsg = Message.builder().role(Role.SYSTEM.getValue()).content(systemPrompt).build();
-            Message userMsg = Message.builder().role(Role.USER.getValue()).content(userInput).build();
-
-            GenerationParam param = GenerationParam.builder()
-                    .apiKey(apiKey)
-                    .model(modelId)
-                    .messages(Arrays.asList(systemMsg, userMsg))
-                    .resultFormat(GenerationParam.ResultFormat.MESSAGE)
-                    // 🚨 核心灵魂：必须开启增量输出！这样每次传过来的才是一个字，而不是每次都把之前的拼接上
-                    .incrementalOutput(true)
-                    .build();
-
-            // 发起流式长连接调用
-            return gen.streamCall(param);
-        } catch (Exception e) {
-            throw new RuntimeException("大模型流式调用初始化失败", e);
-        }
+        // 原来您这里可能只写了 getActiveStrategy().streamChat(userInput)，导致报错
+        return getActiveStrategy().streamChat(modelId, systemPrompt, userInput);
     }
 
     /**
-     * 📦 保留原有的同步阻塞接口（专门给简历生成用，因为简历不需要打字机效果）
+     * 📦 同步接口：同样确保 3 参数完整
      */
     public String sendRequest(String modelId, String systemPrompt, String userInput) {
-        try {
-            Generation gen = new Generation();
-            Message systemMsg = Message.builder().role(Role.SYSTEM.getValue()).content(systemPrompt).build();
-            Message userMsg = Message.builder().role(Role.USER.getValue()).content(userInput).build();
-
-            GenerationParam param = GenerationParam.builder()
-                    .apiKey(apiKey)
-                    .model(modelId)
-                    .messages(Arrays.asList(systemMsg, userMsg))
-                    .resultFormat(GenerationParam.ResultFormat.MESSAGE)
-                    .build();
-
-            // 同步等待完整结果返回
-            GenerationResult result = gen.call(param);
-            return result.getOutput().getChoices().get(0).getMessage().getContent();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "服务暂时开小差了，请稍后再试。";
-        }
+        return getActiveStrategy().sendRequest(modelId, systemPrompt, userInput);
     }
 
-    @SuppressWarnings("unused")
+    /**
+     * AI 导师对话逻辑
+     */
     public String chatWithMingliMentor(String userId, String userMessage) {
-        // 1. 保存用户的真实提问 (注意 ID 全部改为 String 类型)
         ChatMessage userMsg = new ChatMessage();
         userMsg.setSenderId(userId);
-        userMsg.setReceiverId("0"); // "0" 代表明理导师
+        userMsg.setReceiverId("0");
         userMsg.setContent(userMessage);
-        // 你的 ChatMessage 实体类自带 @PrePersist 自动生成时间，无需手动 setGmtCreated
         chatMessageRepository.save(userMsg);
 
-        // 2. 调用大模型获取 AI 回复
-        String aiResponse = sendRequest(mentorModelId, mentorSystemPrompt, userMessage);
+        // 调用时传入正确的 3 个参数
+        String aiResponse = getActiveStrategy().sendRequest(mentorModelId, mentorSystemPrompt, userMessage);
 
-        // 3. 保存 AI 导师的回答
         ChatMessage aiMsg = new ChatMessage();
-        aiMsg.setSenderId("0"); // "0" 代表明理导师
+        aiMsg.setSenderId("0");
         aiMsg.setReceiverId(userId);
         aiMsg.setContent(aiResponse);
         chatMessageRepository.save(aiMsg);
 
         return aiResponse;
     }
-
 }

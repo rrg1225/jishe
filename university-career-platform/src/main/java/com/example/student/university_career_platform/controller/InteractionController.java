@@ -1,17 +1,17 @@
 package com.example.student.university_career_platform.controller;
 
+import com.example.student.university_career_platform.annotation.LogRecord;
+import com.example.student.university_career_platform.annotation.NoRepeatSubmit;
 import com.example.student.university_career_platform.model.Comment;
-import com.example.student.university_career_platform.model.LikeRecord;
 import com.example.student.university_career_platform.model.User;
 import com.example.student.university_career_platform.repository.CommentRepository;
-import com.example.student.university_career_platform.repository.LikeRecordRepository;
 import com.example.student.university_career_platform.repository.UserRepository;
+import com.example.student.university_career_platform.service.RedisLikeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -24,15 +24,17 @@ public class InteractionController {
 
     @Autowired
     private CommentRepository commentRepository;
-    @Autowired
-    private LikeRecordRepository likeRecordRepository;
+
     @Autowired
     private UserRepository userRepository;
 
-    // 🌟 终极防御：安全获取当前用户手机号的方法，彻底解决 NullPointerException
+    // 🌟 注入我们刚刚写好的高并发点赞引擎
+    @Autowired
+    private RedisLikeService redisLikeService;
+
+    // 🌟 终极防御：安全获取当前用户手机号的方法
     private String getCurrentUserPhone() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        // 如果没登录，或者认证信息为空，或者等于匿名用户，统一返回 null
         if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getName())) {
             return null;
         }
@@ -47,8 +49,9 @@ public class InteractionController {
     }
 
     @PostMapping("/comment")
+    @LogRecord("用户发表文章/帖子评论")
+    @NoRepeatSubmit(lockTime = 5)
     public ResponseEntity<?> addComment(@RequestBody CommentRequest request) {
-        // 安全获取用户信息
         String currentPhone = getCurrentUserPhone();
         if (currentPhone == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("请先登录后再发表评论");
@@ -65,7 +68,6 @@ public class InteractionController {
         comment.setAuthorPhone(currentPhone);
         comment.setAuthorName(user.getNickName());
         comment.setAuthorAvatar(user.getAvatar());
-        // gmtCreated 会由 @PrePersist 自动生成，这里不需要 set 了
 
         commentRepository.save(comment);
         return ResponseEntity.ok("评论发布成功！");
@@ -73,43 +75,36 @@ public class InteractionController {
 
     @GetMapping("/comments")
     public ResponseEntity<?> getComments(@RequestParam String targetId) {
-        // 调用 Repository 里的最新方法
         return ResponseEntity.ok(commentRepository.findByTargetIdOrderByGmtCreatedDesc(targetId));
     }
 
-    // ================= 2. 点赞模块 =================
+    // ================= 2. 高并发点赞模块 (全方位升级) =================
 
     @PostMapping("/like/toggle")
-    @Transactional
+    @LogRecord("用户进行点赞/取消点赞操作")
+    @NoRepeatSubmit(lockTime = 2) // 防止恶意物理连点
     public ResponseEntity<?> toggleLike(@RequestParam String targetId) {
-        // 安全获取用户信息
         String currentPhone = getCurrentUserPhone();
         if (currentPhone == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("请先登录后再点赞");
         }
 
-        boolean alreadyLiked = likeRecordRepository.existsByTargetIdAndUserPhone(targetId, currentPhone);
-        if (alreadyLiked) {
-            likeRecordRepository.deleteByTargetIdAndUserPhone(targetId, currentPhone);
-            return ResponseEntity.ok("取消点赞");
-        } else {
-            LikeRecord like = new LikeRecord();
-            like.setTargetId(targetId);
-            like.setUserPhone(currentPhone);
-            likeRecordRepository.save(like);
-            return ResponseEntity.ok("点赞成功");
-        }
+        // 🌟 只有这一行！将沉重的数据库操作交给了 Redis 引擎处理
+        boolean finalStatus = redisLikeService.toggleLike(targetId, currentPhone);
+
+        return ResponseEntity.ok(finalStatus ? "点赞成功" : "取消点赞");
     }
 
     @GetMapping("/like/status")
     public ResponseEntity<?> getLikeStatus(@RequestParam String targetId) {
-        long totalLikes = likeRecordRepository.countByTargetId(targetId);
+        // 🌟 走 Redis 高速缓存拿总数
+        long totalLikes = redisLikeService.getLikeCount(targetId);
         boolean isLikedByMe = false;
 
         String currentPhone = getCurrentUserPhone();
-        // 只有当前真正有登录用户时，才去查他有没有点过赞
         if (currentPhone != null) {
-            isLikedByMe = likeRecordRepository.existsByTargetIdAndUserPhone(targetId, currentPhone);
+            // 🌟 走 Redis 高速缓存拿个人状态
+            isLikedByMe = redisLikeService.isLiked(targetId, currentPhone);
         }
 
         Map<String, Object> result = new HashMap<>();

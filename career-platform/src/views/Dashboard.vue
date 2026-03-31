@@ -341,11 +341,33 @@
           </div>
         </section>
 
-        <section v-if="activeMenu === 'job'" class="fade-in">
+<section v-if="activeMenu === 'job'" class="fade-in">
           <div class="recruitment-section">
-            <div class="section-header">
+            
+            <div class="section-header" style="display: flex; justify-content: space-between; align-items: center;">
               <div>
                 <h3>🔥 产教融合 · 招聘双选</h3>
+              </div>
+              
+              <div>
+                <button 
+                  @click="fetchRecommendedJobs" 
+                  style="background: linear-gradient(135deg, #f97316, #ef4444); color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 10px rgba(249, 115, 22, 0.3); transition: all 0.3s;"
+                  onmouseover="this.style.transform='translateY(-2px)'"
+                  onmouseout="this.style.transform='translateY(0)'"
+                >
+                  ✨ 基于简历 AI 智能匹配
+                </button>
+                
+                <button 
+                  v-if="isRecommendMode"
+                  @click="isRecommendMode = false; fetchJobData()" 
+                  style="margin-left: 10px; background: white; color: #64748b; border: 1px solid #e2e8f0; padding: 8px 16px; border-radius: 20px; cursor: pointer; transition: all 0.3s;"
+                  onmouseover="this.style.color='#4aa3d1'; this.style.borderColor='#4aa3d1'"
+                  onmouseout="this.style.color='#64748b'; this.style.borderColor='#e2e8f0'"
+                >
+                  返回全部岗位
+                </button>
               </div>
             </div>
             
@@ -825,6 +847,7 @@ import { ref, reactive, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import request from '../utils/request'
 import Chat from './Chat.vue' 
+import { ElMessage } from 'element-plus'
 
 const route = useRoute()
 const router = useRouter()
@@ -1027,6 +1050,9 @@ onMounted(() => {
   initWebSocket()
   fetchJobData()
   fetchTemplatesData()
+
+  // 🌟 新增：挂载时拉取热搜
+  fetchRealHotSearch()
 })
 
 watch(() => route.query.edit, (newVal) => {
@@ -1182,60 +1208,50 @@ const handleGenerateResume = async () => {
     templateName: selectedAiTemplate.value.name || '标准通用模板'
   }
   
+  // 按钮变为 loading 状态
   isGeneratingResume.value = true
   sessionStorage.setItem('tempResumePrompt', raw)
   sessionStorage.setItem('selectedTemplateId', String(selectedAiTemplate.value.id))
   
   try {
-    // 🌟 核心修改点：单独为这个极耗时的接口设置 180 秒（180000 毫秒）的超长超时
-    const res = await request.post('/api/resume/ai-generate', payload, {
-      timeout: 180000 
+    // 🚀 核心修改：直接发送请求，不配置超长 timeout，不等待 AI 处理完毕
+    // 后端接口改造后，应该立刻返回 {code: 200, message: "任务已提交"}
+    await request.post('/api/resume/ai-generate', payload)
+    
+    // 给用户极其丝滑的非阻塞反馈
+    ElMessage({
+      message: '🚀 简历排版任务已提交！AI 正在云端奋笔疾书，您可以先去浏览其他内容，完成后右上角会弹出通知。',
+      type: 'success',
+      duration: 5000
     })
-    
-    // 兼容后端直接返回 Map 的情况
-    const finalData = res && typeof res === 'object' && !Array.isArray(res) ? res : {}
-    const merged = { ...payload, ...finalData }
-    
-    const md = buildResumeMarkdownFromAi(merged)
-    
-    // 写入 localStorage 供预览页读取
-    localStorage.setItem('generatedResume', md)
-    localStorage.setItem('generatedResumeFullData', JSON.stringify(merged))
-    const tid = selectedAiTemplate.value?.id
-    if (tid) {
-      try {
-        localStorage.setItem(`resumeDraft_template_${tid}`, md)
-      } catch {
-        /* ignore */
-      }
-    }
 
-    sessionStorage.setItem('resumePreviewLockLayoutToTemplate', '1')
-    router.push({ path: '/resume-preview' })
   } catch (e) {
-    console.error('简历生成失败:', e)
-    // 针对超时的专门提示
-    if (e.message && e.message.includes('timeout')) {
-      alert('AI 大模型思考时间过长，已超时，请精简经历内容或稍后重试！')
-    } else {
-      alert('AI 生成失败，请检查后端与网络，或稍后重试')
-    }
+    console.error('任务提交失败:', e)
+    ElMessage.error('任务提交失败，请检查网络或稍后重试。')
   } finally {
+    // 请求发出去后，立刻释放按钮状态，不阻塞用户
     isGeneratingResume.value = false
   }
 }
-
 // ================= 全局搜索逻辑 =================
-const hotSearchList = ref([
-  { keyword: '2026考研大纲', count: 128 },
-  { keyword: '互联网+大赛', count: 96 },
-  { keyword: '字节跳动实习', count: 85 },
-  { keyword: '春招时间表', count: 64 },
-  { keyword: '雅思机考', count: 52 },
-  { keyword: '计算机二级', count: 43 },
-  { keyword: '保研夏令营', count: 38 },
-  { keyword: '腾讯校招', count: 31 }
-])
+const hotSearchList = ref([])
+
+// 🌟 2. 新增：从后端算法获取真实实时热搜的方法
+const fetchRealHotSearch = async () => {
+  try {
+    const res = await request.get('/api/content/hot-search');
+    // 兼容不同的 Result 返回结构
+    if (res && res.code === 200 && res.data) {
+      hotSearchList.value = res.data;
+    } else if (res && Array.isArray(res.data)) {
+      hotSearchList.value = res.data;
+    } else if (Array.isArray(res)) {
+      hotSearchList.value = res;
+    }
+  } catch (error) {
+    console.error("获取实时热搜榜单失败", error);
+  }
+};
 
 const showHotSearch = ref(false)
 const searchKeyword = ref('')
@@ -1264,19 +1280,28 @@ const performSearch = async (keyword) => {
   searchResults.value = [];
 
   try {
+    // 1. 发起搜索请求（此时会触发后端算法，给这个词频 +1）
     const res = await request.get('/api/content/search', { params: { keyword } });
+    
+    // 2. 【核心新增】：搜索完成后，立刻向后端拉取最新的热搜排行榜！
+    await fetchRealHotSearch();
+
+    // 3. 处理搜索结果
     let list = [];
     if (Array.isArray(res)) list = res;
-    else if (Array.isArray(res.data)) list = res.data;
-    else if (res.data?.content) list = res.data.content;
+    else if (res && Array.isArray(res.data)) list = res.data;
+    else if (res && res.data?.content) list = res.data.content;
     
     if (list && list.length > 0) {
       searchResults.value = formatToCards(list);
       isSearching.value = false;
       return;
     }
+    
     throw new Error("Backend search returned empty");
+    
   } catch (error) {
+    // 4. 异常或无数据时的前端本地过滤兜底逻辑（保持你原来的代码原封不动）
     const keywordLower = keyword.toLowerCase();
     const filtered = allLocalContentData.value.filter(item => {
       const titleMatch = item.title && item.title.toLowerCase().includes(keywordLower);
@@ -1290,7 +1315,7 @@ const performSearch = async (keyword) => {
       isSearching.value = false;
     }, 500); 
   }
-}
+};
 
 onUnmounted(() => {
   if (blurTimer) clearTimeout(blurTimer)
@@ -1476,6 +1501,82 @@ const fetchJobData = async () => {
     })
   } catch (error) {
     console.error('获取产教融合岗位数据彻底失败:', error)
+  } finally {
+    loadingJobs.value = false
+  }
+}
+
+// 🌟 新增：标识当前是否处于推荐模式
+const isRecommendMode = ref(false)
+
+// 🌟 新增：调用后端推荐算法
+const fetchRecommendedJobs = async () => {
+  const resumeStr = localStorage.getItem('generatedResumeFullData')
+  let userSkills = ""
+  
+  if (resumeStr) {
+     try {
+       const resumeData = JSON.parse(resumeStr)
+       // 拼接用户的技能和项目经历供算法分析
+       userSkills = (resumeData.professionalSkills || "") + " " + (resumeData.projectExperience || "")
+     } catch (e) {
+       console.error("解析本地简历数据失败", e)
+     }
+  }
+
+  if (!userSkills || userSkills.trim() === '') {
+     ElMessage.warning("您还没有生成过包含技能描述的 AI 简历，暂无法进行精准推荐哦！为您展示最新岗位。")
+     // 退回到普通列表
+     isRecommendMode.value = false
+     await fetchJobData()
+     return
+  }
+
+  loadingJobs.value = true
+  isRecommendMode.value = true
+  selectedJob.value = '全部' // 清除其它过滤条件
+
+  try {
+    const res = await request.post('/api/jobs/recommend', { userSkills: userSkills })
+    
+    // 解析你后端的 Result<List<JobOffer>> 结构
+    let rawList = []
+    if (res && res.data && Array.isArray(res.data)) {
+        rawList = res.data
+    } else if (res && res.code === 200 && Array.isArray(res.data)) {
+        rawList = res.data
+    }
+
+    if (rawList && rawList.length > 0) {
+      jobCards.value = rawList.map(job => {
+        let parsedTags = []
+        if (job.techStack && typeof job.techStack === 'string') {
+          parsedTags = job.techStack.split(',').filter(t => t.trim() !== '')
+        }
+
+        return {
+          id: job.id,
+          position: job.jobName || '未命名岗位', 
+          company: job.companyName || '未知企业',
+          salary: job.salary || '薪资面议',
+          location: job.area || '全国',
+          tags: parsedTags,
+          deadline: '长期有效',
+          hot: true, // 推荐出来的都打上热门/推荐标签
+          category: job.industry || '互联网/AI', 
+          subCategory: '后端开发', 
+          jobType: '全部',
+          jobDescription: job.jobDescription || '暂无岗位职责描述',
+          requirements: job.requirements || '暂无任职要求说明'
+        }
+      })
+      ElMessage.success("✨ 已使用余弦相似度算法为您精准推荐了高匹配度岗位！")
+    } else {
+      ElMessage.warning("暂时没有匹配到合适的岗位。")
+    }
+  } catch (error) {
+    console.error("推荐失败", error)
+    ElMessage.error("推荐算法服务异常，请稍后重试。")
   } finally {
     loadingJobs.value = false
   }
