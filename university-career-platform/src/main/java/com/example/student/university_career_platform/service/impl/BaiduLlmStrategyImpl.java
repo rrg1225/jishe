@@ -1,6 +1,7 @@
-package com.example.student.university_career_platform.service;
+package com.example.student.university_career_platform.service.impl;
 
 import com.alibaba.dashscope.aigc.generation.GenerationResult;
+import com.example.student.university_career_platform.service.strategy.LlmStrategy;
 import io.reactivex.Flowable;
 import org.springframework.stereotype.Service;
 

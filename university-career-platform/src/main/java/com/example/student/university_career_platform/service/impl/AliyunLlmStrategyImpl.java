@@ -1,16 +1,16 @@
-package com.example.student.university_career_platform.service;
+package com.example.student.university_career_platform.service.impl;
 
 import com.alibaba.dashscope.aigc.generation.Generation;
 import com.alibaba.dashscope.aigc.generation.GenerationParam;
 import com.alibaba.dashscope.aigc.generation.GenerationResult;
 import com.alibaba.dashscope.common.Message;
 import com.alibaba.dashscope.common.Role;
+import com.example.student.university_career_platform.service.strategy.LlmStrategy;
 import io.reactivex.Flowable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import java.util.Collections;
 
 @Service("aliyunLlmStrategy")
 public class AliyunLlmStrategyImpl implements LlmStrategy {

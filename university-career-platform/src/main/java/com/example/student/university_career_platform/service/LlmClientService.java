@@ -3,6 +3,7 @@ package com.example.student.university_career_platform.service;
 import com.alibaba.dashscope.aigc.generation.GenerationResult;
 import com.example.student.university_career_platform.model.ChatMessage;
 import com.example.student.university_career_platform.repository.ChatMessageRepository;
+import com.example.student.university_career_platform.service.strategy.LlmStrategy;
 import io.reactivex.Flowable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;

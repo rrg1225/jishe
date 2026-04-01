@@ -4,8 +4,8 @@ import request from '../utils/request';
 export function useFriendManager(myUserId) {
   const friendList = ref([]);
   const pendingRequests = ref([]);
-  const searchResults = ref([]); // 存储搜索用户的返回结果
-  const isSearching = ref(false); // 搜索状态指示器
+  const searchResults = ref([]); 
+  const isSearching = ref(false); 
 
   // 1. 获取好友列表
   const fetchFriendList = async () => {
@@ -27,7 +27,7 @@ export function useFriendManager(myUserId) {
     }
   };
 
-  // 3. 搜索用户 (新增：支持按昵称或手机号模糊搜索)
+  // 3. 搜索用户
   const searchUser = async (keyword) => {
     if (!keyword.trim()) {
       searchResults.value = [];
@@ -35,9 +35,7 @@ export function useFriendManager(myUserId) {
     }
     isSearching.value = true;
     try {
-      // 假设后端提供了一个模糊搜索用户的接口
       const res = await request.get(`/api/user/search?keyword=${encodeURIComponent(keyword)}`);
-      // 如果后端没有此接口，这部分代码需要配合后端开发。这里假设返回的 res.data 是一个用户数组
       if (res.code === 200) {
         searchResults.value = res.data;
       } else {
@@ -51,15 +49,19 @@ export function useFriendManager(myUserId) {
     }
   };
 
-  // 4. 发送好友申请 (修改：接收目标用户的 ID)
-  const sendFriendRequest = async (targetUserId) => {
+  // 4. 🌟 发送好友申请 (带验证信息)
+  const sendFriendRequest = async (targetUserId, message = "你好，我想添加你为好友") => {
     if (!targetUserId) return;
     if (String(targetUserId) === String(myUserId)) {
       alert("不能添加自己为好友！");
       return false;
     }
+    
     try {
-      const res = await request.post(`/api/friend/request?senderId=${myUserId}&receiverId=${targetUserId}`);
+      // 通过 url params 携带 message
+      const res = await request.post(`/api/friend/request`, null, {
+          params: { senderId: myUserId, receiverId: targetUserId, message }
+      });
       if (res.code === 200) {
         alert("请求已发送，等待对方通过");
         return true;
@@ -73,34 +75,57 @@ export function useFriendManager(myUserId) {
     }
   };
 
-  // 5. 同意好友申请
-  const acceptFriend = async (requestId) => {
+  // 5. 🌟 综合处理好友申请 (同意、拒绝、忽略、并支持设置备注)
+  const handleFriendRequest = async (requestId, action, alias = "") => {
     try {
-      const res = await request.post(`/api/friend/accept?requestId=${requestId}`);
+      const res = await request.post(`/api/friend/handle`, null, {
+          params: { requestId, action, alias }
+      });
+      
       if (res.code === 200) {
-        alert("已添加对方为好友！");
-        fetchPendingRequests();
-        fetchFriendList();
+        alert(res.msg);
+        fetchPendingRequests(); // 刷新红点和待办
+        if (action === 'ACCEPT') {
+            fetchFriendList();  // 如果是同意，立即刷新好友列表
+        }
         return true;
       } else {
         alert(res.msg || "处理失败");
         return false;
       }
     } catch (error) {
-      console.error("同意好友失败:", error);
+      console.error("处理好友申请失败:", error);
       return false;
     }
   };
 
-  // 6. 删除好友 (新增)
+  // 6. 🌟 后期随时修改好友备注
+  const updateFriendAlias = async (friendId, newAlias) => {
+      try {
+          const res = await request.post(`/api/friend/alias`, null, {
+              params: { userId: myUserId, friendId, alias: newAlias }
+          });
+          if (res.code === 200) {
+              fetchFriendList(); // 刷新列表展示新名字
+              return true;
+          }
+          return false;
+      } catch (error) {
+          console.error("修改备注失败", error);
+          return false;
+      }
+  }
+
+  // 7. 删除好友
   const deleteFriend = async (friendId) => {
     if (!confirm("确定要删除该好友吗？删除后聊天记录将被清空。")) return false;
     try {
-      // 假设后端提供了一个删除好友的接口
-      const res = await request.post(`/api/friend/delete?userId=${myUserId}&friendId=${friendId}`);
+      const res = await request.post(`/api/friend/delete`, null, {
+          params: { userId: myUserId, friendId }
+      });
       if (res.code === 200) {
         alert("删除成功");
-        fetchFriendList(); // 重新加载好友列表
+        fetchFriendList(); 
         return true;
       } else {
         alert(res.msg || "删除失败");
@@ -121,7 +146,8 @@ export function useFriendManager(myUserId) {
     fetchPendingRequests,
     searchUser,
     sendFriendRequest,
-    acceptFriend,
+    handleFriendRequest, // 暴露新方法：在您的 vue 页面中调用 handleFriendRequest(id, 'ACCEPT', '张三') 或 handleFriendRequest(id, 'REJECT')
+    updateFriendAlias,   // 暴露新方法
     deleteFriend
   };
 }

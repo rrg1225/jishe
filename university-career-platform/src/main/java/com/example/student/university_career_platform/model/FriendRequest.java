@@ -2,7 +2,6 @@ package com.example.student.university_career_platform.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
-
 import java.time.LocalDateTime;
 
 @Entity
@@ -15,10 +14,13 @@ public class FriendRequest {
     private Long id;
 
     private String senderId;
-
     private String receiverId;
 
-    // PENDING(待处理), ACCEPTED(已同意), REJECTED(已拒绝)
+    // 🌟 新增：申请附言（例如：“我是张三，来自前端交流群”）
+    @Column(length = 255)
+    private String requestMessage;
+
+    // 🌟 状态扩展：PENDING(待处理), ACCEPTED(已同意), REJECTED(已拒绝), IGNORED(已忽略)
     private String status = "PENDING";
 
     @Column(name = "gmt_created", updatable = false)
@@ -36,5 +38,4 @@ public class FriendRequest {
     protected void onUpdate() {
         this.gmtModified = LocalDateTime.now();
     }
-
 }

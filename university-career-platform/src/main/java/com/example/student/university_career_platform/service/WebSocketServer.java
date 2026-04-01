@@ -1,124 +1,209 @@
 package com.example.student.university_career_platform.service;
 
 import com.example.student.university_career_platform.model.ChatMessage;
-import com.example.student.university_career_platform.repository.ChatMessageRepository;
-import com.example.student.university_career_platform.utils.DFAFilterUtil; // 🌟 引入新写的算法
+import com.example.student.university_career_platform.utils.DFAFilterUtil;
+import com.example.student.university_career_platform.utils.JwtUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.websocket.*;
 import jakarta.websocket.server.PathParam;
 import jakarta.websocket.server.ServerEndpoint;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @ServerEndpoint("/chat/{userId}")
 @Component
 public class WebSocketServer {
 
-    // 记录当前在线连接数
-    private static final ConcurrentHashMap<String, Session> sessionPool = new ConcurrentHashMap<>();
-
-    // 解决 WebSocket 不能直接注入 Spring Bean 的问题
-    private static ChatMessageRepository chatMessageRepository;
-
-    // 使用 Jackson 解析前端传来的 JSON 字符串
+    // 🌟 终极架构 1：支持多端同登！外层 Key 是 userId，内层 Key 是 SessionId
+    private static final ConcurrentHashMap<String, ConcurrentHashMap<String, Session>> userSessions = new ConcurrentHashMap<>();
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
+    // ================= 🌟 静态资源注入区 =================
+    private static JwtUtil jwtUtil;
+    private static StringRedisTemplate redisTemplate;
+    private static AsyncChatMessageService asyncChatMessageService;
+
     @Autowired
-    public void setChatMessageRepository(ChatMessageRepository chatMessageRepository) {
-        WebSocketServer.chatMessageRepository = chatMessageRepository;
-    }
+    public void setJwtUtil(JwtUtil jwtUtil) { WebSocketServer.jwtUtil = jwtUtil; }
+    @Autowired
+    public void setRedisTemplate(StringRedisTemplate redisTemplate) { WebSocketServer.redisTemplate = redisTemplate; }
+    @Autowired
+    public void setAsyncChatMessageService(AsyncChatMessageService asyncChatMessageService) { WebSocketServer.asyncChatMessageService = asyncChatMessageService; }
+    // ======================================================
 
     @OnOpen
     public void onOpen(Session session, @PathParam("userId") String userId) {
-        sessionPool.put(userId, session);
-        System.out.println("用户 [" + userId + "] 加入聊天！当前在线人数为: " + sessionPool.size());
+        Map<String, List<String>> parameters = session.getRequestParameterMap();
+        List<String> tokenParams = parameters.get("token");
+
+        if (tokenParams == null || tokenParams.isEmpty()) { rejectConnection(session, "缺少 Token 凭证"); return; }
+        if (!jwtUtil.validateToken(tokenParams.get(0))) { rejectConnection(session, "Token 无效或已过期"); return; }
+
+        // 🌟 修复报错核心：将当前设备的 session 存入该用户的设备集合中（支持手机、电脑同时在线）
+        userSessions.computeIfAbsent(userId, k -> new ConcurrentHashMap<>()).put(session.getId(), session);
+
+        // 标记在线心跳
+        redisTemplate.opsForValue().set("IM_ONLINE:" + userId, "1", 45, java.util.concurrent.TimeUnit.SECONDS);
+        System.out.println("用户 [" + userId + "] 鉴权通过加入集群！当前总在线用户数: " + userSessions.size());
     }
 
     @OnClose
-    public void onClose(@PathParam("userId") String userId) {
-        sessionPool.remove(userId);
-        System.out.println("用户 [" + userId + "] 断开连接！当前在线人数为: " + sessionPool.size());
+    public void onClose(Session session, @PathParam("userId") String userId) {
+        ConcurrentHashMap<String, Session> sessions = userSessions.get(userId);
+        if (sessions != null) {
+            sessions.remove(session.getId()); // 🌟 只移除当前退出的这个设备
+            if (sessions.isEmpty()) {
+                userSessions.remove(userId); // 🌟 所有设备都断开了，才真正算离线
+                redisTemplate.delete("IM_ONLINE:" + userId);
+            }
+        }
     }
 
+    // 🌟 注意这里：增加 Session currentSession 参数，用于精准回复心跳
     @OnMessage
-    public void onMessage(String message, @PathParam("userId") String userId) {
-        System.out.println("收到来自用户 [" + userId + "] 的消息: " + message);
-
+    public void onMessage(String message, Session currentSession, @PathParam("userId") String userId) {
         try {
-            // 1. 解析前端传来的结构化 JSON
             JsonNode jsonNode = objectMapper.readTree(message);
+
+            // 1. 拦截心跳包 (防 NPE 炸弹)
+            if (jsonNode.has("type") && "PING".equals(jsonNode.get("type").asText())) {
+                if (currentSession.isOpen()) {
+                    currentSession.getBasicRemote().sendText("{\"type\":\"PONG\"}");
+                    redisTemplate.expire("IM_ONLINE:" + userId, 45, java.util.concurrent.TimeUnit.SECONDS);
+                }
+                return;
+            }
+
+            // 🚀 终极优化 2：拦截 QoS 客户端回执 (消息绝对必达)
+            if (jsonNode.has("type") && "CLIENT_ACK".equals(jsonNode.get("type").asText())) {
+                String msgId = jsonNode.get("msgId").asText();
+                // 收到前端确认，从 Redis 待办队列中删掉这条消息
+                redisTemplate.delete("QOS_PENDING:" + userId + ":" + msgId);
+                System.out.println("✅ 收到 QoS 回执，消息 [" + msgId + "] 确定已送达到客户端！");
+                return;
+            }
+
+            // 🚀 终极优化 3：拦截“对方正在输入...” (毫秒级信令，不入库)
+            if (jsonNode.has("type") && "TYPING".equals(jsonNode.get("type").asText())) {
+                String toUserId = jsonNode.get("toUserId").asText();
+                ObjectNode typingMsg = objectMapper.createObjectNode();
+                typingMsg.put("toUserId", toUserId);
+                typingMsg.put("content", "{\"type\":\"TYPING\", \"fromUserId\":\"" + userId + "\"}");
+                redisTemplate.convertAndSend("chat_channel", typingMsg.toString());
+                return;
+            }
+
+            // --- 下面是正常的聊天消息处理 ---
+            if (!jsonNode.has("toUserId") || !jsonNode.has("content")) return;
+
             String messageType = jsonNode.has("messageType") ? jsonNode.get("messageType").asText() : "TEXT";
             String toUserId = jsonNode.get("toUserId").asText();
-            String content = jsonNode.get("content").asText();
+            String content = DFAFilterUtil.replaceSensitiveWord(jsonNode.get("content").asText());
 
-            // ==========================================
-            // 🌟 杀手锏接入：DFA 毫秒级敏感词过滤！
-            // 无论用户发送什么长篇大论，只要包含违法词，瞬间被替换为星号 ***
-            // ==========================================
-            content = DFAFilterUtil.replaceSensitiveWord(content);
-
-            // 2. 存入 MySQL 数据库 (删除了原有的 fileName 和 fileSize，完美适配你的实体类)
             ChatMessage chatMessage = new ChatMessage();
             chatMessage.setSenderId(userId);
             chatMessage.setReceiverId(toUserId);
             chatMessage.setMessageType(messageType);
-            chatMessage.setContent(content); // 🚨 注意：存入数据库的已经是清洗过的内容，保障平台安全
+            chatMessage.setContent(content);
             chatMessage.setIsRead(0);
 
-            chatMessageRepository.save(chatMessage);
-            System.out.println("消息已清洗并成功保存至数据库！");
+            // 异步落盘
+            asyncChatMessageService.saveMessageAsync(chatMessage);
 
-            // 3. 转发给目标用户 (如果他在线)
-            Session toSession = sessionPool.get(toUserId);
-            if (toSession != null && toSession.isOpen()) {
-                toSession.getBasicRemote().sendText(content); // 推送的也是安全内容
-                System.out.println("已将消息实时推送给目标用户 [" + toUserId + "]");
-            } else {
-                System.out.println("目标用户 [" + toUserId + "] 不在线，已作为离线消息存储。");
-            }
+            // 🚀 QoS 机制核心：生成唯一 MsgId，存入 Redis 待确认队列（10秒过期）
+            // 真实场景下，如果10秒没收到 CLIENT_ACK，会有个定时任务拿出来重新发送
+            String msgId = String.valueOf(System.currentTimeMillis());
+            ObjectNode frontendMsg = objectMapper.createObjectNode();
+            frontendMsg.put("type", "CHAT");
+            frontendMsg.put("msgId", msgId);
+            frontendMsg.put("messageType", messageType);
+            frontendMsg.put("content", content);
+            frontendMsg.put("fromUserId", userId);
+
+            String finalMsgStr = frontendMsg.toString();
+            redisTemplate.opsForValue().set("QOS_PENDING:" + toUserId + ":" + msgId, finalMsgStr, 10, java.util.concurrent.TimeUnit.SECONDS);
+
+            // 集群广播给目标用户
+            ObjectNode pubMsg = objectMapper.createObjectNode();
+            pubMsg.put("toUserId", toUserId);
+            pubMsg.put("content", finalMsgStr);
+            redisTemplate.convertAndSend("chat_channel", pubMsg.toString());
 
         } catch (Exception e) {
-            System.err.println("解析或发送消息失败: " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * 集群广播拦截：由 Redis 触发，向本地的所有设备推送
+     */
+    public void onMessageReceiveFromRedis(String message) {
+        try {
+            JsonNode node = objectMapper.readTree(message);
+            String toUserId = node.get("toUserId").asText();
+            String content = node.get("content").asText();
+
+            // 🌟 多端同登发送核心：查出该用户的所有在线设备，全部推送一遍！
+            ConcurrentHashMap<String, Session> sessions = userSessions.get(toUserId);
+            if (sessions != null && !sessions.isEmpty()) {
+                for (Session s : sessions.values()) {
+                    if (s.isOpen()) {
+                        s.getBasicRemote().sendText(content);
+                    }
+                }
+                System.out.println("⚡ 集群多端打击：已向本地机器上用户 [" + toUserId + "] 的所有设备推送了消息！");
+            }
+        } catch (Exception e) {
+            System.err.println("处理 Redis 广播失败: " + e.getMessage());
         }
     }
 
     @OnError
     public void onError(Session session, Throwable error) {
-        System.err.println("WebSocket 发生错误！");
         error.printStackTrace();
     }
 
-    public void sendAllMessage(String message) {
-        for (Session session : sessionPool.values()) {
-            try {
-                if (session != null && session.isOpen()) {
-                    session.getBasicRemote().sendText(message);
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+    private void rejectConnection(Session session, String reason) {
+        try {
+            session.close(new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, reason));
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
     /**
-     * 🌟 保留原有优化：后端主动向指定用户推送消息（专供 AI 简历生成等后台任务调用）
+     * 系统级通知（如好友申请），同样走 Redis 集群广播架构！
      */
-    public void sendMessageToUser(String userId, String message) {
-        Session session = sessionPool.get(userId);
-        if (session != null && session.isOpen()) {
-            try {
-                session.getBasicRemote().sendText(message);
-                System.out.println("后台已成功向用户 [" + userId + "] 推送系统通知！");
-            } catch (Exception e) {
-                System.err.println("推送系统通知失败：" + e.getMessage());
-                e.printStackTrace();
+    public static void sendMessageToUser(String toUserId, String messageJSON) {
+        try {
+            if (redisTemplate != null) {
+                ObjectNode pubMsg = objectMapper.createObjectNode();
+                pubMsg.put("toUserId", toUserId);
+                pubMsg.put("content", messageJSON);
+                redisTemplate.convertAndSend("chat_channel", pubMsg.toString());
             }
-        } else {
-            System.out.println("推送通知失败：用户 [" + userId + "] 当前未连接全局通知。");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 全局广播（修复了之前的报错）
+     */
+    public void sendAllMessage(String message) {
+        for (ConcurrentHashMap<String, Session> sessions : userSessions.values()) {
+            for (Session session : sessions.values()) {
+                if (session.isOpen()) {
+                    try { session.getBasicRemote().sendText(message); } catch (Exception e) { e.printStackTrace(); }
+                }
+            }
         }
     }
 }

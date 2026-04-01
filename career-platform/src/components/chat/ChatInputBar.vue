@@ -24,7 +24,10 @@
 
     <input 
       v-model="inputText" type="text" :placeholder="isRecording ? '🎤 正在聆听中，请说话...' : '输入消息...'" 
-      class="chat-input" :class="{ 'is-recording-input': isRecording }" @keyup.enter="handleSend" :disabled="disabled"
+      class="chat-input" :class="{ 'is-recording-input': isRecording }" 
+      @keyup.enter="handleSend" 
+      @input="handleInput" 
+      :disabled="disabled"
     >
 
     <button v-if="isRecording" @click="voiceInput" class="stop-record-btn pulse-anim">⏹ 停止</button>
@@ -38,7 +41,8 @@ import { emojiList as importedEmojis } from '../../constants/emoji';
 import { useVoiceInput } from '../../composables/useVoiceInput';
 
 const props = defineProps({ disabled: Boolean });
-const emit = defineEmits(['send-text', 'send-file']);
+// 🌟 新增：声明 typing 事件
+const emit = defineEmits(['send-text', 'send-file', 'typing']);
 
 const inputText = ref('');
 const fileInput = ref(null);
@@ -71,6 +75,16 @@ const handleClickOutside = (event) => {
   }
 };
 
+// 🌟 新增：输入节流处理（2秒内最多发射一次）
+let lastTypingTime = 0;
+const handleInput = () => {
+  const now = Date.now();
+  if (now - lastTypingTime > 2000) {
+    emit('typing');
+    lastTypingTime = now;
+  }
+};
+
 // 发送事件
 const handleSend = () => {
   stopVoice();
@@ -92,7 +106,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
 </script>
 
 <style scoped>
-/* 包含输入区域、表情包、按钮等全部专属CSS */
+/* 原有样式保持完全不变 */
 .input-area { display: flex; align-items: center; padding: 12px 20px; background-color: #f8fafc; border-top: 1px solid #e2e8f0; position: relative; gap: 10px; }
 .more-actions { position: relative; }
 .more-btn { width: 36px; height: 36px; border-radius: 50%; background-color: #fff; border: 1px solid #cbd5e1; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #64748b; transition: all 0.3s; padding-bottom: 3px; }

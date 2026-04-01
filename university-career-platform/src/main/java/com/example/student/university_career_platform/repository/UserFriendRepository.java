@@ -13,6 +13,8 @@ public interface UserFriendRepository extends JpaRepository<UserFriend, Long> {
     // 新增这一行：根据用户ID查询他所有的好友关系记录
     List<UserFriend> findByUserId(String userId);
 
+    UserFriend findByUserIdAndFriendId(String userId, String friendId);
+
     /* 根据用户ID和好友ID删除关系 */
     @Transactional
     void deleteByUserIdAndFriendId(String userId, String friendId);

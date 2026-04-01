@@ -1,4 +1,4 @@
-package com.example.student.university_career_platform.service;
+package com.example.student.university_career_platform.service.strategy;
 
 import com.alibaba.dashscope.aigc.generation.GenerationResult;
 import io.reactivex.Flowable;

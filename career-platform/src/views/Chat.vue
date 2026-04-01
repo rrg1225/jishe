@@ -18,12 +18,18 @@
 
         <ChatMessageBoard :messages="wsMessageList" />
 
+        <div v-if="isTyping" class="typing-indicator">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          对方正在输入
+        </div>
+
         <ChatInputBar 
           :disabled="isReconnecting || !currentChatUser"
           @send-text="handleSendText"
           @send-file="handleSendFile"
+          @typing="handleTyping" 
         />
-      </template>
+        </template>
 
       <div v-else class="empty-chat-state">
         <div class="empty-icon">💬</div>
@@ -41,7 +47,7 @@ import request from '../utils/request';
 // 引入三大核心 UI 积木
 import ChatSidebar from '../components/chat/ChatSidebar.vue';
 import ChatInputBar from '../components/chat/ChatInputBar.vue';
-import ChatMessageBoard from '../components/chat/ChatMessageBoard.vue'; // 🌟 新增
+import ChatMessageBoard from '../components/chat/ChatMessageBoard.vue'; 
 
 // 引入底层通信逻辑
 import { useWebSocket } from '../composables/useWebSocket';
@@ -54,12 +60,13 @@ const wsUrl = `${wsBaseUrl}/chat/${myUserId}`;
 const currentChatUser = ref(null);
 
 // ================== WebSocket 核心逻辑 ==================
-// 注意：移除了 onScrollToBottom 参数，因为 ChatMessageBoard 内部已经自动处理了！
 const { 
   messageList: wsMessageList, 
   isReconnecting, 
+  isTyping,             // 🌟 引入输入状态
   initWebSocket, 
-  sendMessage: sendWsMessage 
+  sendMessage: sendWsMessage,
+  sendTypingSignal      // 🌟 引入发信令方法
 } = useWebSocket(wsUrl, null);
 
 // ================== 业务交互桥梁 ==================
@@ -76,6 +83,13 @@ const openChatRoom = (friend) => {
 const onFriendDeleted = (friendId) => {
   if (currentChatUser.value?.id === friendId) {
     currentChatUser.value = null; 
+  }
+};
+
+// 🌟 新增：处理本地输入框打字事件，转发给对方
+const handleTyping = () => {
+  if (currentChatUser.value) {
+    sendTypingSignal(currentChatUser.value.id);
   }
 };
 
@@ -132,7 +146,6 @@ const fetchChatHistory = async (targetId) => {
 </script>
 
 <style scoped>
-/* 整个文件只剩下最外层的骨架布局，没有任何复杂的细节样式！ */
 .im-page-container { 
   display: flex; 
   width: 100%; 
@@ -144,6 +157,7 @@ const fetchChatHistory = async (targetId) => {
   display: flex; 
   flex-direction: column; 
   background-color: #f5f7fa; 
+  position: relative;
 }
 .im-header { 
   height: 60px; 
@@ -170,5 +184,36 @@ const fetchChatHistory = async (targetId) => {
   font-size: 60px; 
   margin-bottom: 15px; 
   opacity: 0.5; 
+}
+
+/* 🌟 新增：对方正在输入的专属 UI 样式 */
+.typing-indicator {
+  position: absolute;
+  bottom: 75px; /* 悬浮在输入框正上方 */
+  left: 20px;
+  font-size: 12px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 4px 10px;
+  border-radius: 12px;
+  backdrop-filter: blur(4px);
+  z-index: 10;
+}
+.dot {
+  width: 4px;
+  height: 4px;
+  background-color: #94a3b8;
+  border-radius: 50%;
+  display: inline-block;
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+.dot:nth-child(1) { animation-delay: -0.32s; }
+.dot:nth-child(2) { animation-delay: -0.16s; }
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
 }
 </style>

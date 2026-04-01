@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -25,14 +26,64 @@ public class ChatController {
     @Autowired
     private ChatMessageRepository chatMessageRepository;
 
-    // 获取聊天历史接口
+    // ==========================================
+    // 🌟 企业级优化：消息漫游与红点回执相关接口
+    // ==========================================
+
+    // 1. 获取聊天历史接口 (兼容了原有的 userId/otherId 和新的 myUserId/friendId)
     @GetMapping("/history")
-    public ResponseEntity<List<ChatMessage>> getChatHistory(@RequestParam String userId, @RequestParam String otherId) {
-        List<ChatMessage> history = chatMessageRepository.findChatHistory(userId, otherId);
-        return ResponseEntity.ok(history);
+    public Map<String, Object> getChatHistory(
+            @RequestParam(required = false) String userId,
+            @RequestParam(required = false) String otherId,
+            @RequestParam(required = false) String myUserId,
+            @RequestParam(required = false) String friendId,
+            @RequestParam(required = false) Long lastMessageId) { // 🌟 新增游标参数
+
+        String uId = myUserId != null ? myUserId : userId;
+        String fId = friendId != null ? friendId : otherId;
+
+        List<ChatMessage> history;
+        if (lastMessageId == null || lastMessageId <= 0) {
+            // 如果前端没传，说明是第一次点开聊天框，拉取最新的 50 条
+            history = chatMessageRepository.findChatHistory(uId, fId);
+        } else {
+            // 🚀 如果前端传了，说明用户正在下拉加载更多，去查比 lastMessageId 更老的 20 条
+            history = chatMessageRepository.findChatHistoryBefore(uId, fId, lastMessageId);
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("code", 200);
+        result.put("data", history);
+        return result;
     }
 
-    // 流式对话接口（修复了持久化问题、判空异常和连接超时问题）
+    // 2. 获取针对某个好友的未读消息数量 (新增：用于渲染 🔴 小红点)
+    @GetMapping("/unread-count")
+    public Map<String, Object> getUnreadCount(@RequestParam String myUserId, @RequestParam String friendId) {
+        Map<String, Object> result = new HashMap<>();
+        long count = chatMessageRepository.countUnreadFromFriend(myUserId, friendId);
+        result.put("code", 200);
+        result.put("data", count);
+        return result;
+    }
+
+    // 3. 将某个好友的消息标记为已读 (当用户点开聊天窗口时清空红点)
+    // 兼容了原来的 /read 路径和新的 /mark-read 路径
+    @PostMapping({"/read", "/mark-read"})
+    public Map<String, Object> markMessagesAsRead(@RequestParam String myUserId, @RequestParam String friendId) {
+        chatMessageRepository.markAsRead(myUserId, friendId);
+        Map<String, Object> result = new HashMap<>();
+        result.put("code", 200);
+        result.put("msg", "消息已标记为已读");
+        return result;
+    }
+
+
+    // ==========================================
+    // 🤖 原有核心业务：AI 导师大模型流式对话
+    // ==========================================
+
+    // 流式对话接口（保留原封不动，负责明理导师AI对话）
     @PostMapping(value = "/qwen/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamChat(@RequestBody Map<String, String> request) {
         String userMessage = request.get("message");

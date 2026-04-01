@@ -1,77 +1,101 @@
 import { ref, onUnmounted } from 'vue';
 
-/**
- * 封装 WebSocket 核心逻辑的组合式函数
- * @param {String} wsUrl WebSocket 连接地址
- * @param {Function} onScrollToBottom 收到消息后触发页面滚动到底部的回调
- */
 export function useWebSocket(wsUrl, onScrollToBottom) {
   const socket = ref(null);
   const isReconnecting = ref(false);
-  const messageList = ref([]); // 统一管理当前聊天窗口的消息列表
+  const messageList = ref([]); 
+  
+  // 🌟 新增：暴露给页面的“正在输入”状态
+  const isTyping = ref(false);
+  let typingClearTimer = null;
   
   let reconnectTimer = null;
   let heartbeatTimer = null;
 
-  // 1. 初始化连接
   const initWebSocket = () => {
-    // 如果已经有连接，先关掉，防止重复连接
-    if (socket.value && socket.value.readyState === WebSocket.OPEN) {
-      return; 
-    }
+    if (socket.value && socket.value.readyState === WebSocket.OPEN) return; 
 
-    socket.value = new WebSocket(wsUrl);
+    const token = localStorage.getItem('token') || ''; 
+    const authWsUrl = `${wsUrl.includes('?') ? wsUrl : wsUrl + '?'}token=${token}`;
+
+    socket.value = new WebSocket(authWsUrl);
 
     socket.value.onopen = () => {
       console.log("WebSocket 连接成功！");
       isReconnecting.value = false;
-      startHeartbeat(); // 开启心跳
+      startHeartbeat(); 
     };
 
     socket.value.onmessage = (event) => {
       try {
         const incomingMsg = JSON.parse(event.data);
-        // 忽略服务端的心跳返回包
         if (incomingMsg.type === 'PONG') return; 
 
-        // 将对方发来的消息推入列表
-        messageList.value.push({
-          sender: 'other',
-          messageType: incomingMsg.messageType || 'TEXT',
-          content: incomingMsg.content,
-          fileName: incomingMsg.fileName,
-          fileSize: incomingMsg.fileSize
-        });
+        // 🚀 拦截系统信令
+        if (incomingMsg.type === 'SYSTEM_NOTICE') {
+            console.log("收到系统信令:", incomingMsg.subType);
+            return; 
+        }
+
+        // 🚀 拦截“正在输入”信令
+        if (incomingMsg.type === 'TYPING') {
+            isTyping.value = true;
+            // 如果 2 秒内没再收到 TYPING，就取消显示
+            if (typingClearTimer) clearTimeout(typingClearTimer);
+            typingClearTimer = setTimeout(() => {
+                isTyping.value = false;
+            }, 2000);
+            return;
+        }
+
+        // 🚀 正常聊天消息处理 (QoS 核心机制)
+        if (incomingMsg.type === 'CHAT' || !incomingMsg.type) {
+            // 1. 立刻向后端发送已送达回执 (CLIENT_ACK)
+            if (incomingMsg.msgId) {
+                socket.value.send(JSON.stringify({
+                    type: "CLIENT_ACK",
+                    msgId: incomingMsg.msgId
+                }));
+                // console.log("已发送 QoS 消息回执:", incomingMsg.msgId);
+            }
+
+            // 2. 渲染到页面
+            messageList.value.push({
+              sender: 'other',
+              messageType: incomingMsg.messageType || 'TEXT',
+              content: incomingMsg.content,
+              fileName: incomingMsg.fileName,
+              fileSize: incomingMsg.fileSize
+            });
+        }
       } catch (e) {
+        console.error("解析消息失败，按纯文本处理:", e);
         messageList.value.push({ sender: 'other', messageType: 'TEXT', content: event.data });
       }
       
-      // 通知 UI 层滚动到底部
       if (onScrollToBottom) onScrollToBottom();
     };
 
     socket.value.onerror = (error) => console.error("WebSocket 发生错误:", error);
 
-    socket.value.onclose = () => {
-      console.log("WebSocket 连接已断开");
+    socket.value.onclose = (event) => {
       stopHeartbeat(); 
-      reconnect(); // 触发断线重连
+      if (event.code !== 1008) { 
+        reconnect(); 
+      } else {
+        console.error("WebSocket 鉴权失败，服务器拒绝连接！");
+      }
     };
   };
 
-  // 2. 断线重连机制
   const reconnect = () => {
     if (isReconnecting.value) return;
     isReconnecting.value = true;
-    
-    // 延迟 3 秒尝试重新连接
     reconnectTimer = setTimeout(() => {
-      console.log("尝试重新连接 WebSocket...");
       initWebSocket();
     }, 3000);
   };
 
-  // 3. 心跳保活机制
   const startHeartbeat = () => {
     stopHeartbeat();
     heartbeatTimer = setInterval(() => {
@@ -85,24 +109,32 @@ export function useWebSocket(wsUrl, onScrollToBottom) {
     if (heartbeatTimer) clearInterval(heartbeatTimer);
   };
 
-  // 4. 发送消息（对外暴露的方法）
   const sendMessage = (messageObj) => {
     if (socket.value && socket.value.readyState === WebSocket.OPEN) {
       socket.value.send(JSON.stringify(messageObj));
-      // 自己发的消息，立刻推入本地列表
+      // 注意：发送普通聊天消息时，前端不需要发 ACK，ACK 是别人推给你时才发的
       messageList.value.push({ sender: 'me', ...messageObj });
       if (onScrollToBottom) onScrollToBottom();
-      return true; // 发送成功
+      return true; 
     } else {
       alert("连接未建立或已断开，发送失败！");
-      return false; // 发送失败
+      return false; 
     }
   };
 
-  // 5. 手动关闭连接
+  // 🚀 新增：发送“正在输入”信令的方法
+  const sendTypingSignal = (targetUserId) => {
+      if (socket.value && socket.value.readyState === WebSocket.OPEN) {
+          socket.value.send(JSON.stringify({
+              type: "TYPING",
+              toUserId: targetUserId
+          }));
+      }
+  };
+
   const closeWebSocket = () => {
     if (socket.value) {
-      socket.value.onclose = null; // 清除回调，防止无限重连
+      socket.value.onclose = null; 
       socket.value.close();
       socket.value = null;
     }
@@ -110,16 +142,17 @@ export function useWebSocket(wsUrl, onScrollToBottom) {
     if (reconnectTimer) clearTimeout(reconnectTimer);
   };
 
-  // 组件卸载时自动清理资源，防止内存泄漏
   onUnmounted(() => {
     closeWebSocket();
   });
 
   return {
-    messageList,       // 暴露给页面的响应式消息数组
-    isReconnecting,    // 暴露给页面的重连状态
-    initWebSocket,     // 建立连接的方法
-    sendMessage,       // 发送消息的方法
-    closeWebSocket     // 关闭连接的方法
+    messageList,
+    isReconnecting,
+    isTyping,          // 暴露给组件：对方是否正在输入
+    initWebSocket,
+    sendMessage,
+    sendTypingSignal,  // 暴露给组件：发送输入状态
+    closeWebSocket
   };
 }
