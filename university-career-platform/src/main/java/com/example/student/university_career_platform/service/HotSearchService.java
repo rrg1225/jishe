@@ -14,9 +14,9 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class HotSearchService {
 
-    // 注入 Redis 分布式缓存
+    // 与 Spring Boot Redis 自动配置一致：默认 bean 为 RedisTemplate<Object, Object>
     @Autowired
-    private RedisTemplate<String, Object> redisTemplate;
+    private RedisTemplate<Object, Object> redisTemplate;
 
     // 注入 Caffeine 本地缓存 (需确保之前提过的 CacheConfig 已配置)
     @Autowired

@@ -4,8 +4,10 @@ import com.aliyun.oss.OSS;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
+import java.util.UUID;
 
 @Service
 public class OssService {
@@ -64,4 +66,30 @@ public class OssService {
         // 拼接后的格式为：https://student-career.oss-cn-beijing.aliyuncs.com/文件名
         return "https://student-career.oss-cn-beijing.aliyuncs.com/" + fileName;
     }
+
+    public String uploadFile(MultipartFile file) {
+        try {
+            InputStream inputStream = file.getInputStream();
+
+            String originalFilename = file.getOriginalFilename();
+            if (originalFilename == null || originalFilename.isEmpty()) {
+                originalFilename = "file";
+            }
+            int dot = originalFilename.lastIndexOf('.');
+            String suffix = dot >= 0 ? originalFilename.substring(dot) : "";
+            String fileName = UUID.randomUUID().toString().replace("-", "") + suffix;
+            String objectName = "uploads/" + fileName;
+
+            ossClient.putObject(bucketName, objectName, inputStream);
+
+            String publicEndpoint = endpoint.replace("-internal", "");
+            publicEndpoint = publicEndpoint.replace("http://", "").replace("https://", "");
+            return "https://" + bucketName + "." + publicEndpoint + "/" + objectName;
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("OSS 文件上传失败: " + e.getMessage());
+            return null;
+        }
+    }
+
 }
