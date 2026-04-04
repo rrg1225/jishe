@@ -84,7 +84,13 @@ const routes = [
     path: '/template-detail/:id',
     name: 'TemplateDetail',
     component: () => import('../views/TemplateDetail.vue')
-  }
+  },
+  {
+  path: '/mock-interview',
+  name: 'MockInterview',
+  component: () => import('@/views/MockInterview.vue'),
+  meta: { title: '多模态AI模拟面试' }
+}
 ]
 
 const router = createRouter({

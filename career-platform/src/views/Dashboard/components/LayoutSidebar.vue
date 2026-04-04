@@ -12,6 +12,7 @@ defineProps({
       <li :class="{ active: dash.activeMenu === 'job' }" @click="dash.activeMenu = 'job'">产教融合双选</li>
       <li :class="{ active: dash.activeMenu === 'contest' }" @click="dash.activeMenu = 'contest'">竞赛信息大厅</li>
       <li :class="{ active: dash.activeMenu === 'profile' }" @click="dash.activeMenu = 'profile'">能力画像定制</li>
+      <li @click="dash.router.push('/mock-interview')">🎤 AI 模拟面试</li>
       <li :class="{ active: dash.activeMenu === 'chat' }" @click="dash.activeMenu = 'chat'">💬 私信交流</li>
     </ul>
     <div class="community-entry">
