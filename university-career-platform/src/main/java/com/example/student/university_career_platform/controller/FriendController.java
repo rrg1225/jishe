@@ -45,13 +45,18 @@ public class FriendController {
             Map<String, Object> map = new HashMap<>();
             map.put("id", record.getFriendId());
             map.put("name", record.getFriendAlias() != null ? record.getFriendAlias() : "用户_" + record.getFriendId());
+            map.put("avatar", "https://api.dicebear.com/7.x/avataaars/svg?seed=" + record.getFriendId());
+            map.put("lastMessage", "点击开始聊天");
+            map.put("time", "");
+            map.put("unread", 0);
 
-            // 🚀 核心修改：去 Redis 里查这个朋友有没有心跳记录
+            // 🌟 核心：去 Redis 里查这个朋友有没有存活的心跳记录
             Boolean isOnline = redisTemplate.hasKey("IM_ONLINE:" + record.getFriendId());
-            map.put("isOnline", isOnline); // 返回真实的在线状态！
+            map.put("isOnline", isOnline);
 
             friendList.add(map);
         }
+
         result.put("code", 200);
         result.put("data", friendList);
         return result;
@@ -180,4 +185,6 @@ public class FriendController {
             System.err.println("发送系统信令失败: " + e.getMessage());
         }
     }
+
+
 }

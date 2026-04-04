@@ -45,4 +45,23 @@ public class OssService {
             throw new RuntimeException("OSS视频上传失败：" + e.getMessage());
         }
     }
+    /**
+     * 支持内存流直接上传 OSS (用于上传生成的缩略图)
+     */
+    public String uploadFileStream(java.io.InputStream inputStream, String originalFilename, String contentType) throws Exception {
+        // 1. 生成唯一文件名，防止重名覆盖
+        String fileName = java.util.UUID.randomUUID().toString().replace("-", "") + "_" + originalFilename;
+
+        // 2. 这里的 ossClient, bucketName 等变量请确保您类中已有定义并注入
+        // 设置元数据，防止图片被浏览器直接下载而是预览
+        com.aliyun.oss.model.ObjectMetadata meta = new com.aliyun.oss.model.ObjectMetadata();
+        meta.setContentType(contentType);
+
+        // 执行上传
+        ossClient.putObject(bucketName, fileName, inputStream, meta);
+
+        // 3. 核心修改：填入您图片中的真实域名
+        // 拼接后的格式为：https://student-career.oss-cn-beijing.aliyuncs.com/文件名
+        return "https://student-career.oss-cn-beijing.aliyuncs.com/" + fileName;
+    }
 }
