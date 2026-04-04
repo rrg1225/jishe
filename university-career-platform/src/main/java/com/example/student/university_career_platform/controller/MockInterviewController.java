@@ -84,14 +84,29 @@ public class MockInterviewController {
 
             ArrayNode historyArray = (ArrayNode) objectMapper.readTree(session.getChatHistory());
 
-            String systemPrompt = "你是一个严格的面试官。结合候选人的面部情绪【" + emotion + "】以及他的回答，给出10字左右的简短评价，并直接提出下一个问题或进行深度追问。";
+            String systemPrompt = """
+                    你是严格的技术/行为面试官。结合候选人面部情绪【%s】、应聘岗位【%s】与历史问答，评估本轮回答。
+                    只输出一段合法 JSON（不要 markdown 代码块、不要其它文字），结构严格为：
+                    {"feedback":"对本轮回答的简短点评（50字内）","correctness":"较好|一般|不足","completenessScore":75,"nextQuestion":"下一道追问或新题（单段问句）"}
+                    其中 completenessScore 必须为 0～100 的整数。
+                    规则：completenessScore 依据是否切题、结构是否完整（如 STAR）、关键要点是否覆盖；correctness 用较好/一般/不足三档；nextQuestion 必须是一个清晰的问题。
+                    """.formatted(emotion, session.getJobTitle());
+
             String userInput = "【历史对话】：\n" + historyArray.toString() + "\n\n【候选人本次回答】：\n" + answer;
 
-            String nextQuestion = llmClientService.sendRequest(MODEL_ID, systemPrompt, userInput);
+            String raw = llmClientService.sendRequest(MODEL_ID, systemPrompt, userInput);
+            Map<String, Object> eval = parseInterviewChatJson(raw);
+
+            String nextQuestion = (String) eval.get("nextQuestion");
 
             ObjectNode currentTurn = (ObjectNode) historyArray.get(historyArray.size() - 1);
             currentTurn.put("answer", answer);
             currentTurn.put("emotion", emotion);
+            currentTurn.put("feedback", String.valueOf(eval.get("feedback")));
+            currentTurn.put("correctness", String.valueOf(eval.get("correctness")));
+            Object csObj = eval.get("completenessScore");
+            int csVal = csObj instanceof Number ? ((Number) csObj).intValue() : 0;
+            currentTurn.put("completenessScore", csVal);
 
             ObjectNode newTurn = objectMapper.createObjectNode();
             newTurn.put("round", session.getCurrentRound() + 1);
@@ -107,12 +122,57 @@ public class MockInterviewController {
             Map<String, Object> response = new HashMap<>();
             response.put("nextQuestion", nextQuestion);
             response.put("round", session.getCurrentRound());
+            response.put("feedback", eval.get("feedback"));
+            response.put("correctness", eval.get("correctness"));
+            response.put("completenessScore", eval.get("completenessScore"));
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(500).body("Error processing chat: " + e.getMessage());
         }
+    }
+
+    /**
+     * 解析大模型返回的本轮 JSON：feedback / correctness / completenessScore / nextQuestion
+     */
+    private Map<String, Object> parseInterviewChatJson(String raw) {
+        Map<String, Object> map = new HashMap<>();
+        if (raw == null) {
+            raw = "";
+        }
+        String cleaned = raw.replace("```json", "").replace("```", "").trim();
+        int start = cleaned.indexOf('{');
+        int end = cleaned.lastIndexOf('}');
+        if (start >= 0 && end > start) {
+            cleaned = cleaned.substring(start, end + 1);
+        }
+        try {
+            JsonNode n = objectMapper.readTree(cleaned);
+            map.put("feedback", jsonText(n, "feedback", "已记录你的回答。"));
+            map.put("correctness", jsonText(n, "correctness", "一般"));
+            int score = 60;
+            if (n.has("completenessScore") && n.get("completenessScore").isNumber()) {
+                score = n.get("completenessScore").asInt();
+            }
+            score = Math.max(0, Math.min(100, score));
+            map.put("completenessScore", score);
+            map.put("nextQuestion", jsonText(n, "nextQuestion", "请再具体说说你在项目中的职责与产出。"));
+        } catch (Exception e) {
+            map.put("feedback", "未能解析模型结构化输出，已将下文作为下一环节内容。");
+            map.put("correctness", "未分级");
+            map.put("completenessScore", 0);
+            String fallback = raw.length() > 800 ? raw.substring(0, 800) + "…" : raw;
+            map.put("nextQuestion", fallback.isEmpty() ? "请补充描述你的相关经历。" : fallback);
+        }
+        return map;
+    }
+
+    private static String jsonText(JsonNode n, String field, String def) {
+        if (n != null && n.has(field) && !n.get(field).isNull()) {
+            return n.get(field).asText();
+        }
+        return def;
     }
 
     /**

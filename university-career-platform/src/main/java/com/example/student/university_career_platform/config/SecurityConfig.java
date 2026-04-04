@@ -64,7 +64,8 @@ public class SecurityConfig {
                                 "/error",
                                 "/api/content/**",
                                 "/api/university/**",
-                                "/api/templates/**" // 放行简历模板接口！
+                                "/api/templates/**", // 放行简历模板接口！
+                                "/api/interview/**"  // AI 模拟面试（演示/课设场景放行；生产可改为需登录）
                         ).permitAll()
                         .anyRequest().authenticated()
                 );

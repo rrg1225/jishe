@@ -86,11 +86,11 @@ const routes = [
     component: () => import('../views/TemplateDetail.vue')
   },
   {
-  path: '/mock-interview',
-  name: 'MockInterview',
-  component: () => import('@/views/MockInterview.vue'),
-  meta: { title: '多模态AI模拟面试' }
-}
+    path: '/mock-interview',
+    name: 'MockInterview',
+    component: () => import('@/views/MockInterview.vue'),
+    meta: { title: '多模态AI模拟面试', hideMentor: true },
+  },
 ]
 
 const router = createRouter({
