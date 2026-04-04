@@ -56,6 +56,7 @@ public class CounselingService {
             refinedMsg = userMessage + "\n(系统动态指令：用户已提供详尽的背景。请直接针对用户提到的具体痛点给出实质性的战术建议和硬核知识，不要反问已知信息。解答代码或算法问题时，务必保持专业、直白，禁止使用诸如‘炼丹’等花里胡哨的比喻。严禁给用户下达DDL或索要作业。绝不输出带有【】的标签，请合理使用Markdown分段落输出正文。)";
         }
 
-        return llmClientService.streamChat(MODEL_ID, SYSTEM_PROMPT, refinedMsg);
+        String rawForRag = userMessage == null ? "" : userMessage.trim();
+        return llmClientService.streamChat(MODEL_ID, SYSTEM_PROMPT, rawForRag, refinedMsg);
     }
 }
