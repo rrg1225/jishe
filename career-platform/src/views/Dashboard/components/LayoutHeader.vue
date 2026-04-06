@@ -6,7 +6,7 @@ defineProps({
 
 <template>
   <header class="header">
-    <div class="logo">学业职业规划平台</div>
+    <div class="logo">双帆引航</div>
 
     <div class="search-container">
       <div class="search-bar">
