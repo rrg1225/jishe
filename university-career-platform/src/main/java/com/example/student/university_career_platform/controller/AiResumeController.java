@@ -29,7 +29,7 @@ public class AiResumeController {
     @PostMapping("/ai-generate")
     public ResponseEntity<?> aiGenerateResume(@RequestBody Map<String, Object> rawResumeData) {
         // 1. 获取参数
-        String userId = (String) rawResumeData.getOrDefault("userId", "default");
+        String userId = (String) rawResumeData.getOrDefault("userId", "default_user");
 
         // 2. 异步调用 (报错会被 AOP 全局接管)
         resumeGenService.optimizeResumeAsync(rawResumeData, userId);

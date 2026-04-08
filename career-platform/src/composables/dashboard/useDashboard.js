@@ -303,7 +303,7 @@ const formatDateShort = (dateStr) => {
   return `${date.getMonth() + 1}/${date.getDate()}`
 }
 
-// ================= ★ 产教融合真实数据获取与过滤逻辑 ★ =================
+// ================= ★ 校企岗位精选：真实数据获取与过滤逻辑 ★ =================
 const jobCategories = ref(JOB_CATEGORIES_INITIAL)
 
 const jobCards = ref([])
@@ -347,7 +347,7 @@ const fetchJobData = async () => {
       }
     })
   } catch (error) {
-    console.error('获取产教融合岗位数据彻底失败:', error)
+    console.error('获取校企岗位数据失败:', error)
   } finally {
     loadingJobs.value = false
   }

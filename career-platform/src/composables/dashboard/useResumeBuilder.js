@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import request from '../../utils/request'
+import { getResumeNotifyUserId } from '../../utils/resumeNotifyUserId.js'
 import { ElMessage } from 'element-plus'
 
 /**
@@ -34,7 +35,7 @@ export function useResumeBuilder(router) {
   })
 
   const useExample = () => {
-    rawResumeInput.value = `我叫张三，电话 13800000000，邮箱 zhangsan@email.com。2024年毕业于南京工业大学计算机科学与技术专业，GPA 3.8/4.0。
+    rawResumeInput.value = `我叫张三，电话 13800000000，邮箱 zhangsan@email.com。2024年毕业于xx大学xx专业，GPA 3.8/4.0。
 
 【项目经历】
 校园外卖平台项目 | 2023.09 - 2024.02
@@ -95,6 +96,7 @@ export function useResumeBuilder(router) {
     const raw = rawResumeInput.value.trim()
     const guessedName = guessNameFromRaw(raw)
     const payload = {
+      userId: getResumeNotifyUserId(),
       fullName: guessedName || '求职者',
       contactPhone: '',
       targetJob: '综合求职意向',

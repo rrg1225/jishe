@@ -347,7 +347,7 @@ const currentLayout = ref('layout-classic')
 const isSaving = ref(false)
 const isGenerating = ref(false)
 
-/** 与能力画像「模板 1～8」一一对应的 8 套版式骨架（数据库 id 取模 8 映射） */
+/** 与智能简历「模板 1～8」一一对应的 8 套版式骨架（数据库 id 取模 8 映射） */
 const LAYOUT_KEYS = [
   'layout-classic',
   'layout-top',

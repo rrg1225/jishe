@@ -104,6 +104,7 @@ const handleLogin = async () => {
     })
     localStorage.setItem('token', res.token)
     localStorage.setItem('userRole', res.role || role.value)
+    localStorage.setItem('userAccount', phone.value)
     localStorage.setItem('userName', res.username || phone.value)
     localStorage.setItem('userOrg', res.org || (role.value === 'student' ? '南京工业大学' : '腾讯科技'))
     router.push('/dashboard')

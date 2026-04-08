@@ -199,6 +199,8 @@ const handleRegister = async () => {
 
     localStorage.setItem('token', loginRes.token)
     localStorage.setItem('userRole', loginRes.role || role.value)
+    localStorage.setItem('userAccount', phone.value)
+    localStorage.setItem('userName', loginRes.username || phone.value)
 
     showToast('注册成功！正在前往完善信息...', 'success')
     setTimeout(() => {

@@ -24,7 +24,7 @@
           <span class="row-label">所属专区：</span>
           <div class="tags-group">
             <span class="tag" :class="{ active: selectedCategory === 'matrix' }" @click="selectedCategory = 'matrix'">🎓 学业深造</span>
-            <span class="tag" :class="{ active: selectedCategory === 'job' }" @click="selectedCategory = 'job'">💼 产教融合</span>
+            <span class="tag" :class="{ active: selectedCategory === 'job' }" @click="selectedCategory === 'job'">💼 校企岗位</span>
             <span class="tag" :class="{ active: selectedCategory === 'contest' }" @click="selectedCategory = 'contest'">🏆 竞赛大厅</span>
           </div>
         </div>

@@ -15,7 +15,7 @@ export function createHomeData() {
       items: [],
     },
     {
-      title: '💼 产教融合热榜',
+      title: '💼 校企岗位热榜',
       target: 'job',
       items: [
         {

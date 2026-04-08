@@ -71,6 +71,7 @@ export function useDashboardAuth(router, activeMenu) {
     closeDropdown()
     localStorage.removeItem('token')
     localStorage.removeItem('userRole')
+    localStorage.removeItem('userAccount')
     localStorage.removeItem('userName')
     localStorage.removeItem('userOrg')
     router.push('/login')

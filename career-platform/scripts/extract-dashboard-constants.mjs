@@ -39,7 +39,7 @@ fs.mkdirSync(outDir, { recursive: true })
 
 fs.writeFileSync(
   path.join(outDir, 'jobCategories.js'),
-  `/** 产教融合双选 — 行业/岗位分类静态数据（由 Dashboard 迁移） */\nexport const JOB_CATEGORIES_INITIAL = ${jobArr}\n`,
+  `/** 校企岗位精选 — 行业/岗位分类静态数据（由 Dashboard 迁移） */\nexport const JOB_CATEGORIES_INITIAL = ${jobArr}\n`,
   'utf8'
 )
 fs.writeFileSync(

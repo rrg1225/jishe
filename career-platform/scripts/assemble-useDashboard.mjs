@@ -62,8 +62,8 @@ body = body.replace(
 
 // jobCategories — replace giant line
 body = body.replace(
-  /\/\/ ================= ★ 产教融合真实数据获取与过滤逻辑 ★ =================\nconst jobCategories = ref\(\[[\s\S]*?\]\)\n\nconst jobCards/m,
-  '// ================= ★ 产教融合真实数据获取与过滤逻辑 ★ =================\nconst jobCategories = ref(JOB_CATEGORIES_INITIAL)\n\nconst jobCards'
+  /\/\/ ================= ★ 校企岗位精选：真实数据获取与过滤逻辑 ★ =================\nconst jobCategories = ref\(\[[\s\S]*?\]\)\n\nconst jobCards/m,
+  '// ================= ★ 校企岗位精选：真实数据获取与过滤逻辑 ★ =================\nconst jobCategories = ref(JOB_CATEGORIES_INITIAL)\n\nconst jobCards'
 )
 
 // majorCategories block through closing ])\n\n// 🌟 核心修改 1

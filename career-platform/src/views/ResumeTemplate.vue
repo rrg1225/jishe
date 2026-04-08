@@ -151,6 +151,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import request from '../utils/request'
+import { getResumeNotifyUserId } from '../utils/resumeNotifyUserId.js'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
@@ -229,6 +230,7 @@ const handleGenerate = async () => {
 
   isGenerating.value = true
   const initialData = {
+    userId: getResumeNotifyUserId(),
     fullName: resumeData.fullName,
     contactPhone: resumeData.contactPhone,
     targetJob: resumeData.targetJob,

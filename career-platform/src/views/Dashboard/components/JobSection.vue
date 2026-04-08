@@ -9,7 +9,7 @@ defineProps({
     <div class="recruitment-section">
       <div class="section-header" style="display: flex; justify-content: space-between; align-items: center">
         <div>
-          <h3>🔥 产教融合 · 招聘双选</h3>
+          <h3>🔥 校企岗位精选</h3>
         </div>
 
         <div>

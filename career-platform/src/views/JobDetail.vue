@@ -28,7 +28,7 @@
           <div class="c-logo">{{ jobData.company ? jobData.company.charAt(0) : '企' }}</div>
           <div class="c-info">
             <h3>{{ jobData.company }}</h3>
-            <p>产教融合合作企业</p>
+            <p>校企合作企业</p>
           </div>
         </div>
       </section>

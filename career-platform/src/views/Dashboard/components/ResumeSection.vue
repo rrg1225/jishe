@@ -71,7 +71,7 @@ defineProps({
           <div class="example-icon">💡</div>
           <div class="example-content">
             <div class="example-title">📝 输入示例</div>
-            <div class="example-text">我叫张三，电话 13800000000，邮箱 zhangsan@email.com。南京工业大学计算机专业...</div>
+            <div class="example-text">我叫张三，电话 13800000000，邮箱 zhangsan@email.com。xx大学xx专业...</div>
           </div>
           <button class="use-example-btn" @click="dash.useExample">一键填充示例</button>
         </div>
