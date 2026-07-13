@@ -1,0 +1,15 @@
+# Local secrets
+.env
+.env.*
+!.env.example
+**/application-local.properties
+**/application-*.local.properties
+
+# IDE and generated files
+.idea/
+*.iml
+__pycache__/
+*.py[cod]
+target/
+node_modules/
+dist/
